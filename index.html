@@ -1,0 +1,1425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cyber Attack Earth v17 — Escalation Atlas (2000 → today)</title>
+  <script src="https://cdn.jsdelivr.net/npm/globe.gl@2.46.1/dist/globe.gl.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+  <style>
+    :root {
+      --bg:#040812; --panel:rgba(8,16,32,.92); --panel2:rgba(15,26,47,.94);
+      --line:#263958; --text:#edf5ff; --muted:#96a9c4; --accent:#4dd8ff;
+      --orange:#ff9d3c; --red:#ff4d66; --green:#4ee6a5;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif;overflow:hidden}
+    button,input,select{font:inherit}
+    #app{position:relative;height:100%;display:grid;grid-template-columns:320px 1fr 330px;grid-template-rows:1fr auto;transition:grid-template-columns .25s ease}
+    .panel{background:var(--panel);backdrop-filter:blur(12px);border-color:var(--line);z-index:10;overflow:auto}
+    #left{grid-column:1;grid-row:1/3;border-right:1px solid var(--line);padding:18px}
+    #right{grid-column:3;grid-row:1/3;border-left:1px solid var(--line);padding:18px}
+    #stage{grid-column:2;grid-row:1;position:relative;min-width:0;background:radial-gradient(circle at center,#102248 0,#040812 62%)}
+    #globe,#flatMap{position:absolute;inset:0}
+    #flatMap{display:none;padding:12px}
+    #flatMap svg{width:100%;height:100%;display:block}
+    .country{fill:#10213b;stroke:#38506f;stroke-width:.35}
+    .flat-arc{fill:none;stroke-linecap:round;opacity:.85}
+    .flat-origin{fill:#4dd8ff;stroke:#dff8ff;stroke-width:.5}
+    .flat-victim{stroke:#fff;stroke-width:.5}
+    .impact-label{position:absolute;z-index:15;max-width:220px;background:rgba(5,12,25,.94);border:1px solid #ff6b78;border-radius:9px;padding:8px 10px;color:#fff;font-size:12px;cursor:pointer;box-shadow:0 6px 22px rgba(0,0,0,.32)}
+    .impact-label b{display:block;margin-bottom:3px}
+    .impact-label span{color:#b8c8dc}
+    .hidden{display:none!important}
+.heatLegend{position:absolute;left:50%;bottom:118px;transform:translateX(-50%);z-index:25;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:999px;background:rgba(5,12,25,.86);border:1px solid rgba(255,255,255,.14);font-size:12px}.heatBar{width:150px;height:9px;border-radius:999px;background:linear-gradient(90deg,#18304f,#ffb347,#ff4d66)}
+#app.left-hidden{grid-template-columns:0 1fr 330px}#app.right-hidden{grid-template-columns:320px 1fr 0}#app.left-hidden.right-hidden{grid-template-columns:0 1fr 0}
+#app.left-hidden #left,#app.right-hidden #right{padding:0;border:0;overflow:hidden}
+.panelToggle{position:absolute;z-index:30;top:14px;background:rgba(5,12,25,.9)}#toggleLeft{left:14px}#toggleRight{right:14px}
+.pulse-path{stroke-linecap:round}
+.detailDrawer{position:absolute;z-index:45;top:12px;right:12px;width:min(430px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;background:rgba(5,12,25,.97);border:1px solid #38506f;border-radius:14px;padding:16px;box-shadow:0 18px 55px rgba(0,0,0,.48)}
+.detailDrawer.hidden{display:none}
+.detailDrawerHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
+.detailDrawerHead h2{margin:0;font-size:18px}.detailClose{flex:0 0 auto;font-size:18px;line-height:1;padding:5px 9px}
+.missile-dot{filter:drop-shadow(0 0 4px currentColor)}
+.flat-ring{transform-box:fill-box;transform-origin:center;animation:flatBlast 6s ease-out forwards}@keyframes flatBlast{0%{transform:scale(.15);opacity:.95}100%{transform:scale(1);opacity:.08}}
+    #timeline{grid-column:2;grid-row:2;background:rgba(5,12,25,.96);border-top:1px solid var(--line);padding:11px 16px;z-index:11}
+    #timeline button{padding:7px 10px;font-size:12.5px}
+    .timelineBottom{flex-wrap:wrap;row-gap:6px}
+    h1{font-size:20px;margin:0 0 5px} h2{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:22px 0 10px}
+    p{color:var(--muted);line-height:1.45;font-size:13px}
+    .badge{display:inline-flex;padding:4px 8px;border:1px solid #315171;border-radius:999px;color:var(--accent);font-size:11px}
+    label{display:block;color:var(--muted);font-size:12px;margin:11px 0 5px}
+    input[type=text],select{width:100%;background:#0d1930;color:var(--text);border:1px solid #304361;border-radius:8px;padding:9px}
+    input[type=range]{width:100%}
+    .checks{display:grid;grid-template-columns:1fr 1fr;gap:7px;font-size:12px}
+    .checks label{margin:0;display:flex;gap:7px;align-items:center;color:var(--text)}
+    .btnrow{display:flex;gap:7px;flex-wrap:wrap}
+    button{border:1px solid #34506f;color:var(--text);background:#102039;border-radius:8px;padding:8px 11px;cursor:pointer}
+    button:hover{border-color:var(--accent)}
+    button.primary{background:var(--accent);color:#00121a;border-color:var(--accent);font-weight:700}
+    .stats{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .stat{border:1px solid var(--line);background:#0c172a;border-radius:10px;padding:10px}
+    .stat strong{display:block;font-size:21px}.stat span{font-size:11px;color:var(--muted)}
+    .rank{margin:7px 0}.rankhead{display:flex;justify-content:space-between;font-size:12px}
+    .bar{height:6px;background:#172742;border-radius:9px;overflow:hidden;margin-top:4px}.bar i{display:block;height:100%;background:var(--accent)}
+    #detail{border:1px solid var(--line);border-radius:11px;background:var(--panel2);padding:14px;min-height:210px}
+    #detail h3{margin:0 0 8px;font-size:17px}.kv{display:grid;grid-template-columns:90px 1fr;gap:5px;font-size:12px;margin:6px 0}.kv b{color:var(--muted)}
+    .impact{font-weight:800}.critical{color:var(--red)}.high{color:var(--orange)}.medium{color:#ffe374}.low{color:var(--green)}
+    #yearBig{position:absolute;left:20px;top:58px;font-size:48px;font-weight:800;letter-spacing:-.05em;opacity:.88;pointer-events:none}
+    #escalation{position:absolute;left:22px;top:120px;z-index:12;pointer-events:none;font-size:12px;color:var(--muted);line-height:1.5;max-width:255px;text-shadow:0 1px 6px rgba(4,8,18,.9)}
+    #escalation strong{display:block;font-size:27px;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+    #escalation .tempo{color:var(--orange);font-weight:700}
+    #escalation .escNote{font-size:10px;opacity:.75}
+    #histo{height:48px;margin-bottom:7px;cursor:pointer;position:relative}
+    #histo svg{display:block;width:100%;height:100%}
+    #histo:hover .histoPlayhead{stroke-width:2}
+    #legend{position:absolute;left:20px;bottom:18px;background:rgba(5,12,25,.82);border:1px solid var(--line);padding:9px 11px;border-radius:9px;font-size:11px;display:flex;gap:13px}
+    .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
+    .timelineTop{display:flex;align-items:center;gap:10px}.timelineTop strong{min-width:50px;font-size:19px}.timelineTop input{flex:1}
+    .timelineBottom{display:flex;align-items:center;justify-content:space-between;margin-top:8px;gap:12px}
+    .small{font-size:11px;color:var(--muted)}
+    .demo{border-left:3px solid var(--orange);padding-left:10px}
+
+    .moreButton{position:absolute;z-index:60;top:14px;right:132px;width:42px;height:38px;padding:0;font-size:25px;line-height:1;background:rgba(5,12,25,.94);border-radius:10px}
+    .moreMenu{position:absolute;z-index:70;top:60px;right:14px;width:min(390px,calc(100% - 28px));max-height:calc(100% - 78px);overflow:auto;background:rgba(5,12,25,.98);border:1px solid #38506f;border-radius:14px;padding:14px;box-shadow:0 18px 55px rgba(0,0,0,.5)}
+    .moreMenu h2{margin:4px 0 9px}.moreMenu h3{font-size:13px;margin:16px 0 7px}.menuHead{display:flex;justify-content:space-between;align-items:center;gap:10px}.menuClose{font-size:18px;padding:4px 9px}
+    .sourceCard{border:1px solid var(--line);background:#0c172a;border-radius:10px;padding:10px;margin:8px 0}.sourceCard b{font-size:13px}.sourceCard p{margin:5px 0}.sourceMeta{font-size:11px;color:var(--muted)}
+    .sourceLinks{display:flex;flex-wrap:wrap;gap:6px;margin-top:7px}
+    .groupCard{background:rgba(16,32,57,.55);border:1px solid #2c4666;border-radius:10px;padding:9px 11px;margin:9px 0}.groupCard p{margin:3px 0}.sourceLinks a{font-size:11px;color:var(--accent);text-decoration:none;border:1px solid #315171;border-radius:999px;padding:4px 7px}.sourceLinks a:hover{background:#102b42}
+    .sourceToggle{display:flex;align-items:flex-start;gap:8px;margin:8px 0;color:var(--text)}.sourceToggle input{margin-top:3px}
+    .provenanceList{display:grid;gap:7px}.provenanceItem{border-left:3px solid var(--accent);padding-left:9px}
+    .warningBox{border-left:3px solid var(--orange);background:rgba(255,157,60,.08);padding:9px 10px;border-radius:6px;font-size:12px;color:#d7e1ef}
+    /* Tablet / unfolded phone: two columns; the details panel becomes a slide-over instead of vanishing */
+    @media(min-width:721px) and (max-width:1050px){
+      #app{grid-template-columns:280px 1fr;grid-template-rows:1fr auto}
+      #app.left-hidden,#app.left-hidden.right-hidden{grid-template-columns:0 1fr}
+      #app.right-hidden{grid-template-columns:280px 1fr}
+      #stage{grid-column:2} #timeline{grid-column:2}
+      #right{position:absolute;right:0;top:0;bottom:0;width:min(340px,86vw);z-index:44;border-left:1px solid var(--line);box-shadow:-14px 0 44px rgba(0,0,0,.5)}
+      #app.right-hidden #right{display:none}
+    }
+    /* Phone: stacked flow, tighter HUD, shorter histogram */
+    @media(max-width:720px){
+      html,body{overflow:auto}
+      #app{height:auto;min-height:100%;display:flex;flex-direction:column}
+      #stage{height:60vh;min-height:400px;order:1}
+      #timeline{order:2;position:sticky;bottom:0;padding:9px 12px}
+      #left{order:3;border:0;padding-bottom:35px}
+      #right{display:block;order:4;border:0;position:static;width:auto;box-shadow:none}
+      #app.right-hidden #right{display:block}
+      #yearBig{font-size:29px;top:56px}
+      #escalation{top:92px;max-width:210px}
+      #escalation strong{font-size:19px}
+      #histo{height:36px}
+      #timeline button{padding:7px 9px;font-size:12px}
+      #status{display:none}
+      .btnrow{gap:5px}
+      #dataStatus{flex-basis:100%;font-size:10.5px}
+      #legend{display:none}
+      .heatLegend{bottom:8px}
+      .timelineBottom{flex-wrap:wrap}
+      button{padding:9px 11px}
+      .moreButton{right:110px}
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+  <aside id="left" class="panel">
+    <span class="badge">MULTI-SOURCE INTELLIGENCE ATLAS</span>
+    <h1>Cyber Attack Earth</h1>
+    <p class="demo"><b>Mapped incident sources:</b> a ~90-incident curated layer embedded in this file (works fully offline), plus — when hosted — EuRepoC (2000–2024), VCDB, and recent-months ransomware leak-site claims from Ransomware.live, deduplicated across sources. Incident actors link to a cited threat-group directory (MITRE ATT&amp;CK + Ransomware.live profiles). MITRE ATT&amp;CK and CISA KEV load as enrichment. Use the <b>⋮</b> menu for source toggles, methodology and links. Origins are attribution or ecosystem proxies — see each incident's note.</p>
+    <p><b>New:</b> the strip above the timeline is an attacks-per-month histogram (2000&nbsp;→&nbsp;today) — click any bar to jump there. The on-map counter tracks cumulative documented attacks and the tempo multiplier versus the 2000–02 baseline. Press <b>⟲ Replay 2000&nbsp;→&nbsp;today</b> to watch the monthly missile salvos escalate.</p>
+
+    <h2>Search</h2>
+    <input id="search" type="text" placeholder="Attack, actor, country, city, sector…" />
+    <div class="btnrow" style="margin-top:8px">
+      <button id="searchBtn">Find</button><button id="resetBtn">Reset</button>
+    </div>
+
+    <h2>Display</h2>
+    <div class="btnrow" style="margin-bottom:10px">
+      <button id="sphereBtn" class="primary">Sphere</button>
+      <button id="flatBtn">Flat map</button>
+    </div>
+    <label for="viewMode">Country emphasis</label>
+    <select id="viewMode">
+      <option value="attacks">Attack events</option>
+      <option value="origins">Origin countries</option>
+      <option value="victims">Victim countries</option>
+    </select>
+    <label for="speed">Playback speed</label>
+    <select id="speed">
+      <option value="2000">0.5×</option><option value="1000" selected>1× (1 month/sec)</option><option value="500">2×</option><option value="250">4×</option>
+    </select>
+    <label for="densityMode">Missile density</label>
+    <select id="densityMode">
+      <option value="full" selected>Full detail</option>
+      <option value="performance">Performance (cap 900)</option>
+    </select>
+    <label class="form-check" style="display:flex;gap:8px;align-items:center">
+      <input id="cumulative" type="checkbox" checked /> Show all attacks up to selected month
+    </label>
+    <label class="form-check" style="display:flex;gap:8px;align-items:center">
+      <input id="heatToggle" type="checkbox" checked /> Show country attack heat
+    </label>
+    <label class="form-check" style="display:flex;gap:8px;align-items:center">
+      <input id="cities" type="checkbox" checked /> Show major cities
+    </label>
+
+    <h2>Severity</h2>
+    <div class="checks">
+      <label><input class="severity" type="checkbox" value="Critical" checked> Critical</label>
+      <label><input class="severity" type="checkbox" value="High" checked> High</label>
+      <label><input class="severity" type="checkbox" value="Medium" checked> Medium</label>
+      <label><input class="severity" type="checkbox" value="Low" checked> Low</label>
+    </div>
+
+    <h2>Sector</h2>
+    <div id="sectorChecks" class="checks"></div>
+
+    <h2>Attack type</h2>
+    <select id="typeFilter"><option value="">All attack types</option></select>
+  </aside>
+
+  <main id="stage">
+    <div id="globe"></div>
+    <div id="flatMap" aria-label="Flat world map"></div>
+    <button id="impactLabel" class="impact-label hidden" type="button"></button>
+    <section id="attackDrawer" class="detailDrawer hidden" aria-live="polite" aria-label="Attack details">
+      <div class="detailDrawerHead"><h2>Attack details</h2><button id="closeAttackDrawer" class="detailClose" type="button" aria-label="Close attack details">×</button></div>
+      <div id="attackDrawerBody"></div>
+    </section>
+    <button id="toggleLeft" class="panelToggle">☰ Controls</button><button id="toggleRight" class="panelToggle">Details ☰</button>
+    <button id="moreButton" class="moreButton" type="button" aria-label="Open data and source menu" aria-expanded="false">⋮</button>
+    <section id="moreMenu" class="moreMenu hidden" aria-label="Data sources and methodology">
+      <div class="menuHead"><h2>Data &amp; sources</h2><button id="moreClose" class="menuClose" type="button" aria-label="Close menu">×</button></div>
+      <div class="warningBox">Missiles represent publicly documented incidents, not every attack. Disclosure and collection rates differ sharply by country.</div>
+      <h3>Mapped incident layers</h3><div id="sourceLayerControls"></div>
+      <h3>Loaded intelligence enrichment</h3><div id="enrichmentStatus" class="provenanceList"></div>
+      <h3>Primary sources</h3><div id="sourceCatalogue"></div>
+      <h3>Methodology</h3><p>Records are normalised to a common incident schema and deduplicated across sources using date, victim country and a suffix-normalised victim-name key, so the same organisation reported by multiple datasets collapses into one record with merged citations. Ransomware.live records are leak-site claims — attacker assertions, placed at country level, with no origin asserted. Unknown attacker locations launch from a neutral ocean anchor. Incident actors are matched against a threat-group directory built from an embedded core plus MITRE ATT&CK intrusion sets and Ransomware.live group profiles, each cited with links.</p>
+      <div class="btnrow"><button id="exportVisible" type="button">Export visible CSV</button><button id="copySourceLinks" type="button">Copy source links</button></div>
+    </section>
+    <div id="yearBig">Jun 2026</div>
+    <div id="escalation" aria-live="polite">
+      <strong id="cumN">0</strong>
+      <span>documented attacks mapped since 2000</span>
+      <div id="escMeta"></div>
+      <div class="escNote">Counts reflect public disclosure and dataset coverage, which also grew over time.</div>
+    </div>
+    <div id="legend">
+      <span><i class="dot" style="background:#4dd8ff"></i>Origin</span>
+      <span><i class="dot" style="background:#ff4d66"></i>Victim / impact</span>
+      <span><i class="dot" style="background:#b6c8e2"></i>City</span>
+    </div>
+  </main>
+
+  <aside id="right" class="panel">
+    <button id="closeRight" type="button" style="float:right;margin:-2px 0 8px 8px" aria-label="Close details panel">✕ Close</button>
+    <h2 style="margin-top:0">Visible events</h2>
+    <div class="stats">
+      <div class="stat"><strong id="visibleCount">0</strong><span>attacks</span></div>
+      <div class="stat"><strong id="impactTotal">0</strong><span>impact score</span></div>
+    </div>
+
+    <h2>Regional coverage</h2>
+    <div id="regionCoverage" class="stats" style="grid-template-columns:1fr 1fr"></div>
+    <p id="coverageNote" class="small">Counts show visible victim routes by broad geographic region.</p>
+
+    <h2>Top origins</h2>
+    <div id="originRanks"></div>
+    <h2>Top victims</h2>
+    <div id="victimRanks"></div>
+
+    <h2>Selected incident</h2>
+    <div id="detail"><p>Click an attack arc, origin marker, or destination marker to inspect it.</p></div>
+  </aside>
+
+  <section id="timeline">
+    <div id="histo" role="slider" aria-label="Attacks per month, 2000 to 2026. Click to jump to a month." title="Attacks per month — click to jump"></div>
+    <div class="timelineTop">
+      <button id="playBtn" class="primary">▶ Play</button>
+      <strong id="yearLabel">Jun 2026</strong>
+      <input id="yearSlider" type="range" min="0" max="323" value="318" step="1" />
+    </div>
+    <div class="timelineBottom">
+      <div class="btnrow">
+        <button id="launchSeq" title="Reset to January 2000 and play the monthly missile salvos through to today">⟲ Replay</button><button id="prevBtn">−1 mo</button><button id="nextBtn">+1 mo</button><button id="monthOnlyBtn">Month only</button><button id="allToDateBtn" class="primary">All to date</button>
+      </div>
+      <span id="status" class="small" aria-live="polite">Paused</span>
+      <span id="dataStatus" class="small" style="flex-basis:100%" aria-live="polite">Loading research dataset…</span>
+    </div>
+  </section>
+</div>
+
+<script>
+/* ── Diagnostics: capture every error with detail, viewable + copyable in-page ─ */
+window.__LITE=/[?&]lite=1/.test(location.search);
+(function(){
+ const diag=window.__diag={errors:[],dataFailures:[]};
+ const b=document.createElement("div");
+ b.id="errBanner";
+ b.style.cssText="position:fixed;left:10px;right:10px;bottom:10px;z-index:9999;background:#3a0d16;border:1px solid #ff4d66;color:#ffd7dd;padding:10px 12px;border-radius:10px;font:12px/1.45 Inter,Segoe UI,Arial,sans-serif;display:none;white-space:pre-wrap;cursor:pointer";
+ document.body.appendChild(b);
+ const overlay=document.createElement("div");
+ overlay.id="diagOverlay";
+ overlay.style.cssText="position:fixed;inset:12px;z-index:10000;background:rgba(5,12,25,.98);border:1px solid #38506f;border-radius:14px;padding:14px;display:none;flex-direction:column;color:#edf5ff;font:12px/1.5 Inter,Segoe UI,Arial,sans-serif";
+ overlay.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px"><b style="font-size:15px">Diagnostics</b><span><button id="diagCopy" style="background:#4dd8ff;color:#00121a;border:0;border-radius:8px;padding:7px 10px;font-weight:700;cursor:pointer">Copy diagnostics</button> <button id="diagLite" style="background:#102039;color:#edf5ff;border:1px solid #34506f;border-radius:8px;padding:7px 10px;cursor:pointer">Reload in lite mode</button> <button id="diagClose" style="background:#102039;color:#edf5ff;border:1px solid #34506f;border-radius:8px;padding:7px 10px;cursor:pointer">✕</button></span></div><div id="diagList" style="overflow:auto;flex:1;white-space:pre-wrap;font-family:ui-monospace,Consolas,monospace;font-size:11px"></div>';
+ document.body.appendChild(overlay);
+ function diagText(){
+  const ds=document.getElementById("dataStatus");
+  return ["=== Cyber Attack Earth v17 diagnostics ===",
+   "UA: "+navigator.userAgent,
+   "Screen: "+screen.width+"x"+screen.height+" dpr "+devicePixelRatio,
+   "URL: "+location.href,
+   "Lite mode: "+window.__LITE,
+   "Data status: "+(ds?ds.textContent:"n/a"),
+   "",
+   "Runtime errors ("+diag.errors.length+"):",
+   ...diag.errors.map((e,i)=>(i+1)+". "+e.time+" "+e.msg+(e.line?" [line "+e.line+"]":"")+(e.stack?"\n   "+e.stack.split("\n").slice(0,4).join("\n   "):"")),
+   "",
+   "Data-source failures ("+diag.dataFailures.length+"):",
+   ...diag.dataFailures.map((e,i)=>(i+1)+". "+e.time+" "+e.msg)
+  ].join("\n");
+ }
+ function renderOverlay(){document.getElementById("diagList").textContent=diagText()}
+ function openOverlay(){renderOverlay();overlay.style.display="flex"}
+ b.addEventListener("click",openOverlay);
+ overlay.addEventListener("click",e=>{
+  if(e.target.id==="diagClose"){overlay.style.display="none";b.style.display="none"}
+  if(e.target.id==="diagLite"){location.href=location.pathname+"?lite=1"}
+  if(e.target.id==="diagCopy"){
+    const t=diagText();
+    (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(
+      ()=>{e.target.textContent="Copied ✓";setTimeout(()=>e.target.textContent="Copy diagnostics",1500)},
+      ()=>{const ta=document.createElement("textarea");ta.value=t;document.body.appendChild(ta);ta.select();document.execCommand("copy");ta.remove();e.target.textContent="Copied ✓"});
+  }
+ });
+ // Annotate every fetch failure with the URL that failed (d3 uses global fetch, so this covers d3.csv/d3.json too).
+ const _fetch=window.fetch.bind(window);
+ window.fetch=(input,init)=>_fetch(input,init).catch(err=>{
+   const url=typeof input==="string"?input:(input&&input.url)||"";
+   if(url&&!(err&&err.__urlTagged)){try{err.message=(err.message||"Failed to fetch")+" — "+url;err.__urlTagged=true}catch(_){}}
+   throw err;
+ });
+ const DATA_HOSTS=/zenodo\.org|vz-risk\/VCDB|VCDB\/master|attack-stix-data|kev-data|world-atlas|eurepoc/i;
+ function stamp(){return new Date().toISOString().slice(11,19)}
+ function record(msg,line,stack){
+  if(DATA_HOSTS.test(msg)){diag.dataFailures.push({time:stamp(),msg});console.warn("Data source unreachable:",msg);return}
+  diag.errors.push({time:stamp(),msg,line,stack});
+  b.style.display="block";
+  b.textContent=diag.errors.length+" runtime error"+(diag.errors.length>1?"s":"")+" — latest: "+msg.slice(0,120)+"\n(Tap to inspect and copy full diagnostics.)";
+  if(overlay.style.display==="flex")renderOverlay();
+ }
+ window.addEventListener("error",e=>record(e.message||"Unknown error",e.lineno,e.error&&e.error.stack));
+ window.addEventListener("unhandledrejection",e=>record(e.reason&&e.reason.message?e.reason.message:String(e.reason),null,e.reason&&e.reason.stack));
+})();
+/* If the CDN libraries were blocked (sandboxed preview, offline, corporate proxy), fail with an explanation instead of a blank page. */
+if(typeof Globe==="undefined"||typeof d3==="undefined"||typeof topojson==="undefined"){
+ document.getElementById("stage").insertAdjacentHTML("beforeend",
+  '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:80;padding:24px;text-align:center;background:rgba(4,8,18,.93)">'+
+  '<div style="max-width:540px"><h2 style="margin:0 0 8px">Map libraries could not load</h2>'+
+  '<p style="color:#96a9c4;line-height:1.5">This page loads globe.gl, D3 and TopoJSON from <b>cdn.jsdelivr.net</b>. Sandboxed previews (including in-app artifact viewers) and some corporate proxies block that domain, and it also fails offline.<br><br>Open the file directly in Chrome, Edge or Firefox with an internet connection — or host it (e.g. GitHub Pages) — and it will run normally.</p></div></div>');
+ throw new Error("External map libraries unavailable — cdn.jsdelivr.net blocked or offline");
+}
+let attacks = [
+ {id:1,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2007,name:"Baltic Government Disruption",actor:"Demo Actor North",originCountry:"Russia",originCity:"St Petersburg",startLat:59.93,startLng:30.31,victimCountry:"Estonia",victimCity:"Tallinn",endLat:59.44,endLng:24.75,severity:"High",impact:72,sector:"Government",type:"DDoS",summary:"Demonstration record representing a large-scale disruption campaign.",source:"Wikipedia overview (for prototype only)",sourceUrl:"https://en.wikipedia.org/wiki/2007_cyberattacks_on_Estonia"},
+ {id:2,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2008,name:"Regional Network Campaign",actor:"Demo Group A",originCountry:"Russia",originCity:"Moscow",startLat:55.76,startLng:37.62,victimCountry:"Georgia",victimCity:"Tbilisi",endLat:41.72,endLng:44.79,severity:"High",impact:68,sector:"Government",type:"DDoS",summary:"Demonstration event used to test regional attack animation.",source:"Wikipedia overview (for prototype only)",sourceUrl:"https://en.wikipedia.org/wiki/Cyberattacks_during_the_Russo-Georgian_War"},
+ {id:3,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2010,name:"Industrial Control Sabotage",actor:"Demo State Coalition",originCountry:"United States",originCity:"Washington",startLat:38.91,startLng:-77.04,victimCountry:"Iran",victimCity:"Natanz",endLat:33.72,endLng:51.73,severity:"Critical",impact:96,sector:"Energy",type:"ICS malware",summary:"Demonstration record for a high-impact industrial control incident.",source:"CISA overview",sourceUrl:"https://www.cisa.gov/news-events/ics-alerts/ir-alert-h-16-056-01"},
+ {id:4,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2011,name:"Certificate Authority Intrusion",actor:"Demo Actor East",originCountry:"Iran",originCity:"Tehran",startLat:35.69,startLng:51.39,victimCountry:"Netherlands",victimCity:"Amsterdam",endLat:52.37,endLng:4.90,severity:"High",impact:77,sector:"Technology",type:"Data breach",summary:"Demonstration record showing trust infrastructure compromise.",source:"Wikipedia overview (for prototype only)",sourceUrl:"https://en.wikipedia.org/wiki/DigiNotar"},
+ {id:5,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2012,name:"Energy Network Intrusion",actor:"Demo Group B",originCountry:"China",originCity:"Shanghai",startLat:31.23,startLng:121.47,victimCountry:"Canada",victimCity:"Calgary",endLat:51.05,endLng:-114.07,severity:"Medium",impact:55,sector:"Energy",type:"Espionage",summary:"Demonstration record for long-running network espionage.",source:"Prototype placeholder source",sourceUrl:"https://www.cisa.gov/topics/cyber-threats-and-advisories"},
+ {id:6,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2013,name:"Retail Payment Compromise",actor:"Demo Criminal Group",originCountry:"Ukraine",originCity:"Kyiv",startLat:50.45,startLng:30.52,victimCountry:"United States",victimCity:"Minneapolis",endLat:44.98,endLng:-93.27,severity:"Critical",impact:91,sector:"Retail",type:"Data breach",summary:"Demonstration record for a major payment-card compromise.",source:"Wikipedia overview (for prototype only)",sourceUrl:"https://en.wikipedia.org/wiki/2013_Target_data_breach"},
+ {id:7,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2014,name:"Entertainment Company Breach",actor:"Demo State Unit",originCountry:"North Korea",originCity:"Pyongyang",startLat:39.04,startLng:125.76,victimCountry:"United States",victimCity:"Los Angeles",endLat:34.05,endLng:-118.24,severity:"Critical",impact:94,sector:"Media",type:"Destructive malware",summary:"Demonstration record for destructive intrusion and data theft.",source:"FBI public statement",sourceUrl:"https://www.fbi.gov/news/press-releases/update-on-sony-investigation"},
+ {id:8,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2015,name:"Power Distribution Outage",actor:"Demo Unit Sand",originCountry:"Russia",originCity:"Moscow",startLat:55.76,startLng:37.62,victimCountry:"Ukraine",victimCity:"Kyiv",endLat:50.45,endLng:30.52,severity:"Critical",impact:98,sector:"Energy",type:"ICS attack",summary:"Demonstration record for disruption of electricity distribution.",source:"CISA analysis",sourceUrl:"https://www.cisa.gov/news-events/ics-alerts/ir-alert-h-16-056-01"},
+ {id:9,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2016,name:"Central Bank Transfer Fraud",actor:"Demo Lazarus-like Group",originCountry:"North Korea",originCity:"Pyongyang",startLat:39.04,startLng:125.76,victimCountry:"Bangladesh",victimCity:"Dhaka",endLat:23.81,endLng:90.41,severity:"Critical",impact:93,sector:"Finance",type:"Financial theft",summary:"Demonstration record for fraudulent international transfers.",source:"Wikipedia overview (for prototype only)",sourceUrl:"https://en.wikipedia.org/wiki/Bangladesh_Bank_robbery"},
+ {id:10,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2017,name:"Global Ransomware Wave",actor:"Demo Group C",originCountry:"North Korea",originCity:"Pyongyang",startLat:39.04,startLng:125.76,victimCountry:"United Kingdom",victimCity:"London",endLat:51.51,endLng:-0.13,severity:"Critical",impact:100,sector:"Healthcare",type:"Ransomware",summary:"Demonstration record representing a globally disruptive ransomware outbreak.",source:"NCSC guidance",sourceUrl:"https://www.ncsc.gov.uk/guidance/wannacry-guidance-for-home-users-and-small-businesses"},
+ {id:11,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2017,name:"Supply Chain Destruction",actor:"Demo Unit Sand",originCountry:"Russia",originCity:"Moscow",startLat:55.76,startLng:37.62,victimCountry:"Ukraine",victimCity:"Kyiv",endLat:50.45,endLng:30.52,severity:"Critical",impact:100,sector:"Transport",type:"Supply-chain malware",summary:"Demonstration record for destructive malware propagated through a supplier.",source:"CISA alert",sourceUrl:"https://www.cisa.gov/news-events/cybersecurity-advisories/aa20-099a"},
+ {id:12,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2018,name:"Hotel Customer Data Theft",actor:"Demo Group East",originCountry:"China",originCity:"Beijing",startLat:39.90,startLng:116.41,victimCountry:"United States",victimCity:"Bethesda",endLat:38.98,endLng:-77.09,severity:"High",impact:82,sector:"Hospitality",type:"Data breach",summary:"Demonstration record for a large customer-data compromise.",source:"Wikipedia overview (for prototype only)",sourceUrl:"https://en.wikipedia.org/wiki/2018_Marriott_International_data_breach"},
+ {id:13,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2019,name:"Municipal Ransomware Event",actor:"Demo Criminal Syndicate",originCountry:"Russia",originCity:"St Petersburg",startLat:59.93,startLng:30.31,victimCountry:"United States",victimCity:"Baltimore",endLat:39.29,endLng:-76.61,severity:"High",impact:79,sector:"Government",type:"Ransomware",summary:"Demonstration record for prolonged municipal service disruption.",source:"Wikipedia overview (for prototype only)",sourceUrl:"https://en.wikipedia.org/wiki/2019_Baltimore_ransomware_attack"},
+ {id:14,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2020,name:"Software Update Compromise",actor:"Demo Foreign Intelligence",originCountry:"Russia",originCity:"Moscow",startLat:55.76,startLng:37.62,victimCountry:"United States",victimCity:"Austin",endLat:30.27,endLng:-97.74,severity:"Critical",impact:99,sector:"Technology",type:"Supply-chain attack",summary:"Demonstration record for a far-reaching software supply-chain compromise.",source:"CISA SolarWinds guidance",sourceUrl:"https://www.cisa.gov/news-events/directives/ed-21-01-mitigate-solarwinds-orion-code-compromise"},
+ {id:15,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2021,name:"Fuel Pipeline Ransomware",actor:"Demo Criminal Group Dark",originCountry:"Russia",originCity:"Moscow",startLat:55.76,startLng:37.62,victimCountry:"United States",victimCity:"Alpharetta",endLat:34.08,endLng:-84.29,severity:"Critical",impact:97,sector:"Energy",type:"Ransomware",summary:"Demonstration record for operational disruption to fuel distribution.",source:"CISA Colonial Pipeline information",sourceUrl:"https://www.cisa.gov/news-events/news/darkside-ransomware-best-practices-prevent-business-disruption-ransomware-attacks"},
+ {id:16,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2022,name:"Satellite Communications Disruption",actor:"Demo State Unit",originCountry:"Russia",originCity:"Moscow",startLat:55.76,startLng:37.62,victimCountry:"Ukraine",victimCity:"Kyiv",endLat:50.45,endLng:30.52,severity:"Critical",impact:95,sector:"Telecoms",type:"Wiper malware",summary:"Demonstration record for disruption of satellite communications.",source:"European Council statement",sourceUrl:"https://www.consilium.europa.eu/en/press/press-releases/2022/05/10/russian-cyber-operations-against-ukraine-declaration-by-the-high-representative-on-behalf-of-the-european-union/"},
+ {id:17,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2023,name:"File Transfer Exploitation",actor:"Demo Extortion Group",originCountry:"Russia",originCity:"Moscow",startLat:55.76,startLng:37.62,victimCountry:"United Kingdom",victimCity:"London",endLat:51.51,endLng:-0.13,severity:"High",impact:84,sector:"Professional Services",type:"Mass exploitation",summary:"Demonstration record for exploitation of a widely used file-transfer product.",source:"CISA advisory",sourceUrl:"https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-158a"},
+ {id:18,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2024,name:"Healthcare Payments Disruption",actor:"Demo Ransomware Affiliate",originCountry:"Russia",originCity:"Moscow",startLat:55.76,startLng:37.62,victimCountry:"United States",victimCity:"Nashville",endLat:36.16,endLng:-86.78,severity:"Critical",impact:98,sector:"Healthcare",type:"Ransomware",summary:"Demonstration record for severe disruption to healthcare payment processing.",source:"HHS breach portal / public reporting",sourceUrl:"https://ocrportal.hhs.gov/ocr/breach/breach_report.jsf"},
+ {id:19,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2025,name:"European Energy Control Intrusion",actor:"Demo Actor Frost",originCountry:"Belarus",originCity:"Minsk",startLat:53.90,startLng:27.56,victimCountry:"Poland",victimCity:"Warsaw",endLat:52.23,endLng:21.01,severity:"High",impact:88,sector:"Energy",type:"ICS intrusion",summary:"Synthetic demonstration record for testing a 2025 European energy scenario.",source:"Synthetic prototype record — no verified public source",sourceUrl:""},
+ {id:20,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2026,name:"Quantum Research Espionage",actor:"Demo Actor Q",originCountry:"China",originCity:"Beijing",startLat:39.90,startLng:116.41,victimCountry:"United Kingdom",victimCity:"Oxford",endLat:51.75,endLng:-1.25,severity:"High",impact:86,sector:"Research",type:"Espionage",summary:"Synthetic demonstration record for testing the final year of the timeline.",source:"Synthetic prototype record — no verified public source",sourceUrl:""},{"id":21,"year":2018,"month":3,"name":"Carbanak/Cobalt bank campaigns","actor":"Carbanak organised cybercrime group","leader":"Alleged mastermind arrested; identity not publicly named by Europol","originCountry":"Ukraine","originCity":"Kyiv (network proxy)","startLat":50.45,"startLng":30.52,"victimCountry":"Spain","victimISO":"724","victimCity":"Madrid","endLat":40.42,"endLng":-3.7,"severity":"Critical","impact":92,"sector":"Finance","type":"Financial theft","confidence":"Medium","summary":"A multinational criminal group targeted more than 100 financial institutions worldwide.","attribution":"The group and an alleged leader were identified by Europol, but Kyiv is a network proxy rather than a proven launch location for every attack.","source":"Europol","sourceUrl":"https://www.europol.europa.eu/media-press/newsroom/news/mastermind-behind-eur-1-billion-cyber-bank-robbery-arrested-in-spain"},{"id":22,"year":2019,"month":8,"name":"Texas local-government REvil attacks","actor":"REvil / Sodinokibi","leader":"Yevgeniy Polyanin (charged affiliate)","originCountry":"Russia","originCity":"Barnaul (affiliate proxy)","startLat":53.35,"startLng":83.78,"victimCountry":"United States","victimISO":"840","victimCity":"Austin","endLat":30.27,"endLng":-97.74,"severity":"High","impact":84,"sector":"Government","type":"Ransomware","confidence":"Medium","summary":"Coordinated ransomware attacks affected numerous local-government organisations.","attribution":"US charges identify Polyanin as an REvil actor linked to Texas victims; ransomware affiliates may operate independently.","source":"US Department of Justice","sourceUrl":"https://www.justice.gov/archives/opa/pr/ukrainian-arrested-and-charged-ransomware-attack-kaseya"},{"id":23,"year":2020,"month":12,"name":"SolarWinds supply-chain compromise","actor":"SVR-linked actors","leader":"Russian intelligence operation","originCountry":"Russia","originCity":"Moscow (state proxy)","startLat":55.76,"startLng":37.62,"victimCountry":"United States","victimISO":"840","victimCity":"Austin","endLat":30.27,"endLng":-97.74,"severity":"Critical","impact":99,"sector":"Technology","type":"Supply-chain attack","confidence":"High","summary":"A compromised build process inserted a backdoor into software updates used worldwide.","attribution":"The US government attributed the campaign to Russia's Foreign Intelligence Service; the point is a state proxy.","source":"CISA","sourceUrl":"https://www.cisa.gov/news-events/directives/ed-21-01-mitigate-solarwinds-orion-code-compromise"},{"id":24,"year":2021,"month":5,"name":"Colonial Pipeline ransomware","actor":"DarkSide affiliate","leader":"Unknown affiliate; Russian-speaking ecosystem proxy","originCountry":"Russia","originCity":"Moscow (ecosystem proxy)","startLat":55.76,"startLng":37.62,"victimCountry":"United States","victimISO":"840","victimCity":"Alpharetta","endLat":34.08,"endLng":-84.29,"severity":"Critical","impact":97,"sector":"Energy","type":"Ransomware","confidence":"Medium","summary":"The pipeline operator shut down operations, contributing to fuel shortages.","attribution":"DarkSide claimed responsibility, but the affiliate and physical launch location are not publicly established.","source":"CISA","sourceUrl":"https://www.cisa.gov/news-events/news/darkside-ransomware-best-practices-prevent-business-disruption-ransomware-attacks"},{"id":25,"year":2021,"month":7,"name":"Kaseya VSA ransomware","actor":"REvil / Sodinokibi affiliate","leader":"Yaroslav Vasinskyi (charged operator)","originCountry":"Ukraine","originCity":"Kyiv (operator proxy)","startLat":50.45,"startLng":30.52,"victimCountry":"United States","victimISO":"840","victimCity":"Miami","endLat":25.76,"endLng":-80.19,"severity":"Critical","impact":95,"sector":"Technology","type":"Supply-chain ransomware","confidence":"High","summary":"Remote-management software was exploited to distribute ransomware through service providers.","attribution":"US prosecutors charged Vasinskyi with conducting the Kaseya attack; Kyiv is a nationality-based proxy, not a verified keyboard location.","source":"US Department of Justice","sourceUrl":"https://www.justice.gov/archives/opa/pr/ukrainian-arrested-and-charged-ransomware-attack-kaseya"},{"id":26,"year":2023,"month":1,"name":"Royal Mail LockBit disruption","actor":"LockBit affiliate","leader":"Dmitry Yuryevich Khoroshev (alleged administrator)","originCountry":"Russia","originCity":"Voronezh (alleged leader proxy)","startLat":51.67,"startLng":39.2,"victimCountry":"United Kingdom","victimISO":"826","victimCity":"London","endLat":51.51,"endLng":-0.13,"severity":"High","impact":88,"sector":"Transport","type":"Ransomware","confidence":"Medium","summary":"International parcel and letter services were severely disrupted.","attribution":"LockBit claimed the attack. The displayed point uses the alleged administrator as a group proxy; an affiliate may have operated elsewhere.","source":"CISA joint LockBit advisory","sourceUrl":"https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-165a"},{"id":27,"year":2023,"month":5,"name":"MOVEit mass exploitation","actor":"Cl0p ransomware group","leader":"Unknown; Russian-speaking group proxy","originCountry":"Russia","originCity":"Moscow (ecosystem proxy)","startLat":55.76,"startLng":37.62,"victimCountry":"United Kingdom","victimISO":"826","victimCity":"London","endLat":51.51,"endLng":-0.13,"severity":"Critical","impact":94,"sector":"Professional Services","type":"Mass exploitation","confidence":"High","summary":"A zero-day in MOVEit Transfer was exploited against organisations worldwide for theft and extortion.","attribution":"Cl0p claimed the campaign. Specific operators and physical origin are not publicly established.","source":"CISA","sourceUrl":"https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-158a"},{"id":28,"year":2023,"month":9,"name":"MGM Resorts disruption","actor":"Scattered Spider / ALPHV ecosystem","leader":"Distributed group; several alleged members charged","originCountry":"United Kingdom","originCity":"London (member-network proxy)","startLat":51.51,"startLng":-0.13,"victimCountry":"United States","victimISO":"840","victimCity":"Las Vegas","endLat":36.17,"endLng":-115.14,"severity":"Critical","impact":93,"sector":"Hospitality","type":"Social engineering and ransomware","confidence":"Medium","summary":"Identity-focused social engineering led to prolonged disruption across hotel and casino systems.","attribution":"The incident is widely linked to Scattered Spider and ALPHV. The group is distributed, so London is only a proxy.","source":"US Department of Justice","sourceUrl":"https://www.justice.gov/opa/pr/united-kingdom-national-charged-connection-multiple-cyber-attacks-including-critical"},{"id":29,"year":2024,"month":2,"name":"Change Healthcare ransomware","actor":"ALPHV / BlackCat affiliate","leader":"Unknown affiliate; Russian-speaking service proxy","originCountry":"Russia","originCity":"Moscow (ecosystem proxy)","startLat":55.76,"startLng":37.62,"victimCountry":"United States","victimISO":"840","victimCity":"Nashville","endLat":36.16,"endLng":-86.78,"severity":"Critical","impact":99,"sector":"Healthcare","type":"Ransomware","confidence":"High","summary":"A major healthcare payments and claims processor was disrupted nationwide.","attribution":"ALPHV claimed the incident. The affiliate and physical origin remain uncertain.","source":"US HHS","sourceUrl":"https://www.hhs.gov/about/news/2024/03/05/hhs-statement-regarding-the-cyberattack-on-change-healthcare.html"},{"id":30,"year":2025,"month":5,"name":"Qakbot global malware conspiracy","actor":"Qakbot criminal network","leader":"Rustam Rafailevich Gallyamov (charged alleged leader)","originCountry":"Russia","originCity":"Moscow","startLat":55.76,"startLng":37.62,"victimCountry":"United States","victimISO":"840","victimCity":"Los Angeles","endLat":34.05,"endLng":-118.24,"severity":"Critical","impact":94,"sector":"Technology","type":"Malware-as-a-service","confidence":"High","summary":"Qakbot infected large numbers of systems and enabled ransomware groups worldwide.","attribution":"The US Department of Justice charged Gallyamov as leader. The allegation may not yet have been tested at trial, and infrastructure was distributed.","source":"US Department of Justice","sourceUrl":"https://www.justice.gov/opa/pr/leader-qakbot-malware-conspiracy-indicted-involvement-global-ransomware-scheme"}
+];
+
+// Curated expansion layer: documented incidents chosen for global coverage (South America, Africa,
+// Oceania, Asia, Middle East) so the embedded dataset is representative even without remote loads.
+// Origins marked "(proxy)" reflect public attribution, ecosystem or member-nationality proxies — not
+// verified launch locations. Sources are stable overview pages; verify links before publication.
+const CURATED_EXPANSION=[
+// ── South & Central America ─────────────────────────────────────────────────
+{id:101,year:2018,month:5,name:"Banco de Chile SWIFT heist",actor:"Lazarus Group",leader:"North Korean state-linked group",originCountry:"North Korea",originCity:"Pyongyang (attribution proxy)",startLat:39.04,startLng:125.76,victimCountry:"Chile",victimISO:"152",victimCity:"Santiago",endLat:-33.45,endLng:-70.66,severity:"High",impact:84,sector:"Finance",type:"Financial theft",confidence:"Medium",summary:"Destructive malware masked fraudulent SWIFT transfers of roughly US$10 million.",attribution:"Widely attributed to Lazarus Group; the origin point is a state proxy.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Lazarus_Group"},
+{id:102,year:2020,month:9,name:"BancoEstado ransomware shutdown",actor:"REvil / Sodinokibi affiliate",leader:"Unknown affiliate",originCountry:"Russia",originCity:"Moscow (ecosystem proxy)",startLat:55.76,startLng:37.62,victimCountry:"Chile",victimISO:"152",victimCity:"Santiago",endLat:-33.45,endLng:-70.66,severity:"High",impact:76,sector:"Finance",type:"Ransomware",confidence:"Medium",summary:"Chile's state bank closed branches nationwide after ransomware spread through its office network.",attribution:"Linked in public reporting to the REvil ecosystem; affiliate identity unestablished.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Banco_del_Estado_de_Chile"},
+{id:103,year:2019,month:11,name:"Pemex DoppelPaymer ransomware",actor:"DoppelPaymer group",leader:"Unknown; Russian-speaking ecosystem",originCountry:"Russia",originCity:"Moscow (ecosystem proxy)",startLat:55.76,startLng:37.62,victimCountry:"Mexico",victimISO:"484",victimCity:"Mexico City",endLat:19.43,endLng:-99.13,severity:"High",impact:80,sector:"Energy",type:"Ransomware",confidence:"Medium",summary:"Mexico's state oil company had administrative systems encrypted with a multimillion-dollar ransom demand.",attribution:"DoppelPaymer ransom notes were reported; operators not publicly identified.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Pemex"},
+{id:104,year:2020,month:11,name:"Brazil Superior Court of Justice ransomware",actor:"RansomExx group",leader:"Unknown",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"Brazil",victimISO:"076",victimCity:"Brasília",endLat:-15.79,endLng:-47.88,severity:"High",impact:83,sector:"Government",type:"Ransomware",confidence:"Medium",summary:"Brazil's second-highest court suspended sessions after case systems were encrypted.",attribution:"Publicly linked to RansomExx; no origin country established — neutral anchor shown.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Superior_Court_of_Justice_(Brazil)"},
+{id:105,year:2021,month:12,name:"Brazil Ministry of Health / ConecteSUS breach",actor:"Lapsus$",leader:"Distributed group; teenage members later arrested",originCountry:"Brazil",originCity:"São Paulo (member proxy)",startLat:-23.55,startLng:-46.63,victimCountry:"Brazil",victimISO:"076",victimCity:"Brasília",endLat:-15.79,endLng:-47.88,severity:"High",impact:78,sector:"Healthcare",type:"Data theft and defacement",confidence:"High",summary:"COVID-19 vaccination platforms were taken offline and data theft claimed during the pandemic response.",attribution:"Lapsus$ claimed the attack; the group had members in Brazil and the UK.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Lapsus$"},
+{id:106,year:2022,month:2,name:"Americanas retail outage",actor:"Lapsus$",leader:"Distributed group",originCountry:"United Kingdom",originCity:"London (member proxy)",startLat:51.51,startLng:-0.13,victimCountry:"Brazil",victimISO:"076",victimCity:"Rio de Janeiro",endLat:-22.91,endLng:-43.17,severity:"Medium",impact:66,sector:"Retail",type:"Intrusion and disruption",confidence:"Medium",summary:"One of Brazil's largest online retailers stayed offline for days, losing substantial sales.",attribution:"Claimed by Lapsus$; individual responsibility not established in court.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Lapsus$"},
+{id:107,year:2020,month:8,name:"Argentina border control (Migraciones) ransomware",actor:"Netwalker affiliate",leader:"Unknown affiliate",originCountry:"Russia",originCity:"Moscow (ecosystem proxy)",startLat:55.76,startLng:37.62,victimCountry:"Argentina",victimISO:"032",victimCity:"Buenos Aires",endLat:-34.6,endLng:-58.38,severity:"High",impact:74,sector:"Government",type:"Ransomware",confidence:"Medium",summary:"Border crossings were temporarily halted while immigration systems were down.",attribution:"Netwalker claimed the attack; affiliate and location unestablished.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Ransomware"},
+{id:108,year:2021,month:10,name:"Argentina RENAPER national ID data theft",actor:"Unknown criminal actor",leader:"Not established",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"Argentina",victimISO:"032",victimCity:"Buenos Aires",endLat:-34.6,endLng:-58.38,severity:"High",impact:80,sector:"Government",type:"Data breach",confidence:"Medium",summary:"ID card data for the national population was offered for sale after registry access was abused.",attribution:"Access reportedly came via stolen government credentials; actor unidentified.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/National_Registry_of_Persons_(Argentina)"},
+{id:109,year:2021,month:10,name:"Banco Pichincha disruption",actor:"Unknown criminal actor",leader:"Not established",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"Ecuador",victimISO:"218",victimCity:"Quito",endLat:-0.18,endLng:-78.47,severity:"Medium",impact:68,sector:"Finance",type:"Intrusion and disruption",confidence:"Medium",summary:"Ecuador's largest private bank suffered a multi-day outage of cards and online banking.",attribution:"No public attribution; neutral anchor shown.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Banco_Pichincha"},
+{id:110,year:2023,month:9,name:"IFX Networks ransomware hits Colombian state services",actor:"RansomHouse",leader:"Unknown",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"Colombia",victimISO:"170",victimCity:"Bogotá",endLat:4.71,endLng:-74.07,severity:"High",impact:79,sector:"Technology",type:"Supply-chain ransomware",confidence:"Medium",summary:"An attack on a regional IT provider knocked out dozens of Colombian government and judicial services.",attribution:"RansomHouse claimed responsibility; operators unidentified.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Ransomware"},
+{id:111,year:2022,month:4,name:"Costa Rica national emergency — Conti ransomware",actor:"Conti",leader:"Russian-speaking group; US reward offered",originCountry:"Russia",originCity:"Moscow (ecosystem proxy)",startLat:55.76,startLng:37.62,victimCountry:"Costa Rica",victimISO:"188",victimCity:"San José",endLat:9.93,endLng:-84.08,severity:"Critical",impact:92,sector:"Government",type:"Ransomware",confidence:"High",summary:"Attacks on the finance ministry and other agencies led Costa Rica to declare a national emergency.",attribution:"Conti claimed the campaign and the US offered rewards for its leadership.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/2022_Costa_Rican_ransomware_attack"},
+// ── Africa ──────────────────────────────────────────────────────────────────
+{id:120,year:2021,month:7,name:"Transnet port terminals ransomware",actor:"'Death Kitty' ransomware operators",leader:"Unknown; Eastern-European-linked strains",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"South Africa",victimISO:"710",victimCity:"Durban",endLat:-29.86,endLng:31.02,severity:"High",impact:85,sector:"Transport",type:"Ransomware",confidence:"Medium",summary:"Container operations at South Africa's main ports were forced to manual processing for days.",attribution:"Reported strain links to known ransomware families; operators unidentified.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Transnet"},
+{id:121,year:2021,month:9,name:"South African Department of Justice ransomware",actor:"Unknown ransomware group",leader:"Not established",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"South Africa",victimISO:"710",victimCity:"Pretoria",endLat:-25.75,endLng:28.19,severity:"High",impact:74,sector:"Government",type:"Ransomware",confidence:"Medium",summary:"Court recordings, bail services and correspondence were disrupted for weeks.",attribution:"No public attribution released.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Department_of_Justice_and_Constitutional_Development"},
+{id:122,year:2019,month:7,name:"Johannesburg City Power ransomware",actor:"Unknown ransomware group",leader:"Not established",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"South Africa",victimISO:"710",victimCity:"Johannesburg",endLat:-26.2,endLng:28.04,severity:"Medium",impact:68,sector:"Energy",type:"Ransomware",confidence:"Medium",summary:"Prepaid electricity purchases failed for many residents after the municipal utility was encrypted.",attribution:"No public attribution released.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/City_Power_Johannesburg"},
+{id:123,year:2022,month:3,name:"TransUnion South Africa extortion breach",actor:"N4ughtySecTU",leader:"Claimed Brazil-based crew",originCountry:"Brazil",originCity:"São Paulo (claimed proxy)",startLat:-23.55,startLng:-46.63,victimCountry:"South Africa",victimISO:"710",victimCity:"Johannesburg",endLat:-26.2,endLng:28.04,severity:"High",impact:72,sector:"Finance",type:"Data breach and extortion",confidence:"Low",summary:"Credit records of millions of South Africans were held for ransom after a credential compromise.",attribution:"The claiming group described itself as Brazil-based; unverified.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/TransUnion"},
+{id:124,year:2023,month:7,name:"Kenya eCitizen DDoS campaign",actor:"Anonymous Sudan",leader:"Claimed Sudanese hacktivists; independent analyses suggest pro-Russian alignment",originCountry:"Sudan",originCity:"Khartoum (claimed proxy)",startLat:15.5,startLng:32.56,victimCountry:"Kenya",victimISO:"404",victimCity:"Nairobi",endLat:-1.29,endLng:36.82,severity:"High",impact:73,sector:"Government",type:"DDoS",confidence:"Low",summary:"Kenya's main e-government portal and payment services were degraded for days.",attribution:"Anonymous Sudan claimed the campaign; its true origin is contested in public analysis.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Anonymous_Sudan"},
+{id:125,year:2020,month:10,name:"Uganda mobile-money aggregator theft",actor:"Organised fraud network",leader:"Multiple arrests reported in Uganda",originCountry:"Uganda",originCity:"Kampala",startLat:0.35,startLng:32.58,victimCountry:"Uganda",victimISO:"800",victimCity:"Kampala",endLat:0.35,endLng:32.58,severity:"Medium",impact:66,sector:"Finance",type:"Financial theft",confidence:"Medium",summary:"A payments aggregator compromise disrupted mobile-money services used across the economy.",attribution:"Ugandan police reported arrests; full network not publicly detailed.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Mobile_payment"},
+{id:126,year:2023,month:5,name:"Senegal government websites DDoS",actor:"Mysterious Team Bangladesh",leader:"Claimed hacktivist group",originCountry:"Bangladesh",originCity:"Dhaka (claimed proxy)",startLat:23.81,startLng:90.41,victimCountry:"Senegal",victimISO:"686",victimCity:"Dakar",endLat:14.72,endLng:-17.47,severity:"Medium",impact:55,sector:"Government",type:"DDoS",confidence:"Low",summary:"Government portals were knocked offline amid political tensions.",attribution:"Claimed by a hacktivist brand; composition unverified.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Hacktivism"},
+{id:127,year:2016,month:11,name:"Liberia Lonestar Mirai DDoS",actor:"Hired attacker using Mirai botnet",leader:"Daniel Kaye (convicted)",originCountry:"United Kingdom",originCity:"London (convicted operator)",startLat:51.51,startLng:-0.13,victimCountry:"Liberia",victimISO:"430",victimCity:"Monrovia",endLat:6.3,endLng:-10.8,severity:"High",impact:77,sector:"Telecoms",type:"Botnet DDoS",confidence:"High",summary:"Sustained attacks against Liberia's largest mobile operator repeatedly degraded national connectivity.",attribution:"A UK court convicted Daniel Kaye, hired by a competitor's insider.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Mirai_(malware)"},
+// ── Australia & New Zealand ─────────────────────────────────────────────────
+{id:140,year:2019,month:2,name:"Australian Parliament network intrusion",actor:"Sophisticated state actor",leader:"Australia did not publicly attribute; media reports pointed to a state service",originCountry:"China",originCity:"Beijing (media-reported assessment)",startLat:39.9,startLng:116.41,victimCountry:"Australia",victimISO:"036",victimCity:"Canberra",endLat:-35.28,endLng:149.13,severity:"High",impact:80,sector:"Government",type:"Espionage",confidence:"Low",summary:"Parliament and the major political parties were compromised months before a federal election.",attribution:"Formal attribution was withheld; the origin shown reflects contemporaneous media reporting only.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Parliament_House,_Canberra"},
+{id:141,year:2020,month:2,name:"Toll Group ransomware (twice in 2020)",actor:"Mailto and Nefilim operators",leader:"Unknown",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"Australia",victimISO:"036",victimCity:"Melbourne",endLat:-37.81,endLng:144.96,severity:"High",impact:74,sector:"Transport",type:"Ransomware",confidence:"Medium",summary:"The logistics giant suffered two separate ransomware incidents disrupting deliveries.",attribution:"Different strains were reported for each incident; operators unidentified.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Toll_Group"},
+{id:142,year:2021,month:6,name:"JBS Foods Australia ransomware",actor:"REvil / Sodinokibi",leader:"Unknown affiliate",originCountry:"Russia",originCity:"Moscow (ecosystem proxy)",startLat:55.76,startLng:37.62,victimCountry:"Australia",victimISO:"036",victimCity:"Brisbane",endLat:-27.47,endLng:153.03,severity:"High",impact:86,sector:"Manufacturing",type:"Ransomware",confidence:"High",summary:"Meat processing across Australian and North American plants halted; an US$11m ransom was paid.",attribution:"The FBI attributed the attack to REvil.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/JBS_S.A."},
+{id:143,year:2022,month:9,name:"Optus customer data breach",actor:"'optusdata' extortionist",leader:"Not established",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"Australia",victimISO:"036",victimCity:"Sydney",endLat:-33.87,endLng:151.21,severity:"Critical",impact:90,sector:"Telecoms",type:"Data breach",confidence:"High",summary:"Personal data of roughly ten million Australians was exposed via an unauthenticated API.",attribution:"An extortion attempt was posted and withdrawn; the actor was not publicly identified.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/2022_Optus_data_breach"},
+{id:144,year:2022,month:10,name:"Medibank health data extortion",actor:"REvil-linked actors",leader:"Aleksandr Ermakov (sanctioned by AU, UK and US)",originCountry:"Russia",originCity:"Moscow (sanctioned-individual proxy)",startLat:55.76,startLng:37.62,victimCountry:"Australia",victimISO:"036",victimCity:"Melbourne",endLat:-37.81,endLng:144.96,severity:"Critical",impact:93,sector:"Healthcare",type:"Data breach and extortion",confidence:"High",summary:"Sensitive health claims for millions of customers were leaked after a refused ransom.",attribution:"Australia sanctioned Russian national Aleksandr Ermakov over the breach in 2024.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Medibank"},
+{id:145,year:2023,month:3,name:"Latitude Financial breach",actor:"Unknown criminal actor",leader:"Not established",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"Australia",victimISO:"036",victimCity:"Melbourne",endLat:-37.81,endLng:144.96,severity:"High",impact:82,sector:"Finance",type:"Data breach",confidence:"Medium",summary:"Records for around 14 million customers, including driving licences, were stolen via a vendor compromise.",attribution:"No public attribution released.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Latitude_Financial"},
+{id:146,year:2023,month:11,name:"DP World Australia port shutdown",actor:"Unknown criminal actor",leader:"Not established",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"Australia",victimISO:"036",victimCity:"Sydney",endLat:-33.87,endLng:151.21,severity:"High",impact:84,sector:"Transport",type:"Intrusion and disruption",confidence:"Medium",summary:"Around 40% of Australia's container trade paused while port systems were isolated.",attribution:"No public attribution released.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/DP_World"},
+{id:147,year:2020,month:8,name:"NZX exchange DDoS extortion",actor:"Offshore extortion group",leader:"Not established",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"New Zealand",victimISO:"554",victimCity:"Wellington",endLat:-41.29,endLng:174.78,severity:"High",impact:71,sector:"Finance",type:"DDoS",confidence:"Medium",summary:"New Zealand's stock exchange halted trading on several consecutive days under sustained attack.",attribution:"Linked to a global DDoS-extortion wave; actors unidentified.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/New_Zealand_Exchange"},
+{id:148,year:2021,month:5,name:"Waikato DHB hospital ransomware",actor:"Unknown ransomware group",leader:"Not established",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"New Zealand",victimISO:"554",victimCity:"Hamilton",endLat:-37.79,endLng:175.28,severity:"High",impact:79,sector:"Healthcare",type:"Ransomware",confidence:"Medium",summary:"Hospitals across the Waikato district ran on paper for weeks; patient data was leaked.",attribution:"No public attribution released.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Waikato_District_Health_Board"},
+{id:149,year:2021,month:1,name:"Reserve Bank of NZ — Accellion FTA exploitation",actor:"Cl0p-linked exploitation campaign",leader:"Unknown",originCountry:"Russia",originCity:"Moscow (ecosystem proxy)",startLat:55.76,startLng:37.62,victimCountry:"New Zealand",victimISO:"554",victimCity:"Wellington",endLat:-41.29,endLng:174.78,severity:"High",impact:73,sector:"Finance",type:"Mass exploitation",confidence:"Medium",summary:"The central bank's file-sharing service was breached in the global Accellion campaign.",attribution:"The wider campaign was linked to Cl0p-associated actors.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Reserve_Bank_of_New_Zealand"},
+// ── Asia ────────────────────────────────────────────────────────────────────
+{id:160,year:2018,month:7,name:"SingHealth patient records breach",actor:"State-linked APT",leader:"Singapore described a sophisticated state-linked actor without naming it",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"Singapore",victimISO:"702",victimCity:"Singapore",endLat:1.35,endLng:103.82,severity:"Critical",impact:88,sector:"Healthcare",type:"Espionage",confidence:"High",summary:"Records of 1.5 million patients, including the Prime Minister's, were exfiltrated.",attribution:"A Committee of Inquiry confirmed a state-linked actor; no country named publicly.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/2018_SingHealth_data_breach"},
+{id:161,year:2022,month:11,name:"AIIMS Delhi hospital ransomware",actor:"Unknown; Indian agencies pointed to foreign state-linked actors",leader:"Not established",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"India",victimISO:"356",victimCity:"Delhi",endLat:28.61,endLng:77.21,severity:"High",impact:80,sector:"Healthcare",type:"Ransomware",confidence:"Medium",summary:"India's premier public hospital ran services manually for roughly two weeks.",attribution:"Indian authorities briefed a foreign nexus but published no formal attribution.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/All_India_Institute_of_Medical_Sciences,_Delhi"},
+{id:162,year:2018,month:8,name:"Cosmos Bank ATM cash-out",actor:"Lazarus Group",leader:"North Korean state-linked group",originCountry:"North Korea",originCity:"Pyongyang (attribution proxy)",startLat:39.04,startLng:125.76,victimCountry:"India",victimISO:"356",victimCity:"Pune",endLat:18.52,endLng:73.86,severity:"High",impact:81,sector:"Finance",type:"Financial theft",confidence:"High",summary:"Coordinated ATM withdrawals across 28 countries netted roughly US$13.5 million in hours.",attribution:"US authorities later tied the operation to North Korean actors.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Lazarus_Group"},
+{id:163,year:2023,month:7,name:"Port of Nagoya LockBit ransomware",actor:"LockBit affiliate",leader:"Unknown affiliate",originCountry:"Russia",originCity:"Moscow (ecosystem proxy)",startLat:55.76,startLng:37.62,victimCountry:"Japan",victimISO:"392",victimCity:"Nagoya",endLat:35.18,endLng:136.91,severity:"High",impact:83,sector:"Transport",type:"Ransomware",confidence:"Medium",summary:"Japan's busiest port halted container loading, delaying Toyota shipments.",attribution:"LockBit claimed the attack; the affiliate is unidentified.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Port_of_Nagoya"},
+{id:164,year:2022,month:3,name:"Kojima Industries attack halts Toyota",actor:"Unknown criminal actor",leader:"Not established",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"Japan",victimISO:"392",victimCity:"Toyota City",endLat:35.08,endLng:137.16,severity:"High",impact:82,sector:"Manufacturing",type:"Supply-chain disruption",confidence:"Medium",summary:"A single-supplier compromise stopped all 14 Toyota plants in Japan for a day.",attribution:"No public attribution released.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Toyota"},
+{id:165,year:2023,month:5,name:"Bank Syariah Indonesia LockBit attack",actor:"LockBit affiliate",leader:"Unknown affiliate",originCountry:"Russia",originCity:"Moscow (ecosystem proxy)",startLat:55.76,startLng:37.62,victimCountry:"Indonesia",victimISO:"360",victimCity:"Jakarta",endLat:-6.21,endLng:106.85,severity:"High",impact:78,sector:"Finance",type:"Ransomware",confidence:"Medium",summary:"Indonesia's largest Islamic bank lost services for days; customer data was leaked.",attribution:"LockBit claimed the attack and leaked data after negotiations failed.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Bank_Syariah_Indonesia"},
+{id:166,year:2024,month:6,name:"Indonesia National Data Centre ransomware",actor:"Brain Cipher",leader:"Unknown",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"Indonesia",victimISO:"360",victimCity:"Jakarta",endLat:-6.21,endLng:106.85,severity:"Critical",impact:89,sector:"Government",type:"Ransomware",confidence:"Medium",summary:"Immigration and dozens of agency services failed nationwide; most data lacked backups.",attribution:"Brain Cipher claimed the attack and later released a decryptor.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Ransomware"},
+{id:167,year:2023,month:9,name:"PhilHealth Medusa ransomware",actor:"Medusa ransomware group",leader:"Unknown",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"Philippines",victimISO:"608",victimCity:"Manila",endLat:14.6,endLng:120.98,severity:"High",impact:77,sector:"Healthcare",type:"Ransomware",confidence:"Medium",summary:"The national health insurer's systems went down and member data was leaked.",attribution:"Medusa claimed the attack; operators unidentified.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Philippine_Health_Insurance_Corporation"},
+{id:168,year:2013,month:3,name:"DarkSeoul wiper against banks and broadcasters",actor:"Lazarus Group / DarkSeoul",leader:"North Korean state-linked operation",originCountry:"North Korea",originCity:"Pyongyang (attribution proxy)",startLat:39.04,startLng:125.76,victimCountry:"South Korea",victimISO:"410",victimCity:"Seoul",endLat:37.57,endLng:126.98,severity:"Critical",impact:90,sector:"Finance",type:"Wiper malware",confidence:"High",summary:"Simultaneous wiper attacks paralysed major banks and TV networks.",attribution:"South Korea attributed the operation to North Korea.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/2013_South_Korea_cyberattack"},
+{id:169,year:2022,month:3,name:"Ronin Network US$620m crypto theft",actor:"Lazarus Group",leader:"North Korean state operation (FBI attribution)",originCountry:"North Korea",originCity:"Pyongyang (attribution proxy)",startLat:39.04,startLng:125.76,victimCountry:"Vietnam",victimISO:"704",victimCity:"Ho Chi Minh City",endLat:10.82,endLng:106.63,severity:"Critical",impact:88,sector:"Technology",type:"Financial theft",confidence:"High",summary:"The bridge behind Axie Infinity lost about US$620 million in one of the largest crypto heists.",attribution:"The FBI formally attributed the theft to Lazarus Group.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Axie_Infinity"},
+// ── Middle East ─────────────────────────────────────────────────────────────
+{id:180,year:2012,month:8,name:"Saudi Aramco Shamoon wiper",actor:"'Cutting Sword of Justice' (Iran-attributed)",leader:"US officials attributed the operation to Iran",originCountry:"Iran",originCity:"Tehran (attribution proxy)",startLat:35.69,startLng:51.39,victimCountry:"Saudi Arabia",victimISO:"682",victimCity:"Dhahran",endLat:26.29,endLng:50.11,severity:"Critical",impact:96,sector:"Energy",type:"Wiper malware",confidence:"Medium",summary:"Roughly 30,000 workstations at the world's largest oil producer were destroyed.",attribution:"US officials publicly pointed to Iran; no individuals were charged.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Shamoon"},
+{id:181,year:2012,month:8,name:"RasGas Shamoon infection",actor:"Shamoon operators",leader:"As per Saudi Aramco attack",originCountry:"Iran",originCity:"Tehran (attribution proxy)",startLat:35.69,startLng:51.39,victimCountry:"Qatar",victimISO:"634",victimCity:"Doha",endLat:25.29,endLng:51.53,severity:"High",impact:80,sector:"Energy",type:"Wiper malware",confidence:"Medium",summary:"The Qatari LNG producer took office systems offline in the same campaign.",attribution:"Linked to the Shamoon campaign attributed to Iran.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Shamoon"},
+{id:182,year:2020,month:4,name:"Israel water-utility ICS intrusion attempts",actor:"Iran-linked actors (reported)",leader:"Not established",originCountry:"Iran",originCity:"Tehran (reported assessment)",startLat:35.69,startLng:51.39,victimCountry:"Israel",victimISO:"376",victimCity:"Tel Aviv",endLat:32.08,endLng:34.78,severity:"High",impact:74,sector:"Utilities",type:"ICS intrusion",confidence:"Low",summary:"Attackers reportedly attempted to alter chlorine dosing at small water facilities.",attribution:"Israeli officials briefed Iran responsibility; no formal public attribution.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Water_supply_and_sanitation_in_Israel"},
+{id:183,year:2021,month:10,name:"Iran national fuel-distribution outage",actor:"Predatory Sparrow",leader:"Group self-describes as anti-regime; analysts have suggested links to Israel (unconfirmed)",originCountry:"Israel",originCity:"Tel Aviv (analyst-assessed proxy)",startLat:32.08,startLng:34.78,victimCountry:"Iran",victimISO:"364",victimCity:"Tehran",endLat:35.69,endLng:51.39,severity:"High",impact:83,sector:"Energy",type:"ICS disruption",confidence:"Low",summary:"Subsidised fuel sales failed at stations nationwide for days.",attribution:"Predatory Sparrow claimed the attack; state sponsorship is analyst speculation, not established.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Predatory_Sparrow"},
+{id:184,year:2022,month:6,name:"Khouzestan steel plant ICS attack",actor:"Predatory Sparrow",leader:"As above; sponsorship unconfirmed",originCountry:"Israel",originCity:"Tel Aviv (analyst-assessed proxy)",startLat:32.08,startLng:34.78,victimCountry:"Iran",victimISO:"364",victimCity:"Ahvaz",endLat:31.32,endLng:48.67,severity:"High",impact:81,sector:"Manufacturing",type:"ICS attack",confidence:"Low",summary:"The group published footage of molten-steel equipment malfunctioning during its intrusion.",attribution:"Claimed with video evidence by Predatory Sparrow; origin remains assessed, not proven.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Predatory_Sparrow"},
+{id:185,year:2022,month:7,name:"Albania government wiper — HomeLand Justice",actor:"Iranian state actors (HomeLand Justice)",leader:"Formally attributed to Iran's MOIS by the US and Albania",originCountry:"Iran",originCity:"Tehran (formal attribution)",startLat:35.69,startLng:51.39,victimCountry:"Albania",victimISO:"008",victimCity:"Tirana",endLat:41.33,endLng:19.82,severity:"Critical",impact:91,sector:"Government",type:"Wiper and ransomware",confidence:"High",summary:"Government e-services were destroyed, prompting Albania to sever diplomatic ties with Iran.",attribution:"CISA and the FBI formally attributed the operation to Iranian state actors.",source:"CISA advisory AA22-264A",sourceUrl:"https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-264a"},
+{id:186,year:2021,month:10,name:"Hillel Yaffe Medical Center ransomware",actor:"DeepBlueMagic",leader:"Unknown",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"Israel",victimISO:"376",victimCity:"Hadera",endLat:32.43,endLng:34.92,severity:"High",impact:72,sector:"Healthcare",type:"Ransomware",confidence:"Medium",summary:"A major Israeli hospital reverted to paper records for weeks.",attribution:"Israeli authorities named the DeepBlueMagic strain; operators unidentified.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Hillel_Yaffe_Medical_Center"},
+// ── Europe (additional) ─────────────────────────────────────────────────────
+{id:200,year:2017,month:6,name:"Maersk NotPetya collateral damage",actor:"Sandworm (Russian GRU)",leader:"GRU Unit 74455 (US-indicted officers)",originCountry:"Russia",originCity:"Moscow (state attribution)",startLat:55.76,startLng:37.62,victimCountry:"Denmark",victimISO:"208",victimCity:"Copenhagen",endLat:55.68,endLng:12.57,severity:"Critical",impact:94,sector:"Transport",type:"Supply-chain wiper",confidence:"High",summary:"The shipping giant rebuilt 45,000 machines; losses reached ~US$300 million.",attribution:"NotPetya was formally attributed to the GRU by multiple governments.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/2017_Ukraine_ransomware_attacks"},
+{id:201,year:2019,month:3,name:"Norsk Hydro LockerGoga ransomware",actor:"LockerGoga operators",leader:"Suspects later arrested in a Europol operation",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"Norway",victimISO:"578",victimCity:"Oslo",endLat:59.91,endLng:10.75,severity:"High",impact:83,sector:"Manufacturing",type:"Ransomware",confidence:"High",summary:"The aluminium producer moved plants to manual operation and refused to pay, publishing its response openly.",attribution:"Europol later arrested suspects tied to LockerGoga campaigns.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Norsk_Hydro"},
+{id:202,year:2021,month:5,name:"Irish Health Service Executive Conti attack",actor:"Conti",leader:"Russian-speaking group",originCountry:"Russia",originCity:"Moscow (ecosystem proxy)",startLat:55.76,startLng:37.62,victimCountry:"Ireland",victimISO:"372",victimCity:"Dublin",endLat:53.35,endLng:-6.26,severity:"Critical",impact:92,sector:"Healthcare",type:"Ransomware",confidence:"High",summary:"Ireland's national health service lost most IT systems, disrupting care for months.",attribution:"Conti claimed the attack and later provided a decryptor without payment.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Health_Service_Executive_ransomware_attack"},
+{id:203,year:2015,month:4,name:"TV5Monde near-destruction",actor:"APT28 / Fancy Bear posing as 'CyberCaliphate'",leader:"Russian GRU-linked operation",originCountry:"Russia",originCity:"Moscow (attribution proxy)",startLat:55.76,startLng:37.62,victimCountry:"France",victimISO:"250",victimCity:"Paris",endLat:48.86,endLng:2.35,severity:"High",impact:85,sector:"Media",type:"Destructive intrusion",confidence:"High",summary:"All twelve channels of the French broadcaster went dark; engineers narrowly saved the network.",attribution:"French investigators linked the false-flag attack to Russian military intelligence.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/TV5Monde"},
+{id:204,year:2016,month:11,name:"Deutsche Telekom router outage",actor:"Mirai-variant operator",leader:"Daniel Kaye (convicted)",originCountry:"United Kingdom",originCity:"London (convicted operator)",startLat:51.51,startLng:-0.13,victimCountry:"Germany",victimISO:"276",victimCity:"Bonn",endLat:50.73,endLng:7.1,severity:"High",impact:70,sector:"Telecoms",type:"Botnet disruption",confidence:"High",summary:"A botched botnet recruitment attempt knocked ~900,000 German routers offline.",attribution:"A German court convicted Daniel Kaye for the attack.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Mirai_(malware)"},
+{id:205,year:2020,month:10,name:"Vastaamo psychotherapy extortion",actor:"Individual extortionist",leader:"Julius Kivimäki (convicted 2024)",originCountry:"Finland",originCity:"Helsinki (convicted operator)",startLat:60.17,startLng:24.94,victimCountry:"Finland",victimISO:"246",victimCity:"Helsinki",endLat:60.17,endLng:24.94,severity:"Critical",impact:87,sector:"Healthcare",type:"Data breach and extortion",confidence:"High",summary:"Therapy notes of tens of thousands of patients were used to extort victims individually.",attribution:"A Finnish court convicted Julius Kivimäki in 2024.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Vastaamo"},
+{id:206,year:2016,month:12,name:"Industroyer attack on Kyiv grid",actor:"Sandworm (Russian GRU)",leader:"GRU Unit 74455 (US-indicted officers)",originCountry:"Russia",originCity:"Moscow (state attribution)",startLat:55.76,startLng:37.62,victimCountry:"Ukraine",victimISO:"804",victimCity:"Kyiv",endLat:50.45,endLng:30.52,severity:"Critical",impact:95,sector:"Energy",type:"ICS attack",confidence:"High",summary:"Purpose-built grid malware cut power to part of Kyiv — the first malware to speak grid protocols natively.",attribution:"Attributed to Sandworm; GRU officers were later indicted in the US.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Industroyer"},
+{id:207,year:2023,month:5,name:"Coordinated attacks on Danish energy operators",actor:"Suspected state-linked actors",leader:"SektorCERT noted possible Sandworm involvement without firm attribution",originCountry:"Russia",originCity:"Moscow (assessed, unconfirmed)",startLat:55.76,startLng:37.62,victimCountry:"Denmark",victimISO:"208",victimCity:"Copenhagen",endLat:55.68,endLng:12.57,severity:"High",impact:78,sector:"Energy",type:"ICS intrusion",confidence:"Low",summary:"Around 22 energy companies were compromised in days via firewall zero-days.",attribution:"SektorCERT's report raised, but did not confirm, Sandworm involvement.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Sandworm_(hacker_group)"},
+{id:208,year:2017,month:9,name:"CCleaner supply-chain compromise",actor:"China-linked APT (Axiom-associated)",leader:"Not established",originCountry:"China",originCity:"Beijing (attribution proxy)",startLat:39.9,startLng:116.41,victimCountry:"Czechia",victimISO:"203",victimCity:"Prague",endLat:50.08,endLng:14.44,severity:"High",impact:79,sector:"Technology",type:"Supply-chain attack",confidence:"Medium",summary:"A trojanised update reached 2.3 million users, with second-stage payloads for tech giants.",attribution:"Researchers linked the code to China-associated groups; no charges followed.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/CCleaner"},
+// ── North America (additional) ──────────────────────────────────────────────
+{id:220,year:2013,month:8,name:"Yahoo mega-breach (3 billion accounts)",actor:"FSB officers and hired hackers",leader:"Dmitry Dokuchaev and Igor Sushchin (US-indicted FSB officers)",originCountry:"Russia",originCity:"Moscow (indictment basis)",startLat:55.76,startLng:37.62,victimCountry:"United States",victimISO:"840",victimCity:"Sunnyvale",endLat:37.37,endLng:-122.04,severity:"Critical",impact:93,sector:"Technology",type:"Data breach",confidence:"High",summary:"Every Yahoo account then in existence was compromised; disclosure came years later.",attribution:"The US indicted two FSB officers and two hired hackers in 2017.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Yahoo_data_breaches"},
+{id:221,year:2015,month:6,name:"US Office of Personnel Management breach",actor:"China-attributed state actors",leader:"US officials pointed to China; one related arrest reported",originCountry:"China",originCity:"Beijing (attribution proxy)",startLat:39.9,startLng:116.41,victimCountry:"United States",victimISO:"840",victimCity:"Washington",endLat:38.91,endLng:-77.04,severity:"Critical",impact:95,sector:"Government",type:"Espionage",confidence:"High",summary:"Security-clearance files on 21.5 million people, including fingerprints, were stolen.",attribution:"US officials publicly attributed the breach to China.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Office_of_Personnel_Management_data_breach"},
+{id:222,year:2017,month:7,name:"Equifax breach — PLA indictment",actor:"PLA 54th Research Institute",leader:"Four PLA officers indicted by the US in 2020",originCountry:"China",originCity:"Beijing (indictment basis)",startLat:39.9,startLng:116.41,victimCountry:"United States",victimISO:"840",victimCity:"Atlanta",endLat:33.75,endLng:-84.39,severity:"Critical",impact:94,sector:"Finance",type:"Data breach",confidence:"High",summary:"Credit records of 147 million Americans were stolen via an unpatched web flaw.",attribution:"The US Department of Justice indicted four Chinese military officers.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/2017_Equifax_data_breach"},
+{id:223,year:2015,month:2,name:"Anthem health insurance breach",actor:"China-linked actor",leader:"Fujie Wang (US-indicted, 2019)",originCountry:"China",originCity:"Beijing (indictment basis)",startLat:39.9,startLng:116.41,victimCountry:"United States",victimISO:"840",victimCity:"Indianapolis",endLat:39.77,endLng:-86.16,severity:"Critical",impact:89,sector:"Healthcare",type:"Data breach",confidence:"High",summary:"Records of nearly 79 million people were taken from the US insurer.",attribution:"A US indictment named Fujie Wang and an unnamed co-conspirator.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Anthem_medical_data_breach"},
+{id:224,year:2021,month:11,name:"Newfoundland and Labrador health system attack",actor:"Hive ransomware",leader:"Unknown; Hive infrastructure later seized by the FBI",originCountry:"Unknown / unattributed",originCity:"Unknown origin",startLat:0,startLng:-30,victimCountry:"Canada",victimISO:"124",victimCity:"St John's",endLat:47.56,endLng:-52.71,severity:"High",impact:77,sector:"Healthcare",type:"Ransomware",confidence:"Medium",summary:"The worst cyberattack on Canadian healthcare cancelled thousands of appointments.",attribution:"Later confirmed as Hive ransomware; operators unidentified.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Hive_(ransomware)"},
+{id:225,year:2012,month:9,name:"Operation Ababil bank DDoS campaign",actor:"'Izz ad-Din al-Qassam Cyber Fighters' (Iran-indicted)",leader:"Seven Iranians indicted by the US in 2016",originCountry:"Iran",originCity:"Tehran (indictment basis)",startLat:35.69,startLng:51.39,victimCountry:"United States",victimISO:"840",victimCity:"New York",endLat:40.71,endLng:-74.01,severity:"High",impact:78,sector:"Finance",type:"DDoS",confidence:"High",summary:"Sustained waves of DDoS attacks disrupted major US banks over many months.",attribution:"The US indicted seven Iranians working for IRGC-linked companies.",source:"Public reporting overview",sourceUrl:"https://en.wikipedia.org/wiki/Operation_Ababil"}
+];
+attacks=attacks.concat(CURATED_EXPANSION);
+
+const cities = [
+ ["London",51.51,-0.13],["New York",40.71,-74.01],["Washington",38.91,-77.04],["Los Angeles",34.05,-118.24],
+ ["Toronto",43.65,-79.38],["Mexico City",19.43,-99.13],["São Paulo",-23.55,-46.63],["Buenos Aires",-34.60,-58.38],
+ ["Paris",48.86,2.35],["Berlin",52.52,13.41],["Madrid",40.42,-3.70],["Rome",41.90,12.50],["Warsaw",52.23,21.01],
+ ["Kyiv",50.45,30.52],["Moscow",55.76,37.62],["Cairo",30.04,31.24],["Lagos",6.52,3.38],["Nairobi",-1.29,36.82],
+ ["Johannesburg",-26.20,28.04],["Dubai",25.20,55.27],["Delhi",28.61,77.21],["Mumbai",19.08,72.88],
+ ["Beijing",39.90,116.41],["Shanghai",31.23,121.47],["Seoul",37.57,126.98],["Tokyo",35.68,139.69],
+ ["Singapore",1.35,103.82],["Jakarta",-6.21,106.85],["Sydney",-33.87,151.21],["Auckland",-36.85,174.76]
+].map(([name,lat,lng])=>({name,lat,lng,type:"city"}));
+
+
+const SOURCE_CATALOGUE=[
+ {id:"eurepoc",name:"European Repository of Cyber Incidents (EuRepoC)",role:"Mapped incidents",coverage:"Expert-reviewed consolidated incidents, 2000–2024",primary:"https://eurepoc.eu/database/",dataset:"https://zenodo.org/records/14965395",license:"See dataset record"},
+ {id:"vcdb",name:"VERIS Community Database (VCDB)",role:"Mapped incidents",coverage:"Publicly disclosed breaches and security incidents",primary:"https://verisframework.org/vcdb.html",dataset:"https://github.com/vz-risk/VCDB",license:"CC BY-SA 4.0 / repository terms"},
+ {id:"rwlive",name:"Ransomware.live",role:"Mapped incidents (recent months) + group profiles",coverage:"Near-real-time ransomware leak-site claims and group tracking by Julien Mousqueton. Claims are attacker assertions, not verified breaches. Free API for personal use — review the T&C for organisational use.",primary:"https://www.ransomware.live/about",dataset:"https://www.ransomware.live/apidocs",license:"Free API; see site terms"},
+ {id:"mitre",name:"MITRE ATT&CK",role:"Campaign and technique enrichment",coverage:"Real-world adversary campaigns, groups and techniques",primary:"https://attack.mitre.org/",dataset:"https://github.com/mitre-attack/attack-stix-data",license:"ATT&CK terms of use"},
+ {id:"cisa-kev",name:"CISA Known Exploited Vulnerabilities",role:"Vulnerability enrichment",coverage:"Vulnerabilities confirmed exploited in the wild",primary:"https://www.cisa.gov/known-exploited-vulnerabilities-catalog",dataset:"https://github.com/cisagov/kev-data",license:"US Government public data"},
+ {id:"cisa-ics",name:"CISA ICS Advisories",role:"Primary advisory reference",coverage:"Industrial control system vulnerabilities and advisories",primary:"https://www.cisa.gov/news-events/ics-advisories",dataset:"https://www.cisa.gov/news-events/cybersecurity-advisories",license:"US Government public information"},
+ {id:"nvd",name:"NIST National Vulnerability Database",role:"CVE reference",coverage:"CVE analysis and vulnerability metadata",primary:"https://nvd.nist.gov/",dataset:"https://nvd.nist.gov/developers/vulnerabilities",license:"US Government public data"},
+ {id:"ncsc",name:"UK National Cyber Security Centre",role:"Primary advisory reference",coverage:"UK threat reports, alerts and guidance",primary:"https://www.ncsc.gov.uk/section/keep-up-to-date/reports-advisories",dataset:"https://www.ncsc.gov.uk/section/keep-up-to-date/all-articles",license:"Crown copyright terms"},
+ {id:"enisa",name:"European Union Agency for Cybersecurity (ENISA)",role:"Threat landscape reference",coverage:"European threat landscape and sector reporting",primary:"https://www.enisa.europa.eu/publications/enisa-threat-landscape-2025",dataset:"https://www.enisa.europa.eu/publications",license:"EU reuse terms"},
+ {id:"csis",name:"CSIS Significant Cyber Incidents",role:"Reference list (manual)",coverage:"Curated list of significant state-linked and major incidents since 2006, updated monthly",primary:"https://www.csis.org/programs/strategic-technologies-program/significant-cyber-incidents",dataset:"https://www.csis.org/programs/strategic-technologies-program/significant-cyber-incidents",license:"CSIS site terms"},
+ {id:"cissm",name:"CISSM Cyber Events Database (UMD)",role:"Reference dataset (manual download)",coverage:"Academic database of publicly reported cyber events since 2014, University of Maryland",primary:"https://cissm.umd.edu/cyber-events-database",dataset:"https://cissm.umd.edu/cyber-events-database",license:"Academic use; see site"},
+ {id:"hackmageddon",name:"Hackmageddon",role:"Reference timelines (manual)",coverage:"Long-running independent cyber attack timelines and statistics by Paolo Passeri",primary:"https://www.hackmageddon.com/",dataset:"https://www.hackmageddon.com/",license:"Site terms"}
+];
+const enabledSources=new Set(["Curated primary-source incidents","EuRepoC Global Dataset v1.3","VERIS Community Database"]);
+// Curated records use several publisher names in `source`; keep them available as one resilient local layer.
+const RESEARCH_SOURCE_NAMES=new Set(["EuRepoC Global Dataset v1.3","VERIS Community Database","Ransomware.live leak-site monitoring"]);
+function sourceLayerName(a){ return RESEARCH_SOURCE_NAMES.has(a.source)?a.source:"Curated primary-source incidents"; }
+let enrichmentCounts={mitre:null,kev:null};
+const severityColor = {Critical:"#ff4d66",High:"#ff9d3c",Medium:"#ffe374",Low:"#4ee6a5"};
+const globeEl = document.getElementById("globe");
+const globe = window.globe = Globe()(globeEl)
+  .backgroundColor("rgba(0,0,0,0)")
+  .globeImageUrl("https://cdn.jsdelivr.net/npm/three-globe@2.44.0/example/img/earth-night.jpg")
+  .bumpImageUrl("https://cdn.jsdelivr.net/npm/three-globe@2.44.0/example/img/earth-topology.png")
+  .showAtmosphere(true).atmosphereColor("#3f9dff").atmosphereAltitude(.18)
+  .arcStartLat("startLat").arcStartLng("startLng").arcEndLat("endLat").arcEndLng("endLng")
+  .arcColor(d=>[severityColor[d.severity]+"aa",severityColor[d.severity]])
+  .arcAltitude(d=>0.12 + d.impact/260).arcStroke(d=>0.35+d.impact/95)
+  .arcDashLength(.45).arcDashGap(.12).arcDashAnimateTime(d=>Math.max(550,2200-d.impact*13))
+  .arcLabel(d=>`<b>${d.name}</b><br>${d.originCountry} → ${d.victimCountry}<br>Impact ${d.impact}`)
+  .onArcClick(showDetail)
+  .ringLat("lat").ringLng("lng").ringColor(d=>severityColor[d.severity]||"#ff4d66")
+  .ringMaxRadius(d=>2+d.impact/13).ringPropagationSpeed(d=>0.18+d.impact/220).ringRepeatPeriod(2200)
+  .pointLat("lat").pointLng("lng").pointAltitude(d=>d.type==="city"?.006:.025)
+  .pointRadius(d=>d.type==="city"?.06:.18+d.impact/500)
+  .pointColor(d=>d.type==="city"?"#b6c8e2":d.role==="origin"?"#4dd8ff":severityColor[d.severity])
+  .pointLabel(d=>d.type==="city"?d.name:`<b>${d.role==="origin"?"Origin":"Victim"}</b>: ${d.city}, ${d.country}<br>${d.attack.name}`)
+  .onPointClick(d=>{if(d.attack) showDetail(d.attack)})
+  .labelLat("lat").labelLng("lng").labelText("name").labelSize(.65).labelDotRadius(.14)
+  .labelColor(()=>"#dbeaff").labelResolution(2);
+
+globe.controls().autoRotate = false;
+globe.controls().enableDamping = true;
+globe.pointOfView({lat:25,lng:10,altitude:2.05},0);
+
+let timelineIndex=318, year=2026, month=7, timer=null, mapMode="sphere", selectedAttack=null;
+const startYear=2000;
+const endTimelineIndex=323;
+function idx(y,m){return (y-startYear)*12+(m-1)}
+function fromIdx(i){return {year:startYear+Math.floor(i/12),month:(i%12)+1}}
+function mon(m){return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][m-1]}
+const playBtn=document.getElementById("playBtn");
+const prevBtn=document.getElementById("prevBtn");
+const nextBtn=document.getElementById("nextBtn");
+const speed=document.getElementById("speed");
+const yearSlider=document.getElementById("yearSlider");
+const searchBtn=document.getElementById("searchBtn");
+const search=document.getElementById("search");
+const resetBtn=document.getElementById("resetBtn");
+const toggleLeft=document.getElementById("toggleLeft");
+const toggleRight=document.getElementById("toggleRight");
+const sphereBtn=document.getElementById("sphereBtn");
+const flatBtn=document.getElementById("flatBtn");
+const viewMode=document.getElementById("viewMode");
+const typeFilter=document.getElementById("typeFilter");
+const sectorChecks=document.getElementById("sectorChecks");
+const yearLabel=document.getElementById("yearLabel");
+const yearBig=document.getElementById("yearBig");
+const visibleCount=document.getElementById("visibleCount");
+const impactTotal=document.getElementById("impactTotal");
+const originRanks=document.getElementById("originRanks");
+const victimRanks=document.getElementById("victimRanks");
+const status=document.getElementById("status");
+const detail=document.getElementById("detail");
+const flatMapEl=document.getElementById("flatMap");
+const impactLabel=document.getElementById("impactLabel");
+const attackDrawer=document.getElementById("attackDrawer");
+const attackDrawerBody=document.getElementById("attackDrawerBody");
+const closeAttackDrawer=document.getElementById("closeAttackDrawer");
+const heatToggle=document.getElementById("heatToggle");
+const heatLegend=document.getElementById("heatLegend");
+const densityMode=document.getElementById("densityMode");
+const dataStatus=document.getElementById("dataStatus");
+const regionCoverage=document.getElementById("regionCoverage");
+const coverageNote=document.getElementById("coverageNote");
+const monthOnlyBtn=document.getElementById("monthOnlyBtn");
+const allToDateBtn=document.getElementById("allToDateBtn");
+const moreButton=document.getElementById("moreButton");
+const moreMenu=document.getElementById("moreMenu");
+const moreClose=document.getElementById("moreClose");
+const sourceLayerControls=document.getElementById("sourceLayerControls");
+const sourceCatalogue=document.getElementById("sourceCatalogue");
+const enrichmentStatus=document.getElementById("enrichmentStatus");
+const exportVisible=document.getElementById("exportVisible");
+const copySourceLinks=document.getElementById("copySourceLinks");
+
+let flatSvg, flatProjection, flatPath, flatZoomLayer, countriesGeo=null;
+
+async function initFlatMap(){
+  const world = await d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json");
+  const countries = topojson.feature(world, world.objects.countries);
+  countriesGeo = countries;
+  globe.polygonsData(countries.features)
+    .polygonAltitude(.006)
+    .polygonCapColor(()=>"rgba(16,33,59,.72)")
+    .polygonSideColor(()=>"rgba(8,18,34,.20)")
+    .polygonStrokeColor(()=>"rgba(110,160,210,.22)");
+  flatSvg = d3.select("#flatMap").append("svg").attr("viewBox","0 0 1000 520").attr("role","img")
+    .attr("aria-label","Flat world map showing cyber attack origins and destinations");
+  flatProjection = d3.geoNaturalEarth1().fitExtent([[20,20],[980,500]], countries);
+  flatPath = d3.geoPath(flatProjection);
+  flatZoomLayer = flatSvg.append("g");
+  flatZoomLayer.append("g").selectAll("path").data(countries.features).join("path").attr("class","country").attr("data-id",d=>String(d.id).padStart(3,"0")).attr("d",flatPath);
+  flatSvg.call(d3.zoom().scaleExtent([1,8]).on("zoom",e=>flatZoomLayer.attr("transform",e.transform)));
+  renderFlat(filtered());
+}
+function refreshFilterOptions(){
+ const priorSectors=new Set(checked("sector"));
+ const priorType=typeFilter.value;
+ const sectors=[...new Set(attacks.map(a=>a.sector).filter(Boolean))].sort();
+ const types=[...new Set(attacks.map(a=>a.type).filter(Boolean))].sort();
+ sectorChecks.innerHTML=sectors.map(s=>`<label><input class="sector" type="checkbox" value="${s}" ${priorSectors.size===0||priorSectors.has(s)?"checked":""}> ${s}</label>`).join("");
+ typeFilter.innerHTML='<option value="">All attack types</option>'+types.map(t=>`<option>${t}</option>`).join("");
+ if(types.includes(priorType)) typeFilter.value=priorType;
+ sectorChecks.querySelectorAll("input").forEach(x=>x.addEventListener("change",()=>{markHistoDirty();update()}));
+}
+refreshFilterOptions();
+
+function checked(cls){return [...document.querySelectorAll("."+cls+":checked")].map(x=>x.value)}
+function filtered(){
+ const sev=checked("severity"), sec=checked("sector"), type=typeFilter.value;
+ const cumulative=document.getElementById("cumulative").checked;
+ const q=document.getElementById("search").value.trim().toLowerCase();
+ const all=attacks.filter(a=>enabledSources.has(sourceLayerName(a))&&(cumulative?idx(a.year,a.month)<=timelineIndex:idx(a.year,a.month)===timelineIndex)&&sev.includes(a.severity)&&sec.includes(a.sector)&&(!type||a.type===type)&&
+ (!q||Object.values(a).join(" ").toLowerCase().includes(q)));
+ if(densityMode && densityMode.value==="performance" && all.length>900){
+   const step=all.length/900; return Array.from({length:900},(_,i)=>all[Math.floor(i*step)]);
+ }
+ return all;
+}
+function update(){
+ if(heatLegend && heatToggle) heatLegend.classList.toggle("hidden",!heatToggle.checked);
+ const data=filtered();
+ const dt=fromIdx(timelineIndex);year=dt.year;month=dt.month;
+ yearLabel.textContent=`${mon(month)} ${year}`;yearBig.textContent=`${mon(month)} ${year}`;yearSlider.value=timelineIndex;
+ const mode=viewMode.value;
+ globe.arcsData(mode==="attacks"?data:[]);
+ // Impact rings are expensive; with a large cumulative field, only pulse the freshest salvo (current month) plus the highest-impact strikes.
+ const ringSrc=mode!=="attacks"?[]:(data.length>400
+   ? [...new Map([...data.filter(a=>idx(a.year,a.month)===timelineIndex),
+      ...[...data].sort((x,y)=>y.impact-x.impact).slice(0,120)].map(a=>[a.id,a])).values()].slice(0,400)
+   : data);
+ globe.ringsData(ringSrc.map(a=>({...a,lat:a.endLat,lng:a.endLng})));
+ const attackPoints=data.flatMap(a=>[
+   {lat:a.startLat,lng:a.startLng,role:"origin",city:a.originCity,country:a.originCountry,impact:a.impact,severity:a.severity,attack:a},
+   {lat:a.endLat,lng:a.endLng,role:"victim",city:a.victimCity,country:a.victimCountry,impact:a.impact,severity:a.severity,attack:a}
+ ]);
+ globe.pointsData(mode==="attacks"?[...(citiesBox.checked?cities:[]),...attackPoints]:(citiesBox.checked?cities:[]));
+ globe.labelsData(citiesBox.checked?cities:[]);
+ visibleCount.textContent=data.length;
+ impactTotal.textContent=data.reduce((s,a)=>s+a.impact,0);
+ renderRanks(originRanks,data,"originCountry");
+ renderRanks(victimRanks,data,"victimCountry");
+ if(mode!=="attacks") applyCountryView(data,mode);
+ renderFlat(data);
+ status.textContent=(timer?"Playing • ":"Paused • ")+data.length.toLocaleString()+" visible";
+ if(dataStatus && attacks.length>500){ dataStatus.textContent=`Multi-source data loaded • ${attacks.length.toLocaleString()} deduplicated mapped routes • ${data.length.toLocaleString()} currently visible`; }
+
+ applySphereHeat();
+ renderHisto();
+ renderEscalation();
+}
+
+/* ── Escalation layer: attacks-per-month histogram + live counters ─────────── */
+const histoEl=document.getElementById("histo");
+const escMeta=document.getElementById("escMeta");
+let histoCounts=[],histoPrefix=[],histoDirty=true;
+function histoFiltered(){
+ const sev=checked("severity"),sec=checked("sector"),type=typeFilter.value;
+ const q=search.value.trim().toLowerCase();
+ return attacks.filter(a=>enabledSources.has(sourceLayerName(a))&&sev.includes(a.severity)&&sec.includes(a.sector)&&(!type||a.type===type)&&(!q||Object.values(a).join(" ").toLowerCase().includes(q)));
+}
+function computeHistoCounts(){
+ histoCounts=new Array(endTimelineIndex+1).fill(0);
+ histoFiltered().forEach(a=>{const i=idx(a.year,a.month);if(i>=0&&i<=endTimelineIndex)histoCounts[i]++});
+ histoPrefix=[];let run=0;
+ for(let i=0;i<histoCounts.length;i++){run+=histoCounts[i];histoPrefix[i]=run}
+ histoDirty=false;
+}
+function markHistoDirty(){histoDirty=true}
+function renderHisto(){
+ if(!histoEl)return;
+ if(histoDirty||!histoCounts.length)computeHistoCounts();
+ const W=Math.max(280,histoEl.clientWidth||800),H=48;
+ const max=Math.max(1,...histoCounts);
+ const bw=W/(endTimelineIndex+1);
+ let bars="";
+ for(let i=0;i<=endTimelineIndex;i++){
+   const n=histoCounts[i];if(!n)continue;
+   const h=Math.max(1.6,(n/max)*(H-13));
+   const active=i<=timelineIndex;
+   bars+=`<rect x="${(i*bw).toFixed(2)}" y="${(H-12-h).toFixed(2)}" width="${Math.max(1,bw-0.6).toFixed(2)}" height="${h.toFixed(2)}" fill="${active?"url(#hgrad)":"#22344f"}"><title>${mon(fromIdx(i).month)} ${fromIdx(i).year} • ${n.toLocaleString()} attacks</title></rect>`;
+ }
+ let ticks="";
+ for(let y=2000;y<=2025;y+=5){
+   const x=(idx(y,1)*bw).toFixed(2);
+   ticks+=`<line x1="${x}" y1="${H-11}" x2="${x}" y2="${H-6}" stroke="#3a5578"/><text x="${+x+3}" y="${H-1}" fill="#7f95b4" font-size="9">${y}</text>`;
+ }
+ const px=(timelineIndex*bw+bw/2).toFixed(2);
+ // 12-month moving-average trend line
+ let trend="";const win=12;
+ for(let i=0;i<=endTimelineIndex;i++){
+   const s=Math.max(0,i-win+1);
+   const seg=histoCounts.slice(s,i+1);
+   const avg=seg.reduce((a,b)=>a+b,0)/seg.length;
+   const tx=(i*bw+bw/2).toFixed(1), ty=((H-12)-(avg/max)*(H-13)).toFixed(1);
+   trend+=(i?"L":"M")+tx+","+ty;
+ }
+ histoEl.innerHTML=`<svg width="${W}" height="${H}" aria-hidden="true">
+  <defs><linearGradient id="hgrad" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ff9d3c"/><stop offset="1" stop-color="#ff4d66"/></linearGradient></defs>
+  ${bars}${ticks}
+  <path d="${trend}" fill="none" stroke="#4ee6a5" stroke-width="1.6" opacity=".92"/>
+  <text x="${W-6}" y="9" text-anchor="end" fill="#4ee6a5" font-size="8.5">12-month average trend</text>
+  <line class="histoPlayhead" x1="${px}" x2="${px}" y1="0" y2="${H-12}" stroke="#4dd8ff" stroke-width="1.4"/></svg>`;
+}
+let cumShown=0,cumTarget=0,cumAnim=null;
+function tweenCum(){
+ const el=document.getElementById("cumN");if(!el)return;
+ cancelAnimationFrame(cumAnim);
+ const from=cumShown,to=cumTarget,start=performance.now(),dur=420;
+ if(from===to){el.textContent=to.toLocaleString();return}
+ (function step(now){
+   const t=Math.min(1,(now-start)/dur);
+   cumShown=Math.round(from+(to-from)*(1-Math.pow(1-t,3)));
+   el.textContent=cumShown.toLocaleString();
+   if(t<1)cumAnim=requestAnimationFrame(step);
+ })(performance.now());
+}
+function renderEscalation(){
+ if(!escMeta||!histoCounts.length)return;
+ const i=timelineIndex;
+ const monthN=histoCounts[i]||0;
+ cumTarget=histoPrefix[i]||0;tweenCum();
+ const base=Math.max(0.5,histoCounts.slice(0,36).reduce((s,n)=>s+n,0)/36);
+ const trail=histoCounts.slice(Math.max(0,i-11),i+1);
+ const rate=trail.reduce((s,n)=>s+n,0)/Math.max(1,trail.length);
+ const mult=rate/base;
+ const multTxt=i<12?"—":`×${mult>=10?Math.round(mult).toLocaleString():mult.toFixed(1)}`;
+ escMeta.innerHTML=`+${monthN.toLocaleString()} in ${mon(month)} ${year} • tempo <span class="tempo">${multTxt}</span> vs 2000–02 baseline`;
+}
+if(histoEl)histoEl.addEventListener("click",e=>{
+ const r=histoEl.getBoundingClientRect();
+ setTimeline(Math.round((e.clientX-r.left)/Math.max(1,r.width)*endTimelineIndex));
+});
+/* ──────────────────────────────────────────────────────────────────────────── */
+
+function renderRanks(el,data,key){
+ const counts={}; data.forEach(a=>counts[a[key]]=(counts[a[key]]||0)+1);
+ const rows=Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0,6), max=rows[0]?.[1]||1;
+ el.innerHTML=rows.length?rows.map(([name,n])=>`<div class="rank"><div class="rankhead"><span>${name}</span><b>${n}</b></div><div class="bar"><i style="width:${n/max*100}%"></i></div></div>`).join(""):"<p>No incidents visible.</p>";
+}
+function applyCountryView(data,mode){
+ const key=mode==="origins"?"originCountry":"victimCountry";
+ const coordKey=mode==="origins"?["startLat","startLng"]:["endLat","endLng"];
+ const grouped={};
+ data.forEach(a=>{
+   const k=a[key]; if(!grouped[k]) grouped[k]={name:k,lat:a[coordKey[0]],lng:a[coordKey[1]],count:0,impact:0};
+   grouped[k].count++; grouped[k].impact+=a.impact;
+ });
+ globe.pointsData([...Object.values(grouped).map(x=>({...x,type:"country",role:mode==="origins"?"origin":"victim",impact:x.impact,severity:mode==="origins"?"Medium":"Critical"})),...(citiesBox.checked?cities:[])]);
+ globe.ringsData(Object.values(grouped).map(x=>({...x,severity:mode==="origins"?"Medium":"Critical",impact:Math.min(100,x.impact/Math.max(1,x.count))})));
+}
+function showDetail(a){
+ selectedAttack=a;
+ const links=(a.sources&&a.sources.length?a.sources:[{name:a.source,url:a.sourceUrl}]).filter(x=>x&&x.url);
+ const sourceBlock=`<p><b>Provenance:</b></p><div class="sourceLinks">${links.map(x=>`<a href="${x.url}" target="_blank" rel="noopener">${x.name||"Open source"}</a>`).join("")||`<span>${a.source||"Source unavailable"}</span>`}</div>`;
+ const gp=findGroupProfile(a.actor);
+ const groupBlock=gp?`<div class="groupCard"><p><b>Threat group — ${gp.name}</b>${gp.origin?` <span class="sourceMeta">(${gp.origin})</span>`:""}</p><p>${gp.desc||""}</p><div class="sourceLinks">${(gp.links||[]).map(l=>`<a href="${l.url}" target="_blank" rel="noopener">${l.name}</a>`).join("")}</div></div>`:"";
+ const detailHtml=`<h3>${a.name}</h3>
+ <div class="impact ${a.severity.toLowerCase()}">${a.severity} impact • score ${a.impact}/100</div>
+ <div class="kv"><b>Date</b><span>${mon(a.month||6)} ${a.year}</span><b>Actor</b><span>${a.actor}</span>
+ <b>Origin</b><span>${a.originCity}, ${a.originCountry}</span><b>Victim</b><span>${a.victimCity}, ${a.victimCountry}</span>
+ <b>Sector</b><span>${a.sector}</span><b>Technique</b><span>${a.type}</span>
+ <b>Leader/proxy</b><span>${a.leader||"Not established"}</span><b>Confidence</b><span>${a.confidence||"Unknown"}</span></div>
+ <p>${a.summary}</p><p><b>Attribution note:</b> ${a.attribution||"No additional attribution note."}</p>${groupBlock}${sourceBlock}`;
+ detail.innerHTML=detailHtml;
+ attackDrawerBody.innerHTML=detailHtml;
+ attackDrawer.classList.remove("hidden");
+ impactLabel.innerHTML=`<b>${a.name}</b><span>${a.originCountry} → ${a.victimCountry}<br>${a.severity} • impact ${a.impact}</span>`;
+ impactLabel.classList.remove("hidden");
+ if(mapMode==="sphere"){
+   impactLabel.style.left="52%"; impactLabel.style.top="46%";
+   globe.pointOfView({lat:a.endLat,lng:a.endLng,altitude:1.15},900);
+ } else {
+   const p=flatProjection([a.endLng,a.endLat]);
+   impactLabel.style.left=`${Math.min(78,Math.max(8,p[0]/10))}%`;
+   impactLabel.style.top=`${Math.min(78,Math.max(10,p[1]/5.2))}%`;
+ }
+}
+
+const countryNumericISO={
+  "Estonia":"233","Georgia":"268","Iran":"364","Netherlands":"528","Canada":"124",
+  "United States":"840","Ukraine":"804","Bangladesh":"050","United Kingdom":"826",
+  "Germany":"276","Australia":"036","France":"250","Ireland":"372","Costa Rica":"188",
+  "Japan":"392","South Korea":"410","India":"356","Brazil":"076","Poland":"616"
+};
+function victimCountryKey(a){
+  return (a.victimISO && String(a.victimISO).padStart(3,"0")) || countryNumericISO[a.victimCountry] || a.victimCountry;
+}
+function heatSourceData(){
+ const sev=checked("severity"), sec=checked("sector"), type=typeFilter.value;
+ const q=document.getElementById("search").value.trim().toLowerCase();
+ return attacks.filter(a=>enabledSources.has(sourceLayerName(a)) && idx(a.year,a.month)<=timelineIndex && sev.includes(a.severity) && sec.includes(a.sector) && (!type||a.type===type) && (!q||Object.values(a).join(" ").toLowerCase().includes(q)));
+}
+function heatCounts(){const counts={};heatSourceData().forEach(a=>{const k=victimCountryKey(a);if(k)counts[k]=(counts[k]||0)+1});return counts}
+function heatColor(n,max){if(!n||!heatToggle||!heatToggle.checked)return "#10213b";const t=Math.min(1,n/Math.max(1,max));return d3.interpolateRgbBasis(["#18304f","#ffb347","#ff4d66"])(.18+.82*t)}
+function applySphereHeat(){
+ if(!window.globe||!countriesGeo||!countriesGeo.features)return;
+ const counts=heatCounts(),max=Math.max(1,...Object.values(counts));
+ window.globe.polygonCapColor(f=>{if(!heatToggle||!heatToggle.checked)return "rgba(16,33,59,.72)";const id=String(f.id??f.properties?.iso_n3??"").padStart(3,"0"),n=counts[id]||0;if(!n)return "rgba(16,33,59,.72)";const c=d3.color(heatColor(n,max));return c?`rgba(${c.r},${c.g},${c.b},.88)`:"rgba(16,33,59,.72)"}).polygonSideColor(()=>"rgba(8,18,34,.20)").polygonStrokeColor(()=>"rgba(110,160,210,.22)");
+}
+function renderFlat(data){
+ if(!flatZoomLayer) return;
+ const hits=heatCounts(); const mx=Math.max(1,...Object.values(hits));
+ flatZoomLayer.selectAll(".country").style("fill",d=>heatColor(hits[String(d.id).padStart(3,"0")]||0,mx));
+ flatZoomLayer.selectAll(".flat-attack-layer").remove();
+ const layer=flatZoomLayer.append("g").attr("class","flat-attack-layer");
+ const mode=viewMode.value;
+ if(mode==="attacks"){
+   const flightMs=Math.min(850,Math.max(160,(+speed.value||1000)*0.82));
+   const paths=layer.selectAll("path.flat-arc").data(data).join("path")
+    .attr("class","flat-arc pulse-path").attr("pathLength",1)
+    .attr("d",d=>{
+      const a=flatProjection([d.startLng,d.startLat]), b=flatProjection([d.endLng,d.endLat]);
+      const mx=(a[0]+b[0])/2, my=Math.min(a[1],b[1])-Math.abs(a[0]-b[0])*.14;
+      return `M${a[0]},${a[1]} Q${mx},${my} ${b[0]},${b[1]}`;
+    })
+    .attr("stroke",d=>severityColor[d.severity]).attr("stroke-width",d=>1+d.impact/45)
+    .attr("stroke-dasharray",function(){return this.getTotalLength()})
+    .attr("stroke-dashoffset",function(){return this.getTotalLength()})
+    .on("click",(e,d)=>showDetail(d));
+   if(data.length<=1200) paths.transition().duration(flightMs).ease(d3.easeLinear).attr("stroke-dashoffset",0);
+   else paths.attr("stroke-dashoffset",0).attr("opacity",.42);
+   if(data.length<=1200) paths.each(function(d){
+     const pathNode=this;
+     const dot=layer.append("circle").attr("class","missile-dot").attr("r",4.2).attr("fill",severityColor[d.severity]);
+     const start=performance.now();
+     function move(now){
+       const t=Math.min(1,(now-start)/flightMs), point=pathNode.getPointAtLength(pathNode.getTotalLength()*t);
+       dot.attr("cx",point.x).attr("cy",point.y);
+       if(t<1) requestAnimationFrame(move); else dot.remove();
+     }
+     requestAnimationFrame(move);
+   });
+   layer.selectAll("circle.flat-origin").data(data).join("circle").attr("class","flat-origin")
+    .attr("cx",d=>flatProjection([d.startLng,d.startLat])[0]).attr("cy",d=>flatProjection([d.startLng,d.startLat])[1])
+    .attr("r",4).on("click",(e,d)=>showDetail(d));
+   setTimeout(()=>{
+        layer.selectAll("circle.flat-victim").data(data).join("circle").attr("class","flat-victim")
+         .attr("cx",d=>flatProjection([d.endLng,d.endLat])[0]).attr("cy",d=>flatProjection([d.endLng,d.endLat])[1])
+         .attr("r",d=>5+d.impact/22).attr("fill",d=>severityColor[d.severity]).attr("opacity",.72)
+         .on("click",(e,d)=>showDetail(d));
+        layer.selectAll("circle.flat-ring").data(data).join("circle").attr("class","flat-ring")
+         .attr("cx",d=>flatProjection([d.endLng,d.endLat])[0]).attr("cy",d=>flatProjection([d.endLng,d.endLat])[1])
+         .attr("r",5).attr("fill","none").attr("stroke",d=>severityColor[d.severity]).attr("stroke-width",2)
+         .attr("r",d=>16+d.impact/3.2);
+   },flightMs);
+ } else {
+   const key=mode==="origins"?"originCountry":"victimCountry";
+   const latKey=mode==="origins"?"startLat":"endLat", lngKey=mode==="origins"?"startLng":"endLng";
+   const grouped=Object.values(data.reduce((acc,d)=>{
+     const k=d[key]; if(!acc[k]) acc[k]={name:k,lat:d[latKey],lng:d[lngKey],count:0,impact:0};
+     acc[k].count++; acc[k].impact+=d.impact; return acc;
+   },{}));
+   layer.selectAll("circle").data(grouped).join("circle")
+    .attr("cx",d=>flatProjection([d.lng,d.lat])[0]).attr("cy",d=>flatProjection([d.lng,d.lat])[1])
+    .attr("r",d=>8+Math.sqrt(d.count)*7).attr("fill",mode==="origins"?"#4dd8ff":"#ff4d66").attr("opacity",.72);
+ }
+}
+
+const COUNTRY_TO_NUMERIC={"aruba":"533","abw":"533","aw":"533","af":"004","islamic republic of afghanistan":"004","afghanistan":"004","afg":"004","angola":"024","ao":"024","republic of angola":"024","ago":"024","aia":"660","anguilla":"660","ai":"660","\u00e5land islands":"248","ala":"248","ax":"248","republic of albania":"008","albania":"008","alb":"008","al":"008","andorra":"020","ad":"020","and":"020","principality of andorra":"020","are":"784","ae":"784","united arab emirates":"784","arg":"032","argentina":"032","ar":"032","argentine republic":"032","am":"051","republic of armenia":"051","arm":"051","armenia":"051","as":"016","american samoa":"016","asm":"016","ata":"010","aq":"010","antarctica":"010","tf":"260","atf":"260","french southern territories":"260","antigua and barbuda":"028","atg":"028","ag":"028","au":"036","australia":"036","aus":"036","republic of austria":"040","austria":"040","aut":"040","at":"040","republic of azerbaijan":"031","az":"031","aze":"031","azerbaijan":"031","burundi":"108","bdi":"108","bi":"108","republic of burundi":"108","bel":"056","belgium":"056","kingdom of belgium":"056","be":"056","ben":"204","republic of benin":"204","bj":"204","benin":"204","bonaire, sint eustatius and saba":"535","bq":"535","bes":"535","bfa":"854","bf":"854","burkina faso":"854","people's republic of bangladesh":"050","bangladesh":"050","bgd":"050","bd":"050","bgr":"100","republic of bulgaria":"100","bg":"100","bulgaria":"100","kingdom of bahrain":"048","bhr":"048","bahrain":"048","bh":"048","commonwealth of the bahamas":"044","bs":"044","bhs":"044","bahamas":"044","republic of bosnia and herzegovina":"070","bosnia and herzegovina":"070","bih":"070","ba":"070","bl":"652","blm":"652","saint barth\u00e9lemy":"652","by":"112","blr":"112","belarus":"112","republic of belarus":"112","bz":"084","belize":"084","blz":"084","bmu":"060","bermuda":"060","bm":"060","bo":"068","plurinational state of bolivia":"068","bolivia, plurinational state of":"068","bolivia":"068","bol":"068","br":"076","brazil":"076","federative republic of brazil":"076","bra":"076","barbados":"052","brb":"052","bb":"052","brunei darussalam":"096","brn":"096","bn":"096","btn":"064","kingdom of bhutan":"064","bt":"064","bhutan":"064","bvt":"074","bv":"074","bouvet island":"074","bwa":"072","botswana":"072","bw":"072","republic of botswana":"072","caf":"140","cf":"140","central african republic":"140","ca":"124","canada":"124","can":"124","cocos (keeling) islands":"166","cck":"166","cc":"166","che":"756","swiss confederation":"756","ch":"756","switzerland":"756","chl":"152","republic of chile":"152","chile":"152","cl":"152","people's republic of china":"156","china":"156","cn":"156","chn":"156","civ":"384","c\u00f4te d'ivoire":"384","ci":"384","republic of c\u00f4te d'ivoire":"384","republic of cameroon":"120","cmr":"120","cm":"120","cameroon":"120","congo, the democratic republic of the":"180","cod":"180","cd":"180","cog":"178","republic of the congo":"178","congo":"178","cg":"178","cok":"184","ck":"184","cook islands":"184","col":"170","co":"170","republic of colombia":"170","colombia":"170","com":"174","km":"174","comoros":"174","union of the comoros":"174","cv":"132","republic of cabo verde":"132","cabo verde":"132","cpv":"132","cr":"188","republic of costa rica":"188","costa rica":"188","cri":"188","cub":"192","republic of cuba":"192","cu":"192","cuba":"192","cura\u00e7ao":"531","cw":"531","cuw":"531","christmas island":"162","cxr":"162","cx":"162","cayman islands":"136","cym":"136","ky":"136","cyp":"196","republic of cyprus":"196","cy":"196","cyprus":"196","czech republic":"203","cz":"203","cze":"203","czechia":"203","federal republic of germany":"276","germany":"276","de":"276","deu":"276","dj":"262","dji":"262","djibouti":"262","republic of djibouti":"262","dma":"212","dm":"212","dominica":"212","commonwealth of dominica":"212","dnk":"208","dk":"208","denmark":"208","kingdom of denmark":"208","do":"214","dominican republic":"214","dom":"214","algeria":"012","people's democratic republic of algeria":"012","dza":"012","dz":"012","republic of ecuador":"218","ecu":"218","ec":"218","ecuador":"218","eg":"818","arab republic of egypt":"818","egy":"818","egypt":"818","eri":"232","the state of eritrea":"232","eritrea":"232","er":"232","western sahara":"732","esh":"732","eh":"732","esp":"724","kingdom of spain":"724","es":"724","spain":"724","est":"233","estonia":"233","republic of estonia":"233","ee":"233","eth":"231","federal democratic republic of ethiopia":"231","et":"231","ethiopia":"231","fi":"246","finland":"246","republic of finland":"246","fin":"246","fiji":"242","republic of fiji":"242","fj":"242","fji":"242","flk":"238","fk":"238","falkland islands (malvinas)":"238","fr":"250","france":"250","fra":"250","french republic":"250","fo":"234","faroe islands":"234","fro":"234","fm":"583","fsm":"583","federated states of micronesia":"583","micronesia, federated states of":"583","gab":"266","ga":"266","gabon":"266","gabonese republic":"266","gb":"826","gbr":"826","united kingdom":"826","united kingdom of great britain and northern ireland":"826","georgia":"268","ge":"268","geo":"268","guernsey":"831","gg":"831","ggy":"831","gha":"288","gh":"288","ghana":"288","republic of ghana":"288","gib":"292","gi":"292","gibraltar":"292","republic of guinea":"324","gn":"324","guinea":"324","gin":"324","glp":"312","gp":"312","guadeloupe":"312","gm":"270","gambia":"270","republic of the gambia":"270","gmb":"270","gw":"624","gnb":"624","guinea-bissau":"624","republic of guinea-bissau":"624","gq":"226","gnq":"226","republic of equatorial guinea":"226","equatorial guinea":"226","gr":"300","greece":"300","hellenic republic":"300","grc":"300","grd":"308","grenada":"308","gd":"308","greenland":"304","gl":"304","grl":"304","gt":"320","gtm":"320","republic of guatemala":"320","guatemala":"320","french guiana":"254","gf":"254","guf":"254","guam":"316","gu":"316","gum":"316","gy":"328","republic of guyana":"328","guy":"328","guyana":"328","hong kong special administrative region of china":"344","hk":"344","hkg":"344","hong kong":"344","heard island and mcdonald islands":"334","hmd":"334","hm":"334","republic of honduras":"340","hn":"340","honduras":"340","hnd":"340","hrv":"191","hr":"191","croatia":"191","republic of croatia":"191","hti":"332","ht":"332","haiti":"332","republic of haiti":"332","hungary":"348","hu":"348","hun":"348","idn":"360","id":"360","republic of indonesia":"360","indonesia":"360","imn":"833","im":"833","isle of man":"833","india":"356","republic of india":"356","ind":"356","in":"356","io":"086","iot":"086","british indian ocean territory":"086","ie":"372","ireland":"372","irl":"372","islamic republic of iran":"364","iran":"364","irn":"364","ir":"364","iran, islamic republic of":"364","iraq":"368","iq":"368","republic of iraq":"368","irq":"368","republic of iceland":"352","is":"352","isl":"352","iceland":"352","isr":"376","israel":"376","state of israel":"376","il":"376","italy":"380","ita":"380","it":"380","italian republic":"380","jamaica":"388","jam":"388","jm":"388","je":"832","jersey":"832","jey":"832","jo":"400","hashemite kingdom of jordan":"400","jordan":"400","jor":"400","japan":"392","jp":"392","jpn":"392","kazakhstan":"398","kz":"398","kaz":"398","republic of kazakhstan":"398","kenya":"404","republic of kenya":"404","ke":"404","ken":"404","kyrgyzstan":"417","kg":"417","kgz":"417","kyrgyz republic":"417","kh":"116","cambodia":"116","kingdom of cambodia":"116","khm":"116","ki":"296","republic of kiribati":"296","kir":"296","kiribati":"296","saint kitts and nevis":"659","kn":"659","kna":"659","kor":"410","south korea":"410","kr":"410","korea, republic of":"410","state of kuwait":"414","kwt":"414","kuwait":"414","kw":"414","laos":"418","la":"418","lao people's democratic republic":"418","lao":"418","lbn":"422","lebanon":"422","lebanese republic":"422","lb":"422","lr":"430","lbr":"430","liberia":"430","republic of liberia":"430","ly":"434","lby":"434","libya":"434","lca":"662","saint lucia":"662","lc":"662","liechtenstein":"438","principality of liechtenstein":"438","lie":"438","li":"438","democratic socialist republic of sri lanka":"144","lk":"144","lka":"144","sri lanka":"144","lso":"426","ls":"426","lesotho":"426","kingdom of lesotho":"426","republic of lithuania":"440","lt":"440","lithuania":"440","ltu":"440","luxembourg":"442","lu":"442","grand duchy of luxembourg":"442","lux":"442","latvia":"428","republic of latvia":"428","lv":"428","lva":"428","mac":"446","macao special administrative region of china":"446","mo":"446","macao":"446","mf":"663","saint martin (french part)":"663","maf":"663","morocco":"504","ma":"504","kingdom of morocco":"504","mar":"504","mc":"492","monaco":"492","principality of monaco":"492","mco":"492","md":"498","moldova, republic of":"498","moldova":"498","mda":"498","republic of moldova":"498","mdg":"450","republic of madagascar":"450","mg":"450","madagascar":"450","mv":"462","republic of maldives":"462","mdv":"462","maldives":"462","mex":"484","mexico":"484","mx":"484","united mexican states":"484","marshall islands":"584","republic of the marshall islands":"584","mhl":"584","mh":"584","north macedonia":"807","mkd":"807","republic of north macedonia":"807","mk":"807","mli":"466","republic of mali":"466","mali":"466","ml":"466","mt":"470","mlt":"470","republic of malta":"470","malta":"470","mmr":"104","myanmar":"104","mm":"104","republic of myanmar":"104","montenegro":"499","mne":"499","me":"499","mn":"496","mng":"496","mongolia":"496","northern mariana islands":"580","mnp":"580","commonwealth of the northern mariana islands":"580","mp":"580","moz":"508","mz":"508","mozambique":"508","republic of mozambique":"508","mr":"478","mrt":"478","mauritania":"478","islamic republic of mauritania":"478","msr":"500","montserrat":"500","ms":"500","mq":"474","mtq":"474","martinique":"474","mauritius":"480","republic of mauritius":"480","mu":"480","mus":"480","mw":"454","mwi":"454","republic of malawi":"454","malawi":"454","mys":"458","malaysia":"458","my":"458","mayotte":"175","myt":"175","yt":"175","na":"516","namibia":"516","nam":"516","republic of namibia":"516","nc":"540","ncl":"540","new caledonia":"540","republic of the niger":"562","niger":"562","ner":"562","ne":"562","norfolk island":"574","nfk":"574","nf":"574","nga":"566","ng":"566","federal republic of nigeria":"566","nigeria":"566","nic":"558","republic of nicaragua":"558","ni":"558","nicaragua":"558","niue":"570","nu":"570","niu":"570","kingdom of the netherlands":"528","netherlands":"528","nld":"528","nl":"528","nor":"578","norway":"578","no":"578","kingdom of norway":"578","npl":"524","federal democratic republic of nepal":"524","nepal":"524","np":"524","republic of nauru":"520","nr":"520","nauru":"520","nru":"520","nz":"554","new zealand":"554","nzl":"554","oman":"512","omn":"512","sultanate of oman":"512","om":"512","islamic republic of pakistan":"586","pakistan":"586","pak":"586","pk":"586","pan":"591","pa":"591","republic of panama":"591","panama":"591","pitcairn":"612","pn":"612","pcn":"612","peru":"604","pe":"604","republic of peru":"604","per":"604","ph":"608","philippines":"608","phl":"608","republic of the philippines":"608","pw":"585","palau":"585","plw":"585","republic of palau":"585","pg":"598","papua new guinea":"598","png":"598","independent state of papua new guinea":"598","pl":"616","pol":"616","poland":"616","republic of poland":"616","puerto rico":"630","pri":"630","pr":"630","democratic people's republic of korea":"408","prk":"408","korea, democratic people's republic of":"408","north korea":"408","kp":"408","pt":"620","portuguese republic":"620","prt":"620","portugal":"620","republic of paraguay":"600","py":"600","paraguay":"600","pry":"600","pse":"275","the state of palestine":"275","palestine, state of":"275","ps":"275","french polynesia":"258","pf":"258","pyf":"258","qatar":"634","qat":"634","qa":"634","state of qatar":"634","reu":"638","r\u00e9union":"638","re":"638","ro":"642","rou":"642","romania":"642","russian federation":"643","rus":"643","ru":"643","rwanda":"646","rwandese republic":"646","rwa":"646","rw":"646","kingdom of saudi arabia":"682","sa":"682","sau":"682","saudi arabia":"682","sdn":"729","sd":"729","sudan":"729","republic of the sudan":"729","senegal":"686","sen":"686","republic of senegal":"686","sn":"686","republic of singapore":"702","sgp":"702","sg":"702","singapore":"702","sgs":"239","gs":"239","south georgia and the south sandwich islands":"239","saint helena, ascension and tristan da cunha":"654","shn":"654","sh":"654","sjm":"744","svalbard and jan mayen":"744","sj":"744","solomon islands":"090","sb":"090","slb":"090","sle":"694","republic of sierra leone":"694","sierra leone":"694","sl":"694","el salvador":"222","sv":"222","republic of el salvador":"222","slv":"222","san marino":"674","smr":"674","republic of san marino":"674","sm":"674","som":"706","somalia":"706","so":"706","federal republic of somalia":"706","pm":"666","saint pierre and miquelon":"666","spm":"666","republic of serbia":"688","srb":"688","rs":"688","serbia":"688","south sudan":"728","ssd":"728","ss":"728","republic of south sudan":"728","st":"678","sao tome and principe":"678","democratic republic of sao tome and principe":"678","stp":"678","sur":"740","republic of suriname":"740","sr":"740","suriname":"740","slovak republic":"703","slovakia":"703","svk":"703","sk":"703","si":"705","slovenia":"705","republic of slovenia":"705","svn":"705","se":"752","sweden":"752","swe":"752","kingdom of sweden":"752","swz":"748","sz":"748","eswatini":"748","kingdom of eswatini":"748","sx":"534","sxm":"534","sint maarten (dutch part)":"534","seychelles":"690","republic of seychelles":"690","sc":"690","syc":"690","syr":"760","syrian arab republic":"760","sy":"760","syria":"760","tc":"796","tca":"796","turks and caicos islands":"796","td":"148","republic of chad":"148","tcd":"148","chad":"148","togo":"768","tgo":"768","tg":"768","togolese republic":"768","tha":"764","th":"764","kingdom of thailand":"764","thailand":"764","republic of tajikistan":"762","tjk":"762","tajikistan":"762","tj":"762","tk":"772","tokelau":"772","tkl":"772","tm":"795","turkmenistan":"795","tkm":"795","tls":"626","democratic republic of timor-leste":"626","tl":"626","timor-leste":"626","to":"776","ton":"776","tonga":"776","kingdom of tonga":"776","trinidad and tobago":"780","tt":"780","tto":"780","republic of trinidad and tobago":"780","tun":"788","republic of tunisia":"788","tunisia":"788","tn":"788","t\u00fcrkiye":"792","tur":"792","tr":"792","republic of t\u00fcrkiye":"792","tuvalu":"798","tv":"798","tuv":"798","twn":"158","tw":"158","taiwan":"158","taiwan, province of china":"158","tza":"834","tanzania":"834","tz":"834","tanzania, united republic of":"834","united republic of tanzania":"834","uga":"800","uganda":"800","ug":"800","republic of uganda":"800","ukr":"804","ua":"804","ukraine":"804","umi":"581","united states minor outlying islands":"581","um":"581","uy":"858","ury":"858","eastern republic of uruguay":"858","uruguay":"858","united states of america":"840","united states":"840","us":"840","usa":"840","republic of uzbekistan":"860","uzbekistan":"860","uz":"860","uzb":"860","vat":"336","holy see (vatican city state)":"336","va":"336","vct":"670","saint vincent and the grenadines":"670","vc":"670","venezuela":"862","venezuela, bolivarian republic of":"862","bolivarian republic of venezuela":"862","ve":"862","ven":"862","british virgin islands":"092","virgin islands, british":"092","vg":"092","vgb":"092","vi":"850","vir":"850","virgin islands, u.s.":"850","virgin islands of the united states":"850","vietnam":"704","socialist republic of viet nam":"704","vn":"704","vnm":"704","viet nam":"704","vut":"548","vanuatu":"548","vu":"548","republic of vanuatu":"548","wf":"876","wallis and futuna":"876","wlf":"876","independent state of samoa":"882","wsm":"882","samoa":"882","ws":"882","yem":"887","yemen":"887","ye":"887","republic of yemen":"887","za":"710","south africa":"710","republic of south africa":"710","zaf":"710","zmb":"894","zambia":"894","zm":"894","republic of zambia":"894","republic of zimbabwe":"716","zwe":"716","zw":"716","zimbabwe":"716","russia":"643","u.s.":"840","uk":"826","great britain":"826","republic of korea":"410","dprk":"408","palestine":"275","unknown":"","not known":"","multiple":"","global":"","worldwide":""};
+const EUREPOC_DYADIC_URL="https://zenodo.org/records/14965395/files/eurepoc_dyadic_dataset_0_1.csv?download=1";
+const EUREPOC_GLOBAL_URL="https://zenodo.org/records/14965395/files/eurepoc_global_dataset_1_3.csv?download=1";
+const VCDB_ZIP_URL="https://cdn.jsdelivr.net/gh/vz-risk/VCDB@master/data/csv/vcdb.csv.zip";
+function normText(v){return String(v??"").trim()}
+function splitMulti(v){
+ return normText(v).split(/;|\|/).map(x=>x.trim()).filter(Boolean);
+}
+function firstPart(v){return splitMulti(v)[0]||""}
+function findField(row,patterns){
+ const keys=Object.keys(row); for(const p of patterns){const k=keys.find(x=>p.test(x));if(k&&normText(row[k]))return row[k]} return "";
+}
+function numericIso(name){
+ const clean=firstPart(name).replace(/\s*\([^)]*\)\s*/g," ").trim().toLowerCase();
+ return COUNTRY_TO_NUMERIC[clean]||"";
+}
+function centroidForCountry(name){
+ const iso=numericIso(name);
+ if(!iso)return null;
+ if(countriesGeo&&typeof d3!=="undefined"&&d3.geoCentroid){
+   const f=countriesGeo.features.find(x=>String(x.id).padStart(3,"0")===iso);
+   if(f){const c=d3.geoCentroid(f);return {lat:c[1],lng:c[0],iso}}
+ }
+ // Atlas not loaded (or country missing from it): fall back to the embedded centroid table so
+ // research datasets never silently drop because the basemap lost a race or failed to load.
+ for(const k in ISO2_GEO){const g=ISO2_GEO[k];if(g[1]===iso)return {lat:g[2],lng:g[3],iso}}
+ return null;
+}
+function severityFromRow(r){
+ const txt=Object.values(r).join(" ").toLowerCase();
+ if(/destructive|fatal|critical infrastructure|wiper|major disruption/.test(txt))return "Critical";
+ if(/ransomware|sabotage|disruption|large-scale|supply chain/.test(txt))return "High";
+ if(/espionage|data theft|breach|ddos/.test(txt))return "Medium";
+ return "Low";
+}
+function sectorFromRow(r){
+ const v=firstPart(findField(r,[/receiver.*category/i,/victim.*sector/i,/sector/i,/industry/i,/target.*category/i]));
+ return v||"Other";
+}
+function typeFromRow(r){
+ const v=firstPart(findField(r,[/type.*incident/i,/incident.*type/i,/operation.*type/i,/cyber.*means/i,/technique/i,/action/i]));
+ return v||"Cyber incident";
+}
+function parseDateValue(v){
+ const t=normText(v); if(!t)return null;
+ let d=new Date(t); if(!Number.isNaN(d.getTime()))return d;
+ const m=t.match(/(20\d{2}|19\d{2})[-\/.](\d{1,2})[-\/.](\d{1,2})/); if(m)return new Date(+m[1],+m[2]-1,+m[3]);
+ const y=t.match(/(20\d{2}|19\d{2})/); return y?new Date(+y[1],5,15):null;
+}
+function rowToAttacks(r,i){
+ const date=parseDateValue(findField(r,[/^start.*date/i,/incident.*start/i,/date.*start/i,/^date$/i,/year/i]));
+ if(!date||date.getFullYear()<2000||date.getFullYear()>2026)return [];
+ const victimRaw=findField(r,[/receiver.*country/i,/victim.*country/i,/target.*country/i,/destination.*country/i]);
+ const originRaw=findField(r,[/initiator.*country/i,/actor.*country/i,/origin.*country/i,/source.*country/i]);
+ const victims=splitMulti(victimRaw);
+ const origins=splitMulti(originRaw);
+ const actor=firstPart(findField(r,[/initiator.*name/i,/actor.*name/i,/threat.*actor/i,/attributed.*actor/i]))||"Unknown / unattributed";
+ const name=firstPart(findField(r,[/incident.*name/i,/operation.*name/i,/event.*name/i,/title/i]))||`EuRepoC incident ${i+1}`;
+ const summary=normText(findField(r,[/description/i,/summary/i,/comment/i,/notes/i])).slice(0,700)||"Consolidated public cyber incident record from EuRepoC.";
+ const sev=severityFromRow(r);
+ const usableVictims=victims.map(v=>({name:v,c:centroidForCountry(v)})).filter(x=>x.c);
+ if(!usableVictims.length)return [];
+ const usableOrigins=origins.map(o=>({name:o,c:centroidForCountry(o)})).filter(x=>x.c);
+ const originChoices=usableOrigins.length?usableOrigins:[{name:"Unknown / unattributed",c:null}];
+ const routes=[];
+ usableVictims.forEach((v,vi)=>{
+   originChoices.forEach((o,oi)=>{
+     const unknownOrigin=!o.c;
+     routes.push({id:`eurepoc-${i}-${vi}-${oi}`,incidentId:firstPart(findField(r,[/^incident.*id/i,/^id$/i]))||`eurepoc-${i}`,
+       year:date.getFullYear(),month:date.getMonth()+1,name,actor,
+       leader:"See EuRepoC attribution fields",originCountry:o.name,originCity:unknownOrigin?"Unknown origin":"Country centroid",
+       startLat:unknownOrigin?0:o.c.lat,startLng:unknownOrigin?-30:o.c.lng,victimCountry:v.name,victimISO:v.c.iso,victimCity:"Country centroid",endLat:v.c.lat,endLng:v.c.lng,
+       severity:sev,impact:sev==="Critical"?95:sev==="High"?78:sev==="Medium"?58:35,sector:sectorFromRow(r),type:typeFromRow(r),confidence:unknownOrigin?"Unknown":"Dataset-coded",
+       summary,attribution:unknownOrigin?"No reliable origin country was available; the launch point is a neutral visualization anchor, not an attribution.":"Origin reflects the initiator-country field in EuRepoC; consult the source record for attribution context.",
+       source:"EuRepoC Global Dataset v1.3",sourceUrl:"https://zenodo.org/records/14965395",sources:[{name:"EuRepoC dataset record",url:"https://zenodo.org/records/14965395"},{name:"EuRepoC database",url:"https://eurepoc.eu/database/"}]});
+   });
+ });
+ return routes;
+}
+
+function cleanVCDBCode(v){
+ return normText(v).replace(/[\[\]"']/g,"").trim();
+}
+function splitVCDBCountries(v){
+ const t=cleanVCDBCode(v); if(!t)return [];
+ const direct=t.split(/;|\||\s*,\s*/).map(x=>x.trim()).filter(Boolean);
+ return [...new Set(direct.filter(x=>/^[A-Za-z]{2}$/.test(x)||numericIso(x)))];
+}
+function vcdbField(row, exact, patterns=[]){
+ if(normText(row[exact]))return row[exact];
+ return findField(row,patterns);
+}
+function vcdbType(row){
+ const actionKeys=["hacking","malware","social","misuse","physical","error","environmental"];
+ const found=[];
+ for(const a of actionKeys){
+   const value=vcdbField(row,`action.${a}.variety`,[new RegExp(`action.*${a}.*variety`,"i")]);
+   if(normText(value)&&!/^unknown$/i.test(normText(value)))found.push(`${a}: ${firstPart(value)}`);
+ }
+ return found[0]||"Data breach / security incident";
+}
+function vcdbSector(row){
+ const industry=vcdbField(row,"victim.industry",[/victim.*industry/i]);
+ const code=normText(industry).replace(/[^0-9]/g,"").slice(0,2);
+ const sectors={"11":"Agriculture","21":"Mining","22":"Utilities","23":"Construction","31":"Manufacturing","32":"Manufacturing","33":"Manufacturing","42":"Wholesale","44":"Retail","45":"Retail","48":"Transport","49":"Transport","51":"Information","52":"Finance","53":"Real estate","54":"Professional services","55":"Management","56":"Business services","61":"Education","62":"Healthcare","71":"Arts and recreation","72":"Hospitality","81":"Other services","92":"Government"};
+ return sectors[code]||"Other";
+}
+function vcdbSeverity(row){
+ const txt=Object.values(row).join(" ").toLowerCase();
+ if(/ransomware|destructive|sabotage/.test(txt))return "High";
+ if(/data disclosure|personal|payment|medical|credentials/.test(txt))return "Medium";
+ return "Low";
+}
+function vcdbRowToAttacks(r,i){
+ const year=Number(vcdbField(r,"timeline.incident.year",[/timeline.*incident.*year/i]));
+ const month=Math.max(1,Math.min(12,Number(vcdbField(r,"timeline.incident.month",[/timeline.*incident.*month/i]))||6));
+ if(!year||year<2000||year>2026)return [];
+ const victimRaw=vcdbField(r,"victim.country",[/victim.*country/i]);
+ const victimCodes=splitVCDBCountries(victimRaw).filter(x=>!/^unknown|other$/i.test(x));
+ if(!victimCodes.length)return [];
+ const actorRaw=vcdbField(r,"actor.external.country",[/actor.*external.*country/i,/actor.*country/i]);
+ const actorCodes=splitVCDBCountries(actorRaw).filter(x=>!/^unknown|other$/i.test(x));
+ const origins=actorCodes.map(c=>({name:c,c:centroidForCountry(c)})).filter(x=>x.c);
+ const originChoices=origins.length?origins:[{name:"Unknown / unattributed",c:null}];
+ const sev=vcdbSeverity(r);
+ const summary=normText(vcdbField(r,"summary",[/summary/i])).slice(0,700)||"Publicly disclosed security incident coded in VERIS format.";
+ const ref=normText(vcdbField(r,"reference",[/reference/i]));
+ const victimId=normText(vcdbField(r,"victim.victim_id",[/victim.*victim.*id/i]))||"Undisclosed organisation";
+ const incidentId=normText(vcdbField(r,"incident_id",[/incident.*id/i]))||`vcdb-${i}`;
+ const routes=[];
+ victimCodes.forEach((vcode,vi)=>{
+   const vc=centroidForCountry(vcode); if(!vc)return;
+   originChoices.forEach((o,oi)=>{
+     const unknownOrigin=!o.c;
+     routes.push({id:`vcdb-${i}-${vi}-${oi}`,incidentId,year,month,name:victimId,actor:unknownOrigin?"Unknown / unattributed":"External actor",
+       leader:"See VCDB record",originCountry:o.name,originCity:unknownOrigin?"Unknown origin":"Country centroid",
+       startLat:unknownOrigin?0:o.c.lat,startLng:unknownOrigin?-30:o.c.lng,victimCountry:vcode,victimISO:vc.iso,victimCity:"Country centroid",endLat:vc.lat,endLng:vc.lng,
+       severity:sev,impact:sev==="High"?78:sev==="Medium"?58:35,sector:vcdbSector(r),type:vcdbType(r),confidence:"Public disclosure",
+       summary,attribution:unknownOrigin?"VCDB does not reliably identify an origin country for this record; the neutral anchor is not an attribution.":"Actor country is taken from the VCDB external-actor field.",
+       source:"VERIS Community Database",sourceUrl:ref||"https://github.com/vz-risk/VCDB",sources:[...(ref?ref.split(/\s*[;|]\s*/).filter(x=>/^https?:/i.test(x)).slice(0,5).map((url,j)=>({name:`Original disclosure ${j+1}`,url})):[]),{name:"VCDB repository",url:"https://github.com/vz-risk/VCDB"},{name:"VERIS VCDB overview",url:"https://verisframework.org/vcdb.html"}]});
+   });
+ });
+ return routes;
+}
+async function loadVCDB(){
+ // jsdelivr caps GitHub-proxied files around 20 MB and the VCDB archive exceeds that, so it fails
+ // intermittently. Try it first (fast CDN when it works), then fall back to raw.githubusercontent.com,
+ // which serves large files and sends Access-Control-Allow-Origin: *.
+ const urls=[VCDB_ZIP_URL,"https://raw.githubusercontent.com/vz-risk/VCDB/master/data/csv/vcdb.csv.zip"];
+ let lastErr=null;
+ for(const url of urls){
+   try{
+     dataStatus.textContent=`Downloading VCDB (~30 MB) from ${new URL(url).hostname}…`;
+     const response=await fetch(url);
+     if(!response.ok)throw new Error(`VCDB download failed: ${response.status} — ${url}`);
+     const bytes=new Uint8Array(await response.arrayBuffer());
+     const files=fflate.unzipSync(bytes);
+     const csvName=Object.keys(files).find(n=>/\.csv$/i.test(n));
+     if(!csvName)throw new Error("VCDB archive contains no CSV");
+     const text=fflate.strFromU8(files[csvName]);
+     const rows=d3.csvParse(text);
+     return rows.flatMap(vcdbRowToAttacks);
+   }catch(err){lastErr=err;console.warn("VCDB source failed:",url,err)}
+ }
+ throw lastErr||new Error("VCDB unavailable from all sources");
+}
+
+function regionForAttack(a){
+ const lat=a.endLat,lng=a.endLng;
+ if(lng>=-82&&lng<=-34&&lat>=-56&&lat<=14)return "South America";
+ if(lng>=-20&&lng<=55&&lat>=-36&&lat<=37)return "Africa";
+ if((lng>=110&&lng<=180&&lat>=-50&&lat<=0)||(lng>=165&&lat<=-30))return "Oceania";
+ if(lng>=-170&&lng<=-30&&lat>14)return "North America";
+ if(lng>=-25&&lng<=45&&lat>37)return "Europe";
+ return "Asia / Middle East";
+}
+function updateRegionCoverage(data){
+ if(!regionCoverage)return;
+ const order=["Africa","South America","Oceania","Asia / Middle East","Europe","North America"];
+ const counts=Object.fromEntries(order.map(x=>[x,0]));
+ data.forEach(a=>counts[regionForAttack(a)]++);
+ regionCoverage.innerHTML=order.map(r=>`<div class="stat"><strong>${counts[r].toLocaleString()}</strong><span>${r}</span></div>`).join("");
+ const missing=order.filter(r=>!counts[r]);
+ coverageNote.textContent=missing.length?`No visible routes currently map to: ${missing.join(", ")}. Check the date and filters.`:"All broad regions have visible victim routes for the current date and filters.";
+}
+
+function incidentKey(a){
+ const n=String(a.name||"").toLowerCase()
+  .replace(/\b(incorporated|inc|limited|ltd|llc|plc|corp|corporation|company|co|gmbh|sa|srl|pty|bv|nv|ag|spa|group|holdings)\b\.?/g," ")
+  .replace(/[^a-z0-9]+/g," ").trim().split(" ").slice(0,6).join(" ");
+ return `${a.year}-${a.month}-${a.victimISO||a.victimCountry}-${n}`;
+}
+function mergeAndDedupe(rows){
+ const map=new Map();
+ for(const a of rows){
+   const key=incidentKey(a), prior=map.get(key);
+   if(!prior){map.set(key,a);continue}
+   const links=[...(prior.sources||[]),...(a.sources||[])];
+   const seen=new Set(); prior.sources=links.filter(x=>x&&x.url&&!seen.has(x.url)&&seen.add(x.url));
+   prior.summary=(prior.summary||"").length>=(a.summary||"").length?prior.summary:a.summary;
+   prior.confidence=prior.confidence==="Dataset-coded"?prior.confidence:a.confidence;
+ }
+ return [...map.values()];
+}
+async function loadEnrichmentLayers(){
+ const jobs=[
+  fetch("https://cdn.jsdelivr.net/gh/mitre-attack/attack-stix-data@master/enterprise-attack/enterprise-attack.json").then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{enrichmentCounts.mitre=(j.objects||[]).filter(o=>o.type==="campaign").length;enrichmentCounts.mitreGroups=ingestAttackStixGroups(j)}).catch(err=>{console.warn("MITRE enrichment unavailable",err)}),
+  fetch("https://cdn.jsdelivr.net/gh/cisagov/kev-data@develop/known_exploited_vulnerabilities.json").then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{enrichmentCounts.kev=(j.vulnerabilities||[]).length}).catch(err=>{console.warn("KEV enrichment unavailable",err)}),
+  fetch(RWLIVE_API+"/groups").then(r=>r.ok?r.json():Promise.reject(r.status)).then(gs=>{enrichmentCounts.rwGroups=ingestRwGroups(gs)}).catch(err=>{console.warn("Ransomware.live groups unavailable",err)})
+ ];
+ await Promise.allSettled(jobs); renderSourceMenu();
+ if(selectedAttack)showDetail(selectedAttack);
+}
+function renderSourceMenu(){
+ const mapped=[
+  {name:"Curated primary-source incidents",label:"Curated fallback",desc:"Embedded incidents with direct primary or official references"},
+  {name:"EuRepoC Global Dataset v1.3",label:"EuRepoC",desc:"Expert-reviewed political and strategic cyber incidents"},
+  {name:"VERIS Community Database",label:"VCDB",desc:"Publicly disclosed breaches and security incidents"}
+ ];
+ sourceLayerControls.innerHTML=mapped.map(x=>`<label class="sourceToggle"><input type="checkbox" data-source="${x.name}" ${enabledSources.has(x.name)?"checked":""}><span><b>${x.label}</b><br><span class="sourceMeta">${x.desc} • ${attacks.filter(a=>sourceLayerName(a)===x.name).length.toLocaleString()} mapped routes</span></span></label>`).join("");
+ sourceLayerControls.querySelectorAll("input").forEach(el=>el.addEventListener("change",()=>{el.checked?enabledSources.add(el.dataset.source):enabledSources.delete(el.dataset.source);markHistoDirty();update()}));
+ enrichmentStatus.innerHTML=`<div class="provenanceItem"><b>MITRE ATT&CK</b><div class="sourceMeta">${enrichmentCounts.mitre==null?"Unavailable in this browser":enrichmentCounts.mitre.toLocaleString()+" campaign objects loaded"}</div></div><div class="provenanceItem"><b>CISA KEV</b><div class="sourceMeta">${enrichmentCounts.kev==null?"Unavailable in this browser":enrichmentCounts.kev.toLocaleString()+" exploited vulnerabilities loaded"}</div></div>`;
+ sourceCatalogue.innerHTML=SOURCE_CATALOGUE.map(x=>`<div class="sourceCard"><b>${x.name}</b><p>${x.coverage}</p><div class="sourceMeta">${x.role} • ${x.license}</div><div class="sourceLinks"><a href="${x.primary}" target="_blank" rel="noopener">Primary site</a><a href="${x.dataset}" target="_blank" rel="noopener">Dataset / publications</a></div></div>`).join("");
+}
+function csvEscape(v){return `"${String(v??"").replace(/"/g,'""')}"`}
+function exportVisibleCsv(){
+ const cols=["year","month","name","actor","originCountry","victimCountry","sector","type","severity","confidence","source","sourceUrl"];
+ const rows=filtered(); const csv=[cols.join(","),...rows.map(r=>cols.map(c=>csvEscape(r[c])).join(","))].join("\n");
+ const blob=new Blob([csv],{type:"text/csv;charset=utf-8"});const url=URL.createObjectURL(blob);const a=document.createElement("a");a.href=url;a.download="cyber-attack-earth-visible.csv";a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
+/* ── Country centroids for country-level victim placement (ISO2 → name, ISO numeric, lat, lng) ── */
+const ISO2_GEO={US:["United States","840",39.8,-98.6],GB:["United Kingdom","826",54.6,-2.6],CA:["Canada","124",56.1,-106.3],MX:["Mexico","484",23.6,-102.5],BR:["Brazil","076",-10.8,-52.9],AR:["Argentina","032",-35.4,-65.2],CL:["Chile","152",-33.5,-70.9],CO:["Colombia","170",4.6,-74.1],PE:["Peru","604",-9.2,-75.0],EC:["Ecuador","218",-1.8,-78.2],VE:["Venezuela","862",6.4,-66.6],UY:["Uruguay","858",-32.5,-55.8],PY:["Paraguay","600",-23.4,-58.4],BO:["Bolivia","068",-16.3,-63.6],CR:["Costa Rica","188",9.7,-83.8],PA:["Panama","591",8.5,-80.8],GT:["Guatemala","320",15.8,-90.2],DO:["Dominican Republic","214",18.7,-70.2],DE:["Germany","276",51.2,10.4],FR:["France","250",46.2,2.2],IT:["Italy","380",42.8,12.5],ES:["Spain","724",40.5,-3.7],PT:["Portugal","620",39.6,-8.0],NL:["Netherlands","528",52.1,5.3],BE:["Belgium","056",50.6,4.7],CH:["Switzerland","756",46.8,8.2],AT:["Austria","040",47.6,14.1],IE:["Ireland","372",53.4,-8.2],SE:["Sweden","752",62.2,17.6],NO:["Norway","578",64.6,12.7],DK:["Denmark","208",56.0,10.0],FI:["Finland","246",64.5,26.3],IS:["Iceland","352",64.9,-19.0],PL:["Poland","616",52.1,19.4],CZ:["Czechia","203",49.8,15.3],SK:["Slovakia","703",48.7,19.7],HU:["Hungary","348",47.2,19.4],RO:["Romania","642",45.9,25.0],BG:["Bulgaria","100",42.8,25.2],GR:["Greece","300",39.1,22.9],HR:["Croatia","191",45.1,15.2],SI:["Slovenia","705",46.1,14.8],RS:["Serbia","688",44.2,20.8],AL:["Albania","008",41.1,20.1],UA:["Ukraine","804",49.0,31.4],MD:["Moldova","498",47.2,28.5],EE:["Estonia","233",58.7,25.5],LV:["Latvia","428",56.9,24.9],LT:["Lithuania","440",55.3,23.9],RU:["Russia","643",61.5,99.5],TR:["Türkiye","792",39.1,35.4],CY:["Cyprus","196",35.0,33.2],MT:["Malta","470",35.9,14.4],LU:["Luxembourg","442",49.8,6.1],IL:["Israel","376",31.4,35.0],SA:["Saudi Arabia","682",24.1,44.5],AE:["United Arab Emirates","784",23.9,54.3],QA:["Qatar","634",25.3,51.2],KW:["Kuwait","414",29.3,47.6],BH:["Bahrain","048",26.0,50.5],OM:["Oman","512",20.6,56.1],JO:["Jordan","400",31.3,36.8],LB:["Lebanon","422",33.9,35.9],IQ:["Iraq","368",33.0,43.7],IR:["Iran","364",32.6,54.3],EG:["Egypt","818",26.6,29.8],MA:["Morocco","504",31.9,-6.3],TN:["Tunisia","788",34.1,9.6],DZ:["Algeria","012",28.2,2.6],LY:["Libya","434",27.0,17.3],ZA:["South Africa","710",-29.0,25.1],NG:["Nigeria","566",9.6,8.1],KE:["Kenya","404",0.6,37.8],GH:["Ghana","288",7.9,-1.2],ET:["Ethiopia","231",8.6,39.6],TZ:["Tanzania","834",-6.3,34.8],UG:["Uganda","800",1.3,32.4],SN:["Senegal","686",14.4,-14.5],CI:["Côte d'Ivoire","384",7.6,-5.6],CM:["Cameroon","120",5.7,12.7],ZM:["Zambia","894",-13.5,27.8],ZW:["Zimbabwe","716",-19.0,29.9],BW:["Botswana","072",-22.2,23.8],NA:["Namibia","516",-22.1,17.2],MZ:["Mozambique","508",-17.3,35.5],AO:["Angola","024",-12.3,17.5],RW:["Rwanda","646",-2.0,29.9],MU:["Mauritius","480",-20.2,57.6],LR:["Liberia","430",6.5,-9.4],CN:["China","156",35.9,104.2],JP:["Japan","392",36.6,138.2],KR:["South Korea","410",36.4,127.9],KP:["North Korea","408",40.3,127.2],IN:["India","356",22.9,79.6],PK:["Pakistan","586",29.9,69.4],BD:["Bangladesh","050",23.7,90.4],LK:["Sri Lanka","144",7.6,80.7],NP:["Nepal","524",28.3,84.1],TH:["Thailand","764",15.1,101.0],VN:["Vietnam","704",16.6,106.3],MY:["Malaysia","458",3.8,109.7],SG:["Singapore","702",1.35,103.8],ID:["Indonesia","360",-2.2,117.3],PH:["Philippines","608",12.9,122.9],MM:["Myanmar","104",21.2,96.5],KH:["Cambodia","116",12.7,104.9],TW:["Taiwan","158",23.7,121.0],HK:["Hong Kong","344",22.3,114.2],MN:["Mongolia","496",46.8,103.1],KZ:["Kazakhstan","398",48.2,66.9],UZ:["Uzbekistan","860",41.8,63.1],GE:["Georgia","268",42.2,43.5],AM:["Armenia","051",40.3,45.0],AZ:["Azerbaijan","031",40.3,47.5],AU:["Australia","036",-25.7,134.5],NZ:["New Zealand","554",-41.8,172.8],FJ:["Fiji","242",-17.8,178.0],PG:["Papua New Guinea","598",-6.5,145.3]};
+function iso2Geo(cc){const g=ISO2_GEO[String(cc||"").toUpperCase()];return g?{name:g[0],num:g[1],lat:g[2],lng:g[3]}:null}
+
+/* ── Ransomware.live live layer: leak-site victim claims for recent months ── */
+const RWLIVE_API="https://api.ransomware.live/v2";
+const RWLIVE_MONTHS=6;
+function rwGroupSlug(name){return String(name||"").toLowerCase().replace(/[^a-z0-9]+/g,"")}
+function mapRwSector(s){
+ const t=normText(s);
+ const m={"Financial Services":"Finance","Public Sector":"Government","Transportation/Logistics":"Transport","Telecommunication":"Telecoms","Agriculture and Food Production":"Manufacturing","Hospitality and Tourism":"Retail","Business Services":"Technology","Consumer Services":"Retail","Construction":"Manufacturing"};
+ if(m[t])return m[t];
+ if(["Manufacturing","Technology","Healthcare","Education","Energy","Finance","Government","Transport","Retail","Media","Telecoms","Utilities"].includes(t))return t;
+ return "Other";
+}
+function rwVictimToAttack(v,fallbackYear,fallbackMonth,i){
+ const geo=iso2Geo(v.country); if(!geo)return null;
+ let y=fallbackYear,m=fallbackMonth;
+ const dm=String(v.attackdate||v.discovered||"").match(/^(\d{4})-(\d{2})/); if(dm){y=+dm[1];m=+dm[2]}
+ if(y<startYear||m<1||m>12||idx(y,m)>endTimelineIndex||idx(y,m)<0)return null;
+ const group=normText(v.group)||"Unknown group";
+ const name=normText(v.victim||v.post_title)||"Undisclosed organisation";
+ const press=Array.isArray(v.press)?v.press.length:(Number(v.press)||0);
+ return {id:`rwl-${y}${String(m).padStart(2,"0")}-${i}-${rwGroupSlug(group)}`,year:y,month:m,name,
+  actor:`${group} (ransomware group)`,leader:"Leak-site claim; operators unidentified",
+  originCountry:"Unknown / unattributed",originCity:"Leak-site claim — origin not asserted",startLat:0,startLng:-30,
+  victimCountry:geo.name,victimISO:geo.num,victimCity:`${geo.name} (country-level)`,endLat:geo.lat,endLng:geo.lng,
+  severity:press?"High":"Medium",impact:46+Math.min(24,press*6),
+  sector:mapRwSector(v.activity||v.sector),type:"Ransomware / extortion (leak-site claim)",confidence:"Leak-site claim",
+  summary:`${name} was listed on the ${group} data-leak site${v.activity?` (sector: ${normText(v.activity)})`:""}. Leak-site listings are attacker assertions and are not independently verified; some claimed victims dispute them.`,
+  attribution:"Recorded from the group's public leak site by Ransomware.live. Victim placement is country-level; no origin is asserted for the operators.",
+  source:"Ransomware.live leak-site monitoring",
+  sources:[{name:`Ransomware.live — ${group} profile`,url:`https://www.ransomware.live/group/${rwGroupSlug(group)}`},{name:"Ransomware.live methodology",url:"https://www.ransomware.live/about"}]};
+}
+async function loadRansomwareLive(progressCb,stopIdx){
+ // Leak-site history back to Jan 2020 (start of the double-extortion / leak-site era), newest first so the
+ // recent edge of the histogram fills immediately. Each month is cached in IndexedDB: past months are
+ // immutable (cached indefinitely); the two most recent refresh daily. Polite pacing, 429 backoff, and a
+ // graceful abort that keeps whatever loaded. When a data pack supplies history, only newer months stream.
+ if(stopIdx===undefined)stopIdx=idx(2020,1);
+ const out=[]; const now=new Date();
+ let d=new Date(now.getFullYear(),now.getMonth()-1,1);
+ const nowIdx=idx(now.getFullYear(),now.getMonth()+1);
+ let fails=0, warned=false;
+ while(idx(d.getFullYear(),d.getMonth()+1)>=stopIdx&&d.getFullYear()>=2020){
+   const y=d.getFullYear(),m=d.getMonth()+1;
+   const key=`rwl-${y}-${String(m).padStart(2,"0")}`;
+   const recent=(nowIdx-idx(y,m))<=2;
+   const hit=await idb.get(key);
+   if(hit&&Array.isArray(hit.rows)&&(!recent||(Date.now()-hit.t)<864e5)){
+     out.push(...hit.rows);
+   }else{
+     try{
+       const r=await fetch(`${RWLIVE_API}/victims/${y}/${String(m).padStart(2,"0")}`);
+       if(r.status===429){fails++;if(fails>=4)break;await new Promise(res=>setTimeout(res,4000));continue}
+       if(!r.ok)throw new Error("HTTP "+r.status);
+       fails=0;
+       const rows=await r.json();
+       const monthAttacks=[];
+       (Array.isArray(rows)?rows:[]).forEach((v,i)=>{const a=rwVictimToAttack(v,y,m,i);if(a)monthAttacks.push(a)});
+       idb.set(key,{t:Date.now(),rows:monthAttacks});
+       out.push(...monthAttacks);
+       await new Promise(res=>setTimeout(res,260));
+     }catch(err){
+       if(!warned){console.warn("[data-source] Ransomware.live direct fetch failed (from "+mon(m)+" "+y+") — if this repeats, the API is not reachable from the browser in this context; the data pack covers it",err);warned=true}
+       fails++;if(fails>=2)break;
+     }
+   }
+   dataStatus.textContent=`Ransomware.live: ${out.length.toLocaleString()} leak-site claims, back to ${mon(m)} ${y}…`;
+   if(progressCb&&m%6===1)progressCb(out);
+   d=new Date(y,m-2,1);
+ }
+ return out;
+}
+let rwStreamStarted=false;
+async function loadRansomwareLiveProgressive(){
+ if(rwStreamStarted)return; rwStreamStarted=true;
+ let merged=0;
+ const flush=arr=>{
+   const fresh=arr.slice(merged); merged=arr.length;
+   if(!fresh.length)return;
+   attacks=mergeAndDedupe([...attacks,...fresh]);
+   refreshFilterOptions(); renderSourceMenu(); markHistoDirty(); update();
+ };
+ try{
+   // With a data pack, its claims were already merged in the main load; only stream months newer than the pack.
+   const stopIdx=packRwlLastIdx>=0?packRwlLastIdx+1:undefined;
+   const all=await loadRansomwareLive(flush,stopIdx);
+   flush(all);
+   if(packRwlLastIdx>=0&&!all.length)return; // pack fully current — nothing to top up
+   if(all.length){
+     const countries=new Set(attacks.map(a=>a.victimISO).filter(Boolean));
+     dataStatus.textContent=`Multi-source data loaded • ${attacks.length.toLocaleString()} deduplicated routes • ${countries.size} victim countries • incl. ${all.length.toLocaleString()} leak-site claims (2020 → today)`;
+     if(attacks.length>10000&&densityMode.value==="full"){
+       densityMode.value="performance";
+       dataStatus.textContent+=" • density auto-set to Performance for smooth playback";
+       update();
+     }
+   }
+ }catch(err){console.warn("Ransomware.live unavailable in this context",err)}
+}
+
+/* ── Threat-group directory: profiles with citation links, matched to incident actors ── */
+const GROUP_DIRECTORY=new Map();
+function registerGroup(p){
+ [p.name,...(p.aliases||[])].forEach(n=>{
+   const k=String(n||"").toLowerCase().trim();
+   if(k.length>2&&!GROUP_DIRECTORY.has(k))GROUP_DIRECTORY.set(k,p);
+ });
+}
+// Embedded core so group cards work offline. Verify links before publication.
+[
+ {name:"Lazarus Group",aliases:["Hidden Cobra","APT38"],origin:"North Korea (multi-government attribution)",desc:"North Korean state-linked group behind bank heists, crypto theft and destructive attacks, from the Bangladesh Bank raid to Ronin.",links:[{name:"MITRE ATT&CK G0032",url:"https://attack.mitre.org/groups/G0032/"},{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Lazarus_Group"}]},
+ {name:"Sandworm",aliases:["Voodoo Bear","Unit 74455","IRIDIUM"],origin:"Russia — GRU (indicted officers)",desc:"GRU unit behind the Ukraine grid attacks, NotPetya and Industroyer; the most consequential ICS-capable actor on public record.",links:[{name:"MITRE ATT&CK G0034",url:"https://attack.mitre.org/groups/G0034/"},{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Sandworm_(hacker_group)"}]},
+ {name:"APT28",aliases:["Fancy Bear","Forest Blizzard","STRONTIUM"],origin:"Russia — GRU",desc:"GRU-linked espionage and hack-and-leak group; TV5Monde and election-interference operations.",links:[{name:"MITRE ATT&CK G0007",url:"https://attack.mitre.org/groups/G0007/"},{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Fancy_Bear"}]},
+ {name:"APT29",aliases:["Cozy Bear","Midnight Blizzard","NOBELIUM"],origin:"Russia — SVR (multi-government attribution)",desc:"SVR-linked espionage group behind the SolarWinds supply-chain campaign.",links:[{name:"MITRE ATT&CK G0016",url:"https://attack.mitre.org/groups/G0016/"},{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Cozy_Bear"}]},
+ {name:"Conti",aliases:["Wizard Spider"],origin:"Russian-speaking ecosystem",desc:"Prolific ransomware operation (Irish HSE, Costa Rica) that dissolved after its internal chats leaked in 2022.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Conti_(ransomware)"},{name:"MITRE ATT&CK G0102 (Wizard Spider)",url:"https://attack.mitre.org/groups/G0102/"}]},
+ {name:"LockBit",aliases:["LockBit 3.0"],origin:"Russian-speaking ecosystem; infrastructure seized 2024 (Operation Cronos)",desc:"The most prolific ransomware-as-a-service brand of 2021–24 (Port of Nagoya, Royal Mail), disrupted by an NCA-led operation.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/LockBit"}]},
+ {name:"REvil",aliases:["Sodinokibi"],origin:"Russian-speaking ecosystem; arrests by FSB reported 2022",desc:"Ransomware-as-a-service behind JBS and Kaseya; linked actors were later sanctioned over Medibank.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/REvil"}]},
+ {name:"Lapsus$",aliases:[],origin:"Distributed; UK and Brazil arrests",desc:"Extortion crew of mostly teenagers that breached Okta, Nvidia, Microsoft and Brazilian government systems through social engineering.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Lapsus$"}]},
+ {name:"Scattered Spider",aliases:["Octo Tempest","UNC3944"],origin:"English-speaking; The Com ecosystem (US/UK arrests)",desc:"Social-engineering specialists behind the 2023 casino intrusions and 2025 UK retail attacks.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Scattered_Spider"}]},
+ {name:"Anonymous Sudan",aliases:[],origin:"Contested; US indictment named Sudanese nationals in 2024",desc:"High-volume DDoS brand that hit Kenya's eCitizen, Microsoft and many others.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Anonymous_Sudan"}]},
+ {name:"Predatory Sparrow",aliases:["Gonjeshke Darande"],origin:"Self-described anti-regime; sponsorship unconfirmed",desc:"Conducted precision ICS attacks on Iranian fuel distribution and steel plants, publishing evidence videos.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Predatory_Sparrow"}]},
+ {name:"Volt Typhoon",aliases:[],origin:"China (multi-government attribution)",desc:"State-linked group pre-positioning in US and allied critical infrastructure using living-off-the-land techniques.",links:[{name:"MITRE ATT&CK G1017",url:"https://attack.mitre.org/groups/G1017/"},{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Volt_Typhoon"}]},
+ {name:"Salt Typhoon",aliases:[],origin:"China (multi-government attribution)",desc:"State-linked group behind the large-scale compromise of telecoms networks disclosed in 2024–25.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Salt_Typhoon"}]},
+ {name:"Hive",aliases:[],origin:"Ransomware-as-a-service; infrastructure seized by the FBI in 2023",desc:"Ransomware service used against healthcare including Newfoundland's health system before its takedown.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Hive_(ransomware)"}]},
+ {name:"MuddyWater",aliases:["Mango Sandstorm"],origin:"Iran — MOIS (US Cyber Command attribution)",desc:"Iranian state-linked espionage group active against government and telecoms targets across the Middle East.",links:[{name:"MITRE ATT&CK G0069",url:"https://attack.mitre.org/groups/G0069/"}]},
+ {name:"Turla",aliases:["Snake","Venomous Bear"],origin:"Russia — FSB-linked (multi-government attribution)",desc:"Long-running espionage group whose Snake malware network was disrupted by the FBI in 2023.",links:[{name:"MITRE ATT&CK G0010",url:"https://attack.mitre.org/groups/G0010/"}]}
+].forEach(registerGroup);
+function ingestAttackStixGroups(bundle){
+ let added=0;
+ (bundle.objects||[]).filter(o=>o.type==="intrusion-set"&&!o.revoked&&!o.x_mitre_deprecated).forEach(g=>{
+   const ref=(g.external_references||[]).find(r=>r.source_name==="mitre-attack");
+   registerGroup({name:g.name,aliases:g.aliases||[],origin:"See ATT&CK profile",
+     desc:String(g.description||"").split(/\.\s/)[0].replace(/\[|\]|\(https?:[^)]*\)/g,"").slice(0,220)+".",
+     links:[{name:"MITRE ATT&CK "+(ref&&ref.external_id?ref.external_id:"group profile"),url:ref&&ref.url?ref.url:"https://attack.mitre.org/groups/"}]});
+   added++;
+ });
+ return added;
+}
+function ingestRwGroups(list){
+ let added=0;
+ (Array.isArray(list)?list:[]).forEach(g=>{
+   const nm=normText(g.name); if(!nm)return;
+   registerGroup({name:nm,aliases:[],origin:"Tracked via data-leak site",
+     desc:(normText(g.description)||"Ransomware / extortion group tracked through its public data-leak site.").slice(0,220),
+     links:[{name:"Ransomware.live profile",url:`https://www.ransomware.live/group/${rwGroupSlug(nm)}`}]});
+   added++;
+ });
+ return added;
+}
+function findGroupProfile(actor){
+ const t=String(actor||"").toLowerCase().replace(/\(.*?\)/g," ");
+ if(!t.trim())return null;
+ let best=null;
+ for(const [k,p] of GROUP_DIRECTORY){
+   if(k.length<4)continue;
+   if(t.includes(k)&&(!best||k.length>best.k)){best={k:k.length,p}}
+ }
+ return best?best.p:null;
+}
+
+/* ── IndexedDB cache + same-origin data pack ─────────────────────────────────
+   Zenodo sends no CORS headers on file downloads and jsdelivr refuses oversized
+   GitHub files, so browser-side fetching of EuRepoC/VCDB is unreliable by design.
+   The robust path is a data pack: build_cyber_data.py fetches and slims all
+   sources outside the browser into ./cyber_data/*.json next to this file, which
+   load same-origin (no CORS, instant). Remote fetching remains as fallback, with
+   IndexedDB caching so repeat visits are fast even without a pack. */
+const idb={
+ _db:null,
+ open(){ if(this._db)return Promise.resolve(this._db);
+  return new Promise(res=>{ try{
+    const q=indexedDB.open("cyberatlas",1);
+    q.onupgradeneeded=()=>q.result.createObjectStore("kv");
+    q.onsuccess=()=>{this._db=q.result;res(this._db)};
+    q.onerror=()=>res(null);
+  }catch(e){res(null)} });
+ },
+ async get(k){ const d=await this.open(); if(!d)return null;
+  return new Promise(res=>{ try{
+    const t=d.transaction("kv").objectStore("kv").get(k);
+    t.onsuccess=()=>res(t.result||null); t.onerror=()=>res(null);
+  }catch(e){res(null)} });
+ },
+ async set(k,v){ const d=await this.open(); if(!d)return false;
+  return new Promise(res=>{ try{
+    const t=d.transaction("kv","readwrite").objectStore("kv").put(v,k);
+    t.onsuccess=()=>res(true); t.onerror=()=>res(false);
+  }catch(e){res(false)} });
+ }
+};
+async function cachedLoad(key,ttlMs,loader){
+ const hit=await idb.get(key);
+ if(hit&&Array.isArray(hit.rows)&&hit.rows.length&&(Date.now()-hit.t)<ttlMs){
+   console.info("[cache] using cached "+key+" ("+hit.rows.length.toLocaleString()+" routes)");
+   return hit.rows;
+ }
+ const rows=await loader();
+ idb.set(key,{t:Date.now(),rows});
+ return rows;
+}
+async function loadDataPack(){
+ async function grab(p){try{const r=await fetch(p,{cache:"no-cache"});return r.ok?await r.json():null}catch(e){return null}}
+ const base="cyber_data/";
+ const [eu,vc,rw,meta]=await Promise.all([grab(base+"eurepoc.min.json"),grab(base+"vcdb.min.json"),grab(base+"rwlive.min.json"),grab(base+"meta.json")]);
+ const out={meta:meta||null,eurepoc:null,vcdb:null,rwl:null,rwlLastIdx:-1};
+ try{if(Array.isArray(eu)&&eu.length)out.eurepoc=eu.flatMap(rowToAttacks)}catch(e){console.warn("[data-pack] eurepoc parse failed",e)}
+ try{if(Array.isArray(vc)&&vc.length)out.vcdb=vc.flatMap(vcdbRowToAttacks)}catch(e){console.warn("[data-pack] vcdb parse failed",e)}
+ try{
+  if(rw&&typeof rw==="object"&&!Array.isArray(rw)){
+    out.rwl=[];
+    Object.entries(rw).forEach(([ym,list])=>{
+      const mm=ym.match(/^(\d{4})-(\d{2})$/); if(!mm)return;
+      const y=+mm[1],mo=+mm[2];
+      out.rwlLastIdx=Math.max(out.rwlLastIdx,idx(y,mo));
+      (list||[]).forEach((v,i)=>{const a=rwVictimToAttack(v,y,mo,i);if(a)out.rwl.push(a)});
+    });
+    if(!out.rwl.length)out.rwl=null;
+  }
+ }catch(e){console.warn("[data-pack] rwlive parse failed",e)}
+ return out;
+}
+let packRwl=null,packRwlLastIdx=-1;
+async function loadResearchDataset(){
+ dataStatus.textContent="Checking for same-origin data pack…";
+ const sources=[]; const failures=[]; let packUsed=[];
+ const pack=await loadDataPack();
+ if(pack.rwl){packRwl=pack.rwl;packRwlLastIdx=pack.rwlLastIdx}
+ if(pack.eurepoc){sources.push(...pack.eurepoc);packUsed.push("EuRepoC")}
+ else try{
+   dataStatus.textContent="Loading EuRepoC (remote fallback)…";
+   const eurepoc=await cachedLoad("eurepoc",7*864e5,async()=>{
+     let rows;
+     try{rows=await d3.csv(EUREPOC_DYADIC_URL)}catch(e){rows=await d3.csv(EUREPOC_GLOBAL_URL)}
+     const parsed=rows.flatMap(rowToAttacks);
+     if(parsed.length<500)throw new Error(`Only ${parsed.length} mappable routes parsed`);
+     return parsed;
+   });
+   sources.push(...eurepoc);
+ }catch(err){console.warn("[data-source] EuRepoC direct fetch blocked — Zenodo sends no CORS headers to browsers; use the data pack (see \u22ee menu)",err);failures.push("EuRepoC")}
+ if(pack.vcdb){sources.push(...pack.vcdb);packUsed.push("VCDB")}
+ else try{
+   dataStatus.textContent=`${sources.length.toLocaleString()} routes loaded • loading VCDB (remote fallback)…`;
+   const vcdb=await cachedLoad("vcdb",7*864e5,async()=>{
+     const parsed=await loadVCDB();
+     if(parsed.length<500)throw new Error(`Only ${parsed.length} VCDB routes parsed`);
+     return parsed;
+   });
+   sources.push(...vcdb);
+ }catch(err){console.warn("[data-source] VCDB direct fetch failed — jsdelivr rejects oversized GitHub files; use the data pack (see \u22ee menu)",err);failures.push("VCDB")}
+ if(pack.rwl){sources.push(...pack.rwl);packUsed.push(`Ransomware.live (${pack.rwl.length.toLocaleString()} claims)`)}
+ if(sources.length){
+   // Retain the embedded curated layer so the globe never becomes blank when a remote source is partial.
+   const curated=attacks.filter(a=>sourceLayerName(a)==="Curated primary-source incidents");
+   attacks=mergeAndDedupe([...curated,...sources]);
+   refreshFilterOptions();
+   renderSourceMenu();
+   loadEnrichmentLayers();
+   const countries=new Set(attacks.map(a=>a.victimISO).filter(Boolean));
+   dataStatus.textContent=`Multi-source data loaded • ${attacks.length.toLocaleString()} deduplicated mapped routes • ${countries.size} victim countries${packUsed.length?` • data pack: ${packUsed.join(", ")}`:""}${failures.length?` • ${failures.join(" + ")} unavailable`:""}`;
+   markHistoDirty();
+   update();
+ }else{
+   dataStatus.textContent=`Research datasets unavailable — showing ${attacks.length} curated incidents`;
+ }
+ loadRansomwareLiveProgressive();
+}
+
+function setMapMode(mode){
+ mapMode=mode;
+ const sphere=mode==="sphere";
+ globeEl.style.display=sphere?"block":"none";
+ flatMapEl.style.display=sphere?"none":"block";
+ sphereBtn.classList.toggle("primary",sphere);
+ flatBtn.classList.toggle("primary",!sphere);
+ if(selectedAttack) showDetail(selectedAttack);
+}
+function closeAttackDetails(){
+ attackDrawer.classList.add("hidden");
+ impactLabel.classList.add("hidden");
+ impactLabel.innerHTML="";
+ selectedAttack=null;
+}
+impactLabel.addEventListener("click",()=>{if(selectedAttack)showDetail(selectedAttack);});
+closeAttackDrawer.addEventListener("click",closeAttackDetails);
+attackDrawer.addEventListener("keydown",e=>{if(e.key==="Escape")closeAttackDetails()});
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAttackDetails()});
+sphereBtn.addEventListener("click",()=>setMapMode("sphere"));
+flatBtn.addEventListener("click",()=>setMapMode("flat"));
+function setTimeline(v){timelineIndex=Math.max(0,Math.min(endTimelineIndex,+v));update()}
+function play(){
+ if(timer){clearInterval(timer);timer=null;playBtn.textContent="▶ Play";update();return}
+ playBtn.textContent="❚❚ Pause";
+ const intervalMs=Number(speed.value);
+ timer=setInterval(()=>{
+   timelineIndex=timelineIndex>=endTimelineIndex?0:timelineIndex+1;
+   update();
+ },Number.isFinite(intervalMs)&&intervalMs>0?intervalMs:1000);
+ update();
+}
+function restartTimer(){if(timer){clearInterval(timer);timer=null;play()}}
+function resize(){globe.width(globeEl.clientWidth).height(globeEl.clientHeight);renderHisto()}
+const citiesBox=document.getElementById("cities");
+yearSlider.addEventListener("input",e=>setTimeline(e.target.value));
+playBtn.addEventListener("click",play); prevBtn.addEventListener("click",()=>setTimeline(timelineIndex-1)); nextBtn.addEventListener("click",()=>setTimeline(timelineIndex+1));
+speed.addEventListener("change",restartTimer);
+densityMode.addEventListener("change",update);
+monthOnlyBtn.addEventListener("click",()=>{cumulative.checked=false;update();});
+allToDateBtn.addEventListener("click",()=>{cumulative.checked=true;timelineIndex=endTimelineIndex;update();});
+document.querySelectorAll("input,select").forEach(x=>{if(x.id!=="yearSlider")x.addEventListener("change",markHistoDirty);x.addEventListener("change",update)});
+searchBtn.addEventListener("click",()=>{markHistoDirty();update()});
+search.addEventListener("keydown",e=>{if(e.key==="Enter"){markHistoDirty();update()}});
+const launchSeq=document.getElementById("launchSeq");
+launchSeq.addEventListener("click",()=>{
+ document.getElementById("cumulative").checked=false;
+ timelineIndex=0;
+ if(timer){clearInterval(timer);timer=null;playBtn.textContent="▶ Play"}
+ play();
+});
+resetBtn.addEventListener("click",()=>{
+ search.value=""; typeFilter.value=""; cumulative.checked=true; viewMode.value="attacks";
+ document.querySelectorAll(".severity,.sector").forEach(x=>x.checked=true);impactLabel.classList.add("hidden");attackDrawer.classList.add("hidden");selectedAttack=null;markHistoDirty();setTimeline(318);
+});
+toggleLeft.addEventListener("click",()=>{document.getElementById("app").classList.toggle("left-hidden");setTimeout(resize,280)});
+toggleRight.addEventListener("click",()=>{document.getElementById("app").classList.toggle("right-hidden");setTimeout(resize,280)});
+document.getElementById("closeRight").addEventListener("click",()=>{document.getElementById("app").classList.add("right-hidden");setTimeout(resize,280)});
+document.getElementById("app").classList.add("left-hidden","right-hidden");
+window.addEventListener("resize",resize);resize();
+
+renderSourceMenu();
+moreButton.addEventListener("click",()=>{const opening=moreMenu.classList.contains("hidden");moreMenu.classList.toggle("hidden");moreButton.setAttribute("aria-expanded",String(opening))});
+moreClose.addEventListener("click",()=>{moreMenu.classList.add("hidden");moreButton.setAttribute("aria-expanded","false")});
+exportVisible.addEventListener("click",exportVisibleCsv);
+copySourceLinks.addEventListener("click",async()=>{const text=SOURCE_CATALOGUE.map(x=>`${x.name}: ${x.primary}`).join("\n");try{await navigator.clipboard.writeText(text);copySourceLinks.textContent="Copied";setTimeout(()=>copySourceLinks.textContent="Copy source links",1200)}catch(e){alert(text)}});
+update();
+// Some contexts (pages opened from phone/local storage, some proxied networks) block all fetch() data
+// downloads even though <script> tags load fine. Probe once with a ~1 KB file; if that fails, skip every
+// large download silently — no doomed attempts, no error noise — and state the mode plainly.
+const OPAQUE_ORIGIN=!/^https?:$/.test(location.protocol);
+let localNoteShown=false;
+function maybeLocalNote(){
+ if(localNoteShown)return;localNoteShown=true;
+ const note=document.createElement("div");
+ note.style.cssText="position:absolute;left:50%;top:60px;transform:translateX(-50%);z-index:60;max-width:min(540px,calc(100% - 28px));background:rgba(5,12,25,.96);border:1px solid var(--orange,#ff9d3c);border-radius:12px;padding:11px 14px;font-size:12.5px;line-height:1.5;color:#ffe9c9;box-shadow:0 10px 34px rgba(0,0,0,.4);cursor:pointer";
+ note.innerHTML="<b>Data downloads are blocked in this context</b>"+(OPAQUE_ORIGIN?" (the page was opened from local storage, which browsers restrict)":" (a network proxy or filter appears to be interfering)")+" — so the map is running on its "+attacks.length+" embedded curated incidents, which cover every populated continent. Host the file — e.g. push it to GitHub Pages and open the https:// address — and the full EuRepoC + VCDB datasets, flat-map basemap and heat layer load automatically. <i>(Tap to dismiss.)</i>";
+ note.addEventListener("click",()=>note.remove());
+ document.getElementById("stage").appendChild(note);
+}
+async function canFetchRemote(){
+ try{const r=await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/package.json",{cache:"no-store"});return r.ok}catch(e){return false}
+}
+(async()=>{
+ const online=await canFetchRemote();
+ if(!online){
+  flatMapEl.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;color:#96a9c4;text-align:center;padding:24px;font-size:13px;line-height:1.5">The flat map needs the world basemap download, which this context is blocking.<br>Host the file (e.g. GitHub Pages) or check the connection, then reload.</div>';
+  dataStatus.textContent=`Offline curated mode — ${attacks.length} embedded incidents across all continents. Host the file (e.g. GitHub Pages) for the full EuRepoC + VCDB load and basemap.`;
+  maybeLocalNote();
+  return;
+ }
+ const atlasP=initFlatMap().catch(err=>{
+  console.warn("Flat/world atlas unavailable",err);
+  flatMapEl.innerHTML='<div style="display:flex;height:100%;align-items:center;justify-content:center;color:#96a9c4;text-align:center;padding:24px;font-size:13px;line-height:1.5">The world basemap could not be downloaded. Check the connection and reload.</div>';
+  dataStatus.textContent="Base map unavailable; globe and embedded incidents remain active";
+ });
+ // Let the atlas win the race when it can (precise centroids); the embedded table covers it otherwise.
+ await Promise.race([atlasP,new Promise(r=>setTimeout(r,4000))]);
+ if(window.__LITE){
+  dataStatus.textContent=`Lite mode — ${attacks.length} embedded incidents only (large research datasets skipped; remove ?lite=1 from the address for the full load)`;
+ }else{
+  loadResearchDataset().catch(err=>{console.warn("Research loading failed",err);dataStatus.textContent=`Research datasets unavailable — showing ${attacks.length} embedded incidents`;update();});
+ }
+})();
+update();
+</script>
+</body>
+</html>
