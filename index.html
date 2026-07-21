@@ -251,6 +251,7 @@
       </div>
       <span id="status" class="small" aria-live="polite">Paused</span>
       <span id="dataStatus" class="small" style="flex-basis:100%" aria-live="polite">Loading research dataset…</span>
+      <span class="small" style="flex-basis:100%;font-size:10px;opacity:.62">AI built from primary sources as a personal project · no trackers or analytics</span>
     </div>
   </section>
 </div>
@@ -571,8 +572,9 @@ function filtered(){
  const q=document.getElementById("search").value.trim().toLowerCase();
  const all=attacks.filter(a=>enabledSources.has(sourceLayerName(a))&&(cumulative?idx(a.year,a.month)<=timelineIndex:idx(a.year,a.month)===timelineIndex)&&sev.includes(a.severity)&&sec.includes(a.sector)&&(!type||a.type===type)&&
  (!q||Object.values(a).join(" ").toLowerCase().includes(q)));
- if(densityMode && densityMode.value==="performance" && all.length>900){
-   const step=all.length/900; return Array.from({length:900},(_,i)=>all[Math.floor(i*step)]);
+ const perfCap=(window.__perfCap||900);
+ if(densityMode && densityMode.value==="performance" && all.length>perfCap){
+   const step=all.length/perfCap; return Array.from({length:perfCap},(_,i)=>all[Math.floor(i*step)]);
  }
  return all;
 }
@@ -1120,6 +1122,30 @@ async function loadRansomwareLive(progressCb,stopIdx){
  }
  return out;
 }
+/* ── Mobile performance defaults: on touch/small-screen devices, once the big datasets land,
+   default to High+Critical severity and a tighter missile cap so playback stays smooth — and say so,
+   with a one-tap revert. Never overrides choices the user has already made. ── */
+const IS_MOBILE=(matchMedia("(pointer:coarse)").matches&&matchMedia("(max-width:1050px)").matches);
+if(IS_MOBILE)window.__perfCap=450;
+let userTouchedFilters=false, mobilePerfApplied=false;
+document.querySelectorAll(".severity,.sector").forEach(x=>x.addEventListener("change",()=>{userTouchedFilters=true}));
+function maybeMobilePerfDefaults(){
+ if(!IS_MOBILE||mobilePerfApplied||userTouchedFilters||attacks.length<8000)return;
+ mobilePerfApplied=true;
+ document.querySelectorAll(".severity").forEach(x=>{x.checked=(x.value==="Critical"||x.value==="High")});
+ if(densityMode)densityMode.value="performance";
+ markHistoDirty(); update();
+ const t=document.createElement("div");
+ t.style.cssText="position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:70;max-width:min(480px,calc(100% - 24px));background:rgba(5,12,25,.97);border:1px solid #34506f;border-radius:12px;padding:10px 13px;font-size:12px;line-height:1.5;color:#dbe7f5;box-shadow:0 10px 34px rgba(0,0,0,.45)";
+ t.innerHTML='<b>Performance mode for this device</b> — with the full dataset loaded, this screen now shows <b>High & Critical</b> severity with a tighter missile cap so playback stays smooth. Counts and the histogram reflect this filter. <button id="perfShowAll" style="margin-top:7px">Show everything anyway</button> <button id="perfDismiss" style="margin-top:7px">OK</button>';
+ document.getElementById("stage").appendChild(t);
+ t.querySelector("#perfDismiss").addEventListener("click",()=>t.remove());
+ t.querySelector("#perfShowAll").addEventListener("click",()=>{
+   document.querySelectorAll(".severity").forEach(x=>x.checked=true);
+   userTouchedFilters=true; markHistoDirty(); update(); t.remove();
+ });
+ setTimeout(()=>{if(t.parentNode)t.remove()},20000);
+}
 let rwStreamStarted=false;
 async function loadRansomwareLiveProgressive(){
  if(rwStreamStarted)return; rwStreamStarted=true;
@@ -1144,6 +1170,7 @@ async function loadRansomwareLiveProgressive(){
        dataStatus.textContent+=" • density auto-set to Performance for smooth playback";
        update();
      }
+     maybeMobilePerfDefaults();
    }
  }catch(err){console.warn("Ransomware.live unavailable in this context",err)}
 }
@@ -1306,6 +1333,7 @@ async function loadResearchDataset(){
    renderSourceMenu();
    loadEnrichmentLayers();
    const countries=new Set(attacks.map(a=>a.victimISO).filter(Boolean));
+   maybeMobilePerfDefaults();
    dataStatus.textContent=`Multi-source data loaded • ${attacks.length.toLocaleString()} deduplicated mapped routes • ${countries.size} victim countries${packUsed.length?` • data pack: ${packUsed.join(", ")}`:""}${failures.length?` • ${failures.join(" + ")} unavailable`:""}`;
    markHistoDirty();
    update();
