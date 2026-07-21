@@ -17,11 +17,29 @@
     *{box-sizing:border-box}
     html,body{height:100%;margin:0;background:var(--bg);color:var(--text);font-family:Inter,Segoe UI,Arial,sans-serif;overflow:hidden}
     button,input,select{font:inherit}
-    #app{position:relative;height:100%;display:grid;grid-template-columns:320px 1fr 330px;grid-template-rows:1fr auto;transition:grid-template-columns .25s ease}
-    .panel{background:var(--panel);backdrop-filter:blur(12px);border-color:var(--line);z-index:10;overflow:auto}
-    #left{grid-column:1;grid-row:1/3;border-right:1px solid var(--line);padding:18px}
-    #right{grid-column:3;grid-row:1/3;border-left:1px solid var(--line);padding:18px}
-    #stage{grid-column:2;grid-row:1;position:relative;min-width:0;background:radial-gradient(circle at center,#102248 0,#040812 62%)}
+    #app{position:relative;height:100%;overflow:hidden}
+    .panel{background:var(--panel);border-color:var(--line)}
+    #stage{position:absolute;inset:0;background:radial-gradient(circle at center,#102248 0,#040812 62%)}
+    /* ── Unified floating control dock ─────────────────────────────────────── */
+    #dock{position:fixed;z-index:80;top:14px;left:14px;width:340px;max-width:calc(100vw - 20px);max-height:calc(100vh - 130px);display:flex;flex-direction:column;background:rgba(6,13,26,.97);backdrop-filter:blur(12px);border:1px solid #34506f;border-radius:14px;box-shadow:0 22px 60px rgba(0,0,0,.55);overflow:hidden}
+    #dock.collapsed{width:auto}
+    #dock.collapsed #dockBody,#dock.collapsed #dockTabs{display:none}
+    #dockBar{display:flex;align-items:center;gap:6px;padding:8px 10px;cursor:grab;touch-action:none;user-select:none;border-bottom:1px solid #22374f;background:rgba(9,18,34,.9)}
+    #dockBar:active{cursor:grabbing}
+    #dockBar .dockTitle{font-weight:700;font-size:13px;letter-spacing:.02em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    #dockBar button{padding:5px 9px;font-size:13px;line-height:1}
+    #dockTabs{display:flex;gap:2px;padding:7px 8px 0;flex-wrap:wrap}
+    .dockTab{flex:1;min-width:56px;padding:8px 6px;font-size:12px;background:transparent;border:1px solid transparent;border-bottom:2px solid transparent;border-radius:8px 8px 0 0;color:var(--muted);white-space:nowrap}
+    .dockTab .tabIco{font-size:15px;margin-right:5px}
+    .dockTab.active{color:var(--text);background:rgba(20,38,63,.6);border-color:#2c4666;border-bottom-color:var(--accent)}
+    #dockBody{overflow:auto;padding:14px 16px}
+    .dockPanel{display:none}
+    .dockPanel.active{display:block}
+    @media(max-width:560px){
+      .dockTab .tabLabel{display:none}
+      .dockTab .tabIco{margin:0}
+      .dockTab{min-width:0}
+    }
     #globe,#flatMap{position:absolute;inset:0}
     #flatMap{display:none;padding:12px}
     #flatMap svg{width:100%;height:100%;display:block}
@@ -34,13 +52,6 @@
     .impact-label span{color:#b8c8dc}
     .hidden{display:none!important}
 .heatLegend{position:absolute;left:50%;bottom:118px;transform:translateX(-50%);z-index:25;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:999px;background:rgba(5,12,25,.86);border:1px solid rgba(255,255,255,.14);font-size:12px}.heatBar{width:150px;height:9px;border-radius:999px;background:linear-gradient(90deg,#18304f,#ffb347,#ff4d66)}
-#app.left-hidden{grid-template-columns:0 1fr 330px}#app.right-hidden{grid-template-columns:320px 1fr 0}#app.left-hidden.right-hidden{grid-template-columns:0 1fr 0}
-#app.left-hidden #left,#app.right-hidden #right{padding:0;border:0;overflow:hidden}
-.panelToggle{position:absolute;z-index:30;top:14px;background:rgba(5,12,25,.9)}#toggleRight{right:14px}
-#topLeftCluster{position:absolute;z-index:60;top:14px;left:14px;display:flex;gap:8px;align-items:stretch}
-.clusterBtn{background:rgba(5,12,25,.94);line-height:1}
-#moreButton.clusterBtn,#infoButton.clusterBtn,#lookupButton.clusterBtn{width:42px;padding:0;font-size:22px}
-#infoButton.clusterBtn,#lookupButton.clusterBtn{font-size:18px}
 .pulse-path{stroke-linecap:round}
 .detailDrawer{position:absolute;z-index:45;top:12px;right:12px;width:min(430px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;background:rgba(5,12,25,.97);border:1px solid #38506f;border-radius:14px;padding:16px;box-shadow:0 18px 55px rgba(0,0,0,.48)}
 .detailDrawer.hidden{display:none}
@@ -48,7 +59,7 @@
 .detailDrawerHead h2{margin:0;font-size:18px}.detailClose{flex:0 0 auto;font-size:18px;line-height:1;padding:5px 9px}
 .missile-dot{filter:drop-shadow(0 0 4px currentColor)}
 .flat-ring{transform-box:fill-box;transform-origin:center;animation:flatBlast 6s ease-out forwards}@keyframes flatBlast{0%{transform:scale(.15);opacity:.95}100%{transform:scale(1);opacity:.08}}
-    #timeline{grid-column:2;grid-row:2;background:rgba(5,12,25,.96);border-top:1px solid var(--line);padding:11px 16px;z-index:11}
+    #timeline{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(5,12,25,.96);border-top:1px solid var(--line);padding:11px 16px}
     #timeline button{padding:7px 10px;font-size:12.5px}
     .timelineBottom{flex-wrap:wrap;row-gap:6px}
     h1{font-size:20px;margin:0 0 5px} h2{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:22px 0 10px}
@@ -71,8 +82,8 @@
     #detail{border:1px solid var(--line);border-radius:11px;background:var(--panel2);padding:14px;min-height:210px}
     #detail h3{margin:0 0 8px;font-size:17px}.kv{display:grid;grid-template-columns:90px 1fr;gap:5px;font-size:12px;margin:6px 0}.kv b{color:var(--muted)}
     .impact{font-weight:800}.critical{color:var(--red)}.high{color:var(--orange)}.medium{color:#ffe374}.low{color:var(--green)}
-    #yearBig{position:absolute;left:20px;top:58px;font-size:48px;font-weight:800;letter-spacing:-.05em;opacity:.88;pointer-events:none}
-    #escalation{position:absolute;left:22px;top:120px;z-index:12;pointer-events:none;font-size:12px;color:var(--muted);line-height:1.5;max-width:255px;text-shadow:0 1px 6px rgba(4,8,18,.9)}
+    #yearBig{position:absolute;right:20px;top:16px;font-size:48px;font-weight:800;letter-spacing:-.05em;opacity:.88;pointer-events:none;text-align:right}
+    #escalation{position:absolute;right:22px;top:78px;z-index:12;pointer-events:none;font-size:12px;color:var(--muted);line-height:1.5;max-width:255px;text-align:right;text-shadow:0 1px 6px rgba(4,8,18,.9)}
     #escalation strong{display:block;font-size:27px;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
     #escalation .tempo{color:var(--orange);font-weight:700}
     #escalation .escNote{font-size:10px;opacity:.75}
@@ -98,6 +109,8 @@
     .sectorHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
     .miniLinks{display:flex;gap:6px}.miniLinks button{font-size:10.5px;padding:3px 8px;background:transparent;border:1px solid #34506f;color:var(--accent)}
     .lookupResults{max-height:40vh;overflow:auto;margin-top:6px}
+    .lookupScope{font-size:10.5px;color:#8fa6c4;background:rgba(16,32,57,.4);border:1px solid #223a58;border-radius:8px;padding:6px 9px;margin-bottom:6px;line-height:1.5}
+    .lookupScope b{color:#dbe7f5}
     .lookupSectionLabel{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#7f95b4;margin:9px 0 4px}
     .lookupRow{display:flex;gap:9px;align-items:flex-start;width:100%;text-align:left;background:#0c172a;border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin:4px 0;color:var(--text)}
     .lookupRow:hover{background:#12233c;border-color:#34506f}
@@ -117,33 +130,14 @@
     .frameFloating{position:fixed!important;top:auto;right:auto;box-shadow:0 24px 60px rgba(0,0,0,.6);border-color:#4a6a92}.sourceLinks a{font-size:11px;color:var(--accent);text-decoration:none;border:1px solid #315171;border-radius:999px;padding:4px 7px}.sourceLinks a:hover{background:#102b42}
     .sourceToggle{display:flex;align-items:flex-start;gap:8px;margin:8px 0;color:var(--text)}.sourceToggle input{margin-top:3px}
     .provenanceList{display:grid;gap:7px}.provenanceItem{border-left:3px solid var(--accent);padding-left:9px}
-    .warningBox{border-left:3px solid var(--orange);background:rgba(255,157,60,.08);padding:9px 10px;border-radius:6px;font-size:12px;color:#d7e1ef}
-    /* Tablet / unfolded phone: two columns; the details panel becomes a slide-over instead of vanishing */
-    @media(min-width:721px) and (max-width:1050px){
-      #app{grid-template-columns:280px 1fr;grid-template-rows:1fr auto}
-      #app.left-hidden,#app.left-hidden.right-hidden{grid-template-columns:0 1fr}
-      #app.right-hidden{grid-template-columns:280px 1fr}
-      #stage{grid-column:2} #timeline{grid-column:2}
-      #right{position:absolute;right:0;top:0;bottom:0;width:min(340px,86vw);z-index:44;border-left:1px solid var(--line);box-shadow:-14px 0 44px rgba(0,0,0,.5)}
-      #app.right-hidden #right{display:none}
-    }
-    /* Phone: stacked flow, tighter HUD, shorter histogram */
+    /* Phone: dock adapts width, HUD shrinks, timeline stays a fixed bottom bar */
     @media(max-width:720px){
-      html,body{overflow:auto}
-      #app{height:auto;min-height:100%;display:flex;flex-direction:column}
-      #stage{height:60vh;min-height:400px;order:1}
-      #timeline{order:2;position:sticky;bottom:0;padding:9px 12px}
-      #left{order:3;border:0;padding-bottom:35px}
-      #right{display:block;order:4;border:0;position:static;width:auto;box-shadow:none}
-      #app.right-hidden #right{display:block}
-      #yearBig{font-size:29px;top:56px}
-      #escalation{top:92px;max-width:210px}
+      #dock{width:min(320px,calc(100vw - 20px))}
+      #dockBody{max-height:52vh}
+      #yearBig{font-size:29px;top:12px;left:14px}
+      #escalation{top:52px;left:16px;max-width:200px}
       #escalation strong{font-size:19px}
       #histo{height:36px}
-      #topLeftCluster{gap:5px}
-      #topLeftCluster .clusterBtn{padding:7px 8px;font-size:12px}
-      #moreButton.clusterBtn,#infoButton.clusterBtn,#lookupButton.clusterBtn{width:34px;font-size:16px}
-      #toggleRight{padding:7px 9px;font-size:12px}
       #timeline button{padding:7px 9px;font-size:12px}
       #status{display:none}
       .btnrow{gap:5px}
@@ -151,73 +145,119 @@
       #legend{display:none}
       .heatLegend{bottom:8px}
       .timelineBottom{flex-wrap:wrap}
-      button{padding:9px 11px}
-
     }
   </style>
 </head>
 <body>
 <div id="app">
-  <aside id="left" class="panel">
-    <span class="badge">MULTI-SOURCE INTELLIGENCE ATLAS</span>
-    <h1>Cyber Attack Earth</h1>
-
-    <h2>Search</h2>
-    <input id="search" type="text" placeholder="Attack, actor, country, city, sector…" />
-    <div class="btnrow" style="margin-top:8px">
-      <button id="searchBtn">Find</button><button id="resetBtn">Reset</button>
+  <div id="dock">
+    <div id="dockBar">
+      <span class="dockTitle">Cyber Attack Earth</span>
+      <button id="dockCollapse" type="button" aria-label="Collapse dock" title="Collapse / expand">▁</button>
     </div>
-
-    <h2>Display</h2>
-    <div class="btnrow" style="margin-bottom:10px">
-      <button id="sphereBtn" class="primary">Sphere</button>
-      <button id="flatBtn">Flat map</button>
+    <div id="dockTabs" role="tablist">
+      <button class="dockTab active" data-tab="controls" role="tab"><span class="tabIco">☰</span><span class="tabLabel">Controls</span></button>
+      <button class="dockTab" data-tab="details" role="tab"><span class="tabIco">▤</span><span class="tabLabel">Details</span></button>
+      <button class="dockTab" data-tab="search" role="tab"><span class="tabIco">🔍</span><span class="tabLabel">Search</span></button>
+      <button class="dockTab" data-tab="info" role="tab"><span class="tabIco">ⓘ</span><span class="tabLabel">Info</span></button>
+      <button class="dockTab" data-tab="data" role="tab"><span class="tabIco">⋮</span><span class="tabLabel">Data</span></button>
     </div>
-    <label for="viewMode">Country emphasis</label>
-    <select id="viewMode">
-      <option value="attacks">Attack events</option>
-      <option value="origins">Origin countries</option>
-      <option value="victims">Victim countries</option>
-    </select>
-    <label for="speed">Playback speed</label>
-    <select id="speed">
-      <option value="2000">0.5×</option><option value="1000" selected>1× (1 month/sec)</option><option value="500">2×</option><option value="250">4×</option>
-    </select>
-    <label for="densityMode">Missile density</label>
-    <select id="densityMode">
-      <option value="full" selected>Full detail</option>
-      <option value="performance">Performance (cap 900)</option>
-    </select>
-    <label class="form-check" style="display:flex;gap:8px;align-items:center">
-      <input id="cumulative" type="checkbox" checked /> Show all attacks up to selected month
-    </label>
-    <label class="form-check" style="display:flex;gap:8px;align-items:center">
-      <input id="heatToggle" type="checkbox" checked /> Show country attack heat
-    </label>
-    <label class="form-check" style="display:flex;gap:8px;align-items:center">
-      <input id="cities" type="checkbox" checked /> Show major cities
-    </label>
-    <label class="form-check" style="display:flex;gap:8px;align-items:center">
-      <input id="showUnattributed" type="checkbox" checked /> Show unattributed-origin attacks
-    </label>
-    <label class="form-check" style="display:flex;gap:8px;align-items:center">
-      <input id="showExercise" type="checkbox" /> Include exercises &amp; test events
-    </label>
+    <div id="dockBody">
 
-    <h2>Severity</h2>
-    <div class="checks">
-      <label><input class="severity" type="checkbox" value="Critical" checked> Critical</label>
-      <label><input class="severity" type="checkbox" value="High" checked> High</label>
-      <label><input class="severity" type="checkbox" value="Medium" checked> Medium</label>
-      <label><input class="severity" type="checkbox" value="Low" checked> Low</label>
+      <div class="dockPanel active" data-panel="controls">
+        <h2 style="margin-top:0">Display</h2>
+        <div class="btnrow" style="margin-bottom:10px">
+          <button id="sphereBtn" class="primary">Sphere</button>
+          <button id="flatBtn">Flat map</button>
+        </div>
+        <label for="viewMode">Country emphasis</label>
+        <select id="viewMode">
+          <option value="attacks">Attack events</option>
+          <option value="origins">Origin countries</option>
+          <option value="victims">Victim countries</option>
+        </select>
+        <label for="speed">Playback speed</label>
+        <select id="speed">
+          <option value="2000">0.5×</option><option value="1000" selected>1× (1 month/sec)</option><option value="500">2×</option><option value="250">4×</option>
+        </select>
+        <label for="densityMode">Missile density</label>
+        <select id="densityMode">
+          <option value="full" selected>Full detail</option>
+          <option value="performance">Performance (cap 900)</option>
+        </select>
+        <label class="form-check" style="display:flex;gap:8px;align-items:center">
+          <input id="cumulative" type="checkbox" checked /> Show all attacks up to selected month
+        </label>
+        <label class="form-check" style="display:flex;gap:8px;align-items:center">
+          <input id="heatToggle" type="checkbox" checked /> Show country attack heat
+        </label>
+        <label class="form-check" style="display:flex;gap:8px;align-items:center">
+          <input id="cities" type="checkbox" checked /> Show major cities
+        </label>
+        <label class="form-check" style="display:flex;gap:8px;align-items:center">
+          <input id="showUnattributed" type="checkbox" checked /> Show unattributed-origin attacks
+        </label>
+        <label class="form-check" style="display:flex;gap:8px;align-items:center">
+          <input id="showExercise" type="checkbox" /> Include exercises &amp; test events
+        </label>
+
+        <h2>Severity</h2>
+        <div class="checks">
+          <label><input class="severity" type="checkbox" value="Critical" checked> Critical</label>
+          <label><input class="severity" type="checkbox" value="High" checked> High</label>
+          <label><input class="severity" type="checkbox" value="Medium" checked> Medium</label>
+          <label><input class="severity" type="checkbox" value="Low" checked> Low</label>
+        </div>
+
+        <div class="sectorHead"><h2 style="margin:0">Sector</h2><span class="miniLinks"><button id="sectorAll" type="button">Select all</button><button id="sectorNone" type="button">Clear all</button></span></div>
+        <div id="sectorChecks" class="checks"></div>
+
+        <h2>Attack type</h2>
+        <select id="typeFilter"><option value="">All attack types</option></select>
+      </div>
+
+      <div class="dockPanel" data-panel="details">
+        <div class="stats">
+          <div class="stat"><strong id="visibleCount">0</strong><span>attacks</span></div>
+          <div class="stat"><strong id="impactTotal">0</strong><span>impact score</span></div>
+        </div>
+        <h2>Regional coverage</h2>
+        <div id="regionCoverage" class="stats" style="grid-template-columns:1fr 1fr"></div>
+        <p id="coverageNote" class="small">Counts show visible victim routes by broad geographic region.</p>
+        <h2>Top origins</h2>
+        <div id="originRanks"></div>
+        <h2>Top victims</h2>
+        <div id="victimRanks"></div>
+        <div class="sigHead"><h2 style="margin:0">Significant incident</h2><label class="sigPause"><input id="sigPause" type="checkbox"> Pause</label></div>
+        <div id="detail"><p>The most significant incident visible at the current moment appears here as the timeline runs. Tick <b>Pause</b> to hold one in view, or click any missile to inspect it.</p></div>
+      </div>
+
+      <div class="dockPanel" data-panel="search">
+        <input id="lookupInput" type="text" placeholder="Type an attack, group, country or actor…" autocomplete="off" />
+        <div id="lookupResults" class="lookupResults"></div>
+        <div id="lookupGroup" class="hidden"></div>
+      </div>
+
+      <div class="dockPanel" data-panel="info">
+        <p class="demo"><b>Mapped incident sources:</b> a ~90-incident curated layer embedded in this file (works fully offline), plus — when hosted — EuRepoC (2000–2024), VCDB, and recent-months ransomware leak-site claims from Ransomware.live, deduplicated across sources. Incident actors link to a cited threat-group directory (MITRE ATT&amp;CK + Ransomware.live profiles). MITRE ATT&amp;CK and CISA KEV load as enrichment. Origins are attribution or ecosystem proxies — see each incident's note.</p>
+        <p>The strip above the timeline is an attacks-per-month histogram (2000&nbsp;→&nbsp;today) — click any bar to jump there. The on-map counter tracks cumulative documented attacks and the tempo multiplier versus the 2000–02 baseline. The green line is a year-on-year trend of peak monthly activity. Press <b>⟲ Replay</b> to watch the monthly missile salvos escalate.</p>
+        <p class="small">AI built from primary sources as a personal project · no trackers or analytics.</p>
+      </div>
+
+      <div class="dockPanel" data-panel="data">
+        <div class="warningBox">Missiles represent publicly documented incidents, not every attack. Disclosure and collection rates differ sharply by country.</div>
+        <div class="btnrow" style="margin:8px 0"><button id="searchBtn" class="hidden"></button><button id="resetBtn">Reset all filters</button></div>
+        <h3>Mapped incident layers</h3><div id="sourceLayerControls"></div>
+        <h3>Loaded intelligence enrichment</h3><div id="enrichmentStatus" class="provenanceList"></div>
+        <h3>Primary sources</h3><div id="sourceCatalogue"></div>
+        <h3>Methodology</h3><p class="small">Records are normalised to a common incident schema and deduplicated across sources using date, victim country and a suffix-normalised victim-name key. Ransomware.live records are leak-site claims — attacker assertions, placed at country level, with no origin asserted. Unknown attacker locations launch from a neutral ocean anchor. Incident actors are matched against a threat-group directory built from an embedded core plus MITRE ATT&amp;CK intrusion sets and Ransomware.live group profiles, each cited with links.</p>
+        <div class="btnrow"><button id="exportVisible" type="button">Export visible CSV</button><button id="copySourceLinks" type="button">Copy source links</button></div>
+      </div>
+
     </div>
+  </div>
 
-    <div class="sectorHead"><h2 style="margin:0">Sector</h2><span class="miniLinks"><button id="sectorAll" type="button">Select all</button><button id="sectorNone" type="button">Clear all</button></span></div>
-    <div id="sectorChecks" class="checks"></div>
-
-    <h2>Attack type</h2>
-    <select id="typeFilter"><option value="">All attack types</option></select>
-  </aside>
+  <input id="search" type="text" class="hidden" />
 
   <main id="stage">
     <div id="globe"></div>
@@ -226,28 +266,6 @@
     <section id="attackDrawer" class="detailDrawer hidden" aria-live="polite" aria-label="Attack details">
       <div class="detailDrawerHead"><h2>Attack details</h2><button id="closeAttackDrawer" class="detailClose" type="button" aria-label="Close attack details">×</button></div>
       <div id="attackDrawerBody"></div>
-    </section>
-    <div id="topLeftCluster"><button id="moreButton" class="clusterBtn" type="button" aria-label="Open data and source menu" aria-expanded="false">⋮</button><button id="infoButton" class="clusterBtn" type="button" aria-label="About this map" aria-expanded="false">ⓘ</button><button id="lookupButton" class="clusterBtn" type="button" aria-label="Look up an attack or group" aria-expanded="false">🔍</button><button id="toggleLeft" class="clusterBtn">☰ Controls</button></div><button id="toggleRight" class="panelToggle">Details ☰</button>
-    <section id="moreMenu" class="moreMenu hidden" aria-label="Data sources and methodology">
-      <div class="menuHead"><h2>Data &amp; sources</h2><button id="moreClose" class="menuClose" type="button" aria-label="Close menu">×</button></div>
-      <div class="warningBox">Missiles represent publicly documented incidents, not every attack. Disclosure and collection rates differ sharply by country.</div>
-      <h3>Mapped incident layers</h3><div id="sourceLayerControls"></div>
-      <h3>Loaded intelligence enrichment</h3><div id="enrichmentStatus" class="provenanceList"></div>
-      <h3>Primary sources</h3><div id="sourceCatalogue"></div>
-      <h3>Methodology</h3><p>Records are normalised to a common incident schema and deduplicated across sources using date, victim country and a suffix-normalised victim-name key, so the same organisation reported by multiple datasets collapses into one record with merged citations. Ransomware.live records are leak-site claims — attacker assertions, placed at country level, with no origin asserted. Unknown attacker locations launch from a neutral ocean anchor. Incident actors are matched against a threat-group directory built from an embedded core plus MITRE ATT&CK intrusion sets and Ransomware.live group profiles, each cited with links.</p>
-      <div class="btnrow"><button id="exportVisible" type="button">Export visible CSV</button><button id="copySourceLinks" type="button">Copy source links</button></div>
-    </section>
-    <section id="infoMenu" class="moreMenu hidden" aria-label="About this map">
-      <div class="menuHead"><h2>About this map</h2><button id="infoClose" class="menuClose" type="button" aria-label="Close">×</button></div>
-      <p class="demo"><b>Mapped incident sources:</b> a ~90-incident curated layer embedded in this file (works fully offline), plus — when hosted — EuRepoC (2000–2024), VCDB, and recent-months ransomware leak-site claims from Ransomware.live, deduplicated across sources. Incident actors link to a cited threat-group directory (MITRE ATT&amp;CK + Ransomware.live profiles). MITRE ATT&amp;CK and CISA KEV load as enrichment. Use the <b>⋮</b> menu for source toggles, methodology and links. Origins are attribution or ecosystem proxies — see each incident's note.</p>
-      <p>The strip above the timeline is an attacks-per-month histogram (2000&nbsp;→&nbsp;today) — click any bar to jump there. The on-map counter tracks cumulative documented attacks and the tempo multiplier versus the 2000–02 baseline. The green line is a year-on-year trend of peak monthly activity. Press <b>⟲ Replay</b> to watch the monthly missile salvos escalate.</p>
-      <p class="small">AI built from primary sources as a personal project · no trackers or analytics.</p>
-    </section>
-    <section id="lookupMenu" class="moreMenu floatFrame hidden" aria-label="Look up an attack or group">
-      <div class="menuHead frameGrip"><h2 style="margin:0">🔍 Look up</h2><button id="lookupClose" class="menuClose" type="button" aria-label="Close">×</button></div>
-      <input id="lookupInput" type="text" placeholder="Type an attack, group, country or actor…" autocomplete="off" />
-      <div id="lookupResults" class="lookupResults"></div>
-      <div id="lookupGroup" class="hidden"></div>
     </section>
     <div id="yearBig">Jun 2026</div>
     <div id="escalation" aria-live="polite">
@@ -262,26 +280,6 @@
       <span><i class="dot" style="background:#b6c8e2"></i>City</span>
     </div>
   </main>
-
-  <aside id="right" class="panel">
-    <div class="panelHead"><h2 style="margin:0">Visible events</h2><button id="closeRight" class="menuClose" type="button" aria-label="Close details panel">×</button></div>
-    <div class="stats">
-      <div class="stat"><strong id="visibleCount">0</strong><span>attacks</span></div>
-      <div class="stat"><strong id="impactTotal">0</strong><span>impact score</span></div>
-    </div>
-
-    <h2>Regional coverage</h2>
-    <div id="regionCoverage" class="stats" style="grid-template-columns:1fr 1fr"></div>
-    <p id="coverageNote" class="small">Counts show visible victim routes by broad geographic region.</p>
-
-    <h2>Top origins</h2>
-    <div id="originRanks"></div>
-    <h2>Top victims</h2>
-    <div id="victimRanks"></div>
-
-    <div class="sigHead"><h2 style="margin:0">Significant incident</h2><label class="sigPause"><input id="sigPause" type="checkbox"> Pause</label></div>
-    <div id="detail"><p>The most significant incident visible at the current moment appears here as the timeline runs. Tick <b>Pause</b> to hold one in view, or click any missile to inspect it.</p></div>
-  </aside>
 
   <section id="timeline">
     <div id="histo" role="slider" aria-label="Attacks per month, 2000 to 2026. Click to jump to a month." title="Attacks per month — click to jump"></div>
@@ -543,8 +541,6 @@ const yearSlider=document.getElementById("yearSlider");
 const searchBtn=document.getElementById("searchBtn");
 const search=document.getElementById("search");
 const resetBtn=document.getElementById("resetBtn");
-const toggleLeft=document.getElementById("toggleLeft");
-const toggleRight=document.getElementById("toggleRight");
 const sphereBtn=document.getElementById("sphereBtn");
 const flatBtn=document.getElementById("flatBtn");
 const viewMode=document.getElementById("viewMode");
@@ -571,9 +567,6 @@ const regionCoverage=document.getElementById("regionCoverage");
 const coverageNote=document.getElementById("coverageNote");
 const monthOnlyBtn=document.getElementById("monthOnlyBtn");
 const allToDateBtn=document.getElementById("allToDateBtn");
-const moreButton=document.getElementById("moreButton");
-const moreMenu=document.getElementById("moreMenu");
-const moreClose=document.getElementById("moreClose");
 const sourceLayerControls=document.getElementById("sourceLayerControls");
 const sourceCatalogue=document.getElementById("sourceCatalogue");
 const enrichmentStatus=document.getElementById("enrichmentStatus");
@@ -1240,7 +1233,7 @@ function maybeMobilePerfDefaults(){
  });
  setTimeout(()=>{if(t.parentNode)t.remove()},20000);
 }
-let rwStreamStarted=false;
+let rwStreamStarted=false, rwStreamDone=false;
 async function loadRansomwareLiveProgressive(){
  if(rwStreamStarted)return; rwStreamStarted=true;
  let merged=0;
@@ -1255,7 +1248,7 @@ async function loadRansomwareLiveProgressive(){
    const stopIdx=packRwlLastIdx>=0?packRwlLastIdx+1:undefined;
    const all=await loadRansomwareLive(flush,stopIdx);
    flush(all);
-   if(packRwlLastIdx>=0&&!all.length)return; // pack fully current — nothing to top up
+   if(packRwlLastIdx>=0&&!all.length){rwStreamDone=true;return;} // pack fully current — nothing to top up
    if(all.length){
      const countries=new Set(attacks.map(a=>a.victimISO).filter(Boolean));
      dataStatus.textContent=`Multi-source data loaded • ${attacks.length.toLocaleString()} deduplicated routes • ${countries.size} victim countries • incl. ${all.length.toLocaleString()} leak-site claims (2020 → today)`;
@@ -1267,6 +1260,7 @@ async function loadRansomwareLiveProgressive(){
      maybeMobilePerfDefaults();
    }
  }catch(err){console.warn("Ransomware.live unavailable in this context",err)}
+ finally{rwStreamDone=true;}
 }
 
 /* ── Threat-group directory: profiles with citation links, matched to incident actors ── */
@@ -1494,54 +1488,57 @@ resetBtn.addEventListener("click",()=>{
  search.value=""; typeFilter.value=""; cumulative.checked=true; viewMode.value="attacks";
  document.querySelectorAll(".severity,.sector").forEach(x=>x.checked=true);document.getElementById("showUnattributed").checked=true;document.getElementById("showExercise").checked=false;document.getElementById("sigPause").checked=false;sigLocked=false;significantShown=null;impactLabel.classList.add("hidden");attackDrawer.classList.add("hidden");selectedAttack=null;markHistoDirty();setTimeline(318);
 });
-toggleLeft.addEventListener("click",()=>{document.getElementById("app").classList.toggle("left-hidden");setTimeout(resize,280)});
-toggleRight.addEventListener("click",()=>{document.getElementById("app").classList.toggle("right-hidden");setTimeout(resize,280)});
-document.getElementById("closeRight").addEventListener("click",()=>{document.getElementById("app").classList.add("right-hidden");setTimeout(resize,280)});
-document.getElementById("app").classList.add("left-hidden","right-hidden");
-window.addEventListener("resize",resize);resize();
-
-renderSourceMenu();
-moreButton.addEventListener("click",()=>{const opening=moreMenu.classList.contains("hidden");moreMenu.classList.toggle("hidden");moreButton.setAttribute("aria-expanded",String(opening));document.getElementById("infoMenu").classList.add("hidden")});
-moreClose.addEventListener("click",()=>{moreMenu.classList.add("hidden");moreButton.setAttribute("aria-expanded","false")});
-/* ── Draggable frames: grab a frame's header to float and reposition it; double-click header to re-dock ── */
-function makeDraggable(frame,grip){
- if(!frame||!grip)return;
- let dragging=false,sx=0,sy=0,ox=0,oy=0;
+/* ── Unified dock: tab switching, drag-anywhere, collapse ─────────────────── */
+const dock=document.getElementById("dock");
+const dockBar=document.getElementById("dockBar");
+function showTab(name){
+ document.querySelectorAll(".dockTab").forEach(t=>t.classList.toggle("active",t.dataset.tab===name));
+ document.querySelectorAll(".dockPanel").forEach(p=>p.classList.toggle("active",p.dataset.panel===name));
+ if(dock.classList.contains("collapsed")){dock.classList.remove("collapsed");document.getElementById("dockCollapse").textContent="▁"}
+ document.getElementById("dockBody").scrollTop=0;
+ if(name==="search"){const li=document.getElementById("lookupInput");li.focus();runLookup(li.value)}
+}
+document.querySelectorAll(".dockTab").forEach(t=>t.addEventListener("click",()=>showTab(t.dataset.tab)));
+document.getElementById("dockCollapse").addEventListener("click",()=>{
+ const c=dock.classList.toggle("collapsed");
+ document.getElementById("dockCollapse").textContent=c?"▢":"▁";
+});
+/* drag the whole dock by its title bar; keep it fully on-screen */
+(function(){
+ let dragging=false,sx=0,sy=0,ox=0,oy=0,moved=false;
  const down=e=>{
-   if(e.target.closest("button,input,a,select"))return;
-   dragging=true;
+   if(e.target.closest("button"))return;
+   dragging=true;moved=false;
    const p=e.touches?e.touches[0]:e;
-   const r=frame.getBoundingClientRect();
-   frame.classList.add("frameFloating");
-   frame.style.left=r.left+"px";frame.style.top=r.top+"px";frame.style.right="auto";
+   const r=dock.getBoundingClientRect();
+   dock.style.left=r.left+"px";dock.style.top=r.top+"px";dock.style.right="auto";
    sx=p.clientX;sy=p.clientY;ox=r.left;oy=r.top;
    e.preventDefault();
  };
  const move=e=>{
-   if(!dragging)return;
+   if(!dragging)return;moved=true;
    const p=e.touches?e.touches[0]:e;
    let nx=ox+(p.clientX-sx),ny=oy+(p.clientY-sy);
-   const w=frame.offsetWidth,h=frame.offsetHeight;
+   const w=dock.offsetWidth,h=dock.offsetHeight;
    nx=Math.max(4,Math.min(window.innerWidth-w-4,nx));
    ny=Math.max(4,Math.min(window.innerHeight-h-4,ny));
-   frame.style.left=nx+"px";frame.style.top=ny+"px";
+   dock.style.left=nx+"px";dock.style.top=ny+"px";
    e.preventDefault();
  };
  const up=()=>{dragging=false};
- grip.addEventListener("mousedown",down);grip.addEventListener("touchstart",down,{passive:false});
+ dockBar.addEventListener("mousedown",down);dockBar.addEventListener("touchstart",down,{passive:false});
  window.addEventListener("mousemove",move);window.addEventListener("touchmove",move,{passive:false});
  window.addEventListener("mouseup",up);window.addEventListener("touchend",up);
- grip.addEventListener("dblclick",()=>{frame.classList.remove("frameFloating");frame.style.left=frame.style.top="";frame.style.right=""});
-}
-makeDraggable(document.getElementById("lookupMenu"),document.querySelector("#lookupMenu .frameGrip"));
-makeDraggable(document.getElementById("moreMenu"),document.querySelector("#moreMenu .menuHead"));
-makeDraggable(document.getElementById("infoMenu"),document.querySelector("#infoMenu .menuHead"));
-/* add a grip cursor to the menu heads that are now draggable */
-document.querySelectorAll("#moreMenu .menuHead,#infoMenu .menuHead").forEach(h=>h.classList.add("frameGrip"));
+})();
+/* keep the dock on-screen if the window resizes */
+window.addEventListener("resize",()=>{
+ const r=dock.getBoundingClientRect();
+ if(r.right>window.innerWidth-4)dock.style.left=Math.max(4,window.innerWidth-dock.offsetWidth-4)+"px";
+ if(r.bottom>window.innerHeight-4)dock.style.top=Math.max(4,window.innerHeight-dock.offsetHeight-4)+"px";
+});
+window.addEventListener("resize",resize);resize();
 
-const infoButton=document.getElementById("infoButton"),infoMenu=document.getElementById("infoMenu");
-infoButton.addEventListener("click",()=>{const opening=infoMenu.classList.contains("hidden");infoMenu.classList.toggle("hidden");infoButton.setAttribute("aria-expanded",String(opening));moreMenu.classList.add("hidden")});
-document.getElementById("infoClose").addEventListener("click",()=>{infoMenu.classList.add("hidden");infoButton.setAttribute("aria-expanded","false")});
+renderSourceMenu();
 document.getElementById("sectorAll").addEventListener("click",()=>{document.querySelectorAll(".sector").forEach(x=>x.checked=true);markHistoDirty();update()});
 document.getElementById("sectorNone").addEventListener("click",()=>{document.querySelectorAll(".sector").forEach(x=>x.checked=false);markHistoDirty();update()});
 document.getElementById("showUnattributed").addEventListener("change",()=>{markHistoDirty();update()});
@@ -1558,19 +1555,9 @@ document.getElementById("sigPause").addEventListener("change",e=>{
 });
 
 /* ── Look-up & navigate: find a specific attack or group, jump the timeline there, show it ── */
-const lookupButton=document.getElementById("lookupButton");
-const lookupMenu=document.getElementById("lookupMenu");
 const lookupInput=document.getElementById("lookupInput");
 const lookupResults=document.getElementById("lookupResults");
 const lookupGroupBox=document.getElementById("lookupGroup");
-lookupButton.addEventListener("click",()=>{
- const opening=lookupMenu.classList.contains("hidden");
- lookupMenu.classList.toggle("hidden");
- lookupButton.setAttribute("aria-expanded",String(opening));
- moreMenu.classList.add("hidden");document.getElementById("infoMenu").classList.add("hidden");
- if(opening){lookupInput.focus();runLookup(lookupInput.value)}
-});
-document.getElementById("lookupClose").addEventListener("click",()=>{lookupMenu.classList.add("hidden");lookupButton.setAttribute("aria-expanded","false")});
 let lookupTimer=null;
 lookupInput.addEventListener("input",()=>{clearTimeout(lookupTimer);lookupTimer=setTimeout(()=>runLookup(lookupInput.value),160)});
 function distinctGroups(q){
@@ -1586,10 +1573,22 @@ function distinctGroups(q){
  });
  return [...seen.values()].sort((a,b)=>b.count-a.count).slice(0,6);
 }
+function lookupScopeLine(){
+ const srcCounts={};
+ attacks.forEach(a=>{const s=sourceLayerName(a);srcCounts[s]=(srcCounts[s]||0)+1});
+ const parts=Object.entries(srcCounts).sort((a,b)=>b[1]-a[1]).map(([s,n])=>{
+   const short=s.replace(/ Global Dataset.*| leak-site monitoring| Community Database/,"")
+                .replace("VERIS","VCDB").replace("Curated primary-source incidents","Curated");
+   return `${short} ${n.toLocaleString()}`;
+ });
+ const total=attacks.length.toLocaleString();
+ const streaming=(typeof rwStreamStarted!=="undefined"&&rwStreamStarted&&!rwStreamDone);
+ return `<div class="lookupScope">Searching <b>${total}</b> loaded incidents · ${parts.join(" · ")}${streaming?" · leak-site history still streaming…":""}</div>`;
+}
 function runLookup(raw){
  const q=String(raw||"").trim().toLowerCase();
  lookupGroupBox.classList.add("hidden");lookupGroupBox.innerHTML="";
- if(q.length<2){lookupResults.innerHTML='<p class="small">Type at least two characters. Try an attack name (“NotPetya”), a group (“Lazarus”), or a country.</p>';return}
+ if(q.length<2){lookupResults.innerHTML=lookupScopeLine()+'<p class="small">Type at least two characters. Try an attack name (“NotPetya”), a group (“Lazarus”), or a country.</p>';return}
  const groups=distinctGroups(q);
  const incidents=attacks.filter(a=>{
    const hay=`${a.name} ${a.actor} ${a.victimCountry} ${a.originCountry} ${a.sector} ${a.type}`.toLowerCase();
@@ -1609,7 +1608,7 @@ function runLookup(raw){
    });
  }
  if(!groups.length&&!incidents.length)html='<p class="small">No matches. Note that on your device only the loaded dataset is searchable — the full history needs the hosted data pack.</p>';
- lookupResults.innerHTML=html;
+ lookupResults.innerHTML=lookupScopeLine()+html;
  lookupResults.querySelectorAll(".incidentRow").forEach(b=>b.addEventListener("click",()=>navigateToIncident(decodeURIComponent(b.dataset.id))));
  lookupResults.querySelectorAll(".groupRow").forEach(b=>b.addEventListener("click",()=>showGroupCarousel(decodeURIComponent(b.dataset.group))));
 }
@@ -1631,10 +1630,9 @@ function navigateToIncident(id){
  timelineIndex=Math.max(0,Math.min(endTimelineIndex,idx(a.year,a.month)));
  update();
  showDetail(a);                    // locks the Significant panel to this incident
- document.getElementById("app").classList.remove("right-hidden");
+ showTab("details");
  if(globe&&globe.pointOfView)globe.pointOfView({lat:a.endLat,lng:a.endLng,altitude:1.6},900);
  flashTarget(a);
- lookupMenu.classList.add("hidden");lookupButton.setAttribute("aria-expanded","false");
 }
 function flashTarget(a){
  // brief ring pulse at the victim to draw the eye
