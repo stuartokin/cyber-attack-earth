@@ -39,8 +39,8 @@
 .panelToggle{position:absolute;z-index:30;top:14px;background:rgba(5,12,25,.9)}#toggleRight{right:14px}
 #topLeftCluster{position:absolute;z-index:60;top:14px;left:14px;display:flex;gap:8px;align-items:stretch}
 .clusterBtn{background:rgba(5,12,25,.94);line-height:1}
-#moreButton.clusterBtn,#infoButton.clusterBtn{width:42px;padding:0;font-size:22px}
-#infoButton.clusterBtn{font-size:18px}
+#moreButton.clusterBtn,#infoButton.clusterBtn,#lookupButton.clusterBtn{width:42px;padding:0;font-size:22px}
+#infoButton.clusterBtn,#lookupButton.clusterBtn{font-size:18px}
 .pulse-path{stroke-linecap:round}
 .detailDrawer{position:absolute;z-index:45;top:12px;right:12px;width:min(430px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;background:rgba(5,12,25,.97);border:1px solid #38506f;border-radius:14px;padding:16px;box-shadow:0 18px 55px rgba(0,0,0,.48)}
 .detailDrawer.hidden{display:none}
@@ -96,7 +96,25 @@
     .sigHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
     .sigPause{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:0}.sigPause input{margin:0}
     .sectorHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
-    .miniLinks{display:flex;gap:6px}.miniLinks button{font-size:10.5px;padding:3px 8px;background:transparent;border:1px solid #34506f;color:var(--accent)}.sourceLinks a{font-size:11px;color:var(--accent);text-decoration:none;border:1px solid #315171;border-radius:999px;padding:4px 7px}.sourceLinks a:hover{background:#102b42}
+    .miniLinks{display:flex;gap:6px}.miniLinks button{font-size:10.5px;padding:3px 8px;background:transparent;border:1px solid #34506f;color:var(--accent)}
+    .lookupResults{max-height:40vh;overflow:auto;margin-top:6px}
+    .lookupSectionLabel{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:#7f95b4;margin:9px 0 4px}
+    .lookupRow{display:flex;gap:9px;align-items:flex-start;width:100%;text-align:left;background:#0c172a;border:1px solid var(--line);border-radius:9px;padding:8px 10px;margin:4px 0;color:var(--text)}
+    .lookupRow:hover{background:#12233c;border-color:#34506f}
+    .lookupIco{flex:none;margin-top:1px;color:#4dd8ff}.lookupIco.impact-critical{color:#ff4d66}.lookupIco.impact-high{color:#ff9d3c}.lookupIco.impact-medium{color:#ffd24d}.lookupIco.impact-low{color:#7fd4ff}
+    .groupHeader{border:1px solid #2c4666;background:rgba(16,32,57,.5);border-radius:10px;padding:9px 11px;margin:8px 0}
+    .carousel{display:flex;align-items:stretch;gap:6px;margin-top:6px}
+    .carBtn{flex:none;width:34px;font-size:20px;background:#102039;border:1px solid #34506f;color:var(--accent)}
+    .carCard{flex:1;background:#0c172a;border:1px solid var(--line);border-radius:10px;padding:10px}
+    .carYear{font-size:11px;color:#4ee6a5;font-weight:700;letter-spacing:.03em}
+    .carGo{margin-top:7px;font-size:12px}
+    .carDots{display:flex;gap:4px;flex-wrap:wrap;justify-content:center;margin-top:7px}
+    .carDots i{width:6px;height:6px;border-radius:50%;background:#2c4666}.carDots i.on{background:#4dd8ff}
+    .floatFrame{cursor:default}
+    .frameGrip{cursor:grab;touch-action:none;user-select:none}
+    .frameGrip:active{cursor:grabbing}
+    .frameDocked{}
+    .frameFloating{position:fixed!important;top:auto;right:auto;box-shadow:0 24px 60px rgba(0,0,0,.6);border-color:#4a6a92}.sourceLinks a{font-size:11px;color:var(--accent);text-decoration:none;border:1px solid #315171;border-radius:999px;padding:4px 7px}.sourceLinks a:hover{background:#102b42}
     .sourceToggle{display:flex;align-items:flex-start;gap:8px;margin:8px 0;color:var(--text)}.sourceToggle input{margin-top:3px}
     .provenanceList{display:grid;gap:7px}.provenanceItem{border-left:3px solid var(--accent);padding-left:9px}
     .warningBox{border-left:3px solid var(--orange);background:rgba(255,157,60,.08);padding:9px 10px;border-radius:6px;font-size:12px;color:#d7e1ef}
@@ -122,6 +140,10 @@
       #escalation{top:92px;max-width:210px}
       #escalation strong{font-size:19px}
       #histo{height:36px}
+      #topLeftCluster{gap:5px}
+      #topLeftCluster .clusterBtn{padding:7px 8px;font-size:12px}
+      #moreButton.clusterBtn,#infoButton.clusterBtn,#lookupButton.clusterBtn{width:34px;font-size:16px}
+      #toggleRight{padding:7px 9px;font-size:12px}
       #timeline button{padding:7px 9px;font-size:12px}
       #status{display:none}
       .btnrow{gap:5px}
@@ -205,7 +227,7 @@
       <div class="detailDrawerHead"><h2>Attack details</h2><button id="closeAttackDrawer" class="detailClose" type="button" aria-label="Close attack details">×</button></div>
       <div id="attackDrawerBody"></div>
     </section>
-    <div id="topLeftCluster"><button id="moreButton" class="clusterBtn" type="button" aria-label="Open data and source menu" aria-expanded="false">⋮</button><button id="infoButton" class="clusterBtn" type="button" aria-label="About this map" aria-expanded="false">ⓘ</button><button id="toggleLeft" class="clusterBtn">☰ Controls</button></div><button id="toggleRight" class="panelToggle">Details ☰</button>
+    <div id="topLeftCluster"><button id="moreButton" class="clusterBtn" type="button" aria-label="Open data and source menu" aria-expanded="false">⋮</button><button id="infoButton" class="clusterBtn" type="button" aria-label="About this map" aria-expanded="false">ⓘ</button><button id="lookupButton" class="clusterBtn" type="button" aria-label="Look up an attack or group" aria-expanded="false">🔍</button><button id="toggleLeft" class="clusterBtn">☰ Controls</button></div><button id="toggleRight" class="panelToggle">Details ☰</button>
     <section id="moreMenu" class="moreMenu hidden" aria-label="Data sources and methodology">
       <div class="menuHead"><h2>Data &amp; sources</h2><button id="moreClose" class="menuClose" type="button" aria-label="Close menu">×</button></div>
       <div class="warningBox">Missiles represent publicly documented incidents, not every attack. Disclosure and collection rates differ sharply by country.</div>
@@ -220,6 +242,12 @@
       <p class="demo"><b>Mapped incident sources:</b> a ~90-incident curated layer embedded in this file (works fully offline), plus — when hosted — EuRepoC (2000–2024), VCDB, and recent-months ransomware leak-site claims from Ransomware.live, deduplicated across sources. Incident actors link to a cited threat-group directory (MITRE ATT&amp;CK + Ransomware.live profiles). MITRE ATT&amp;CK and CISA KEV load as enrichment. Use the <b>⋮</b> menu for source toggles, methodology and links. Origins are attribution or ecosystem proxies — see each incident's note.</p>
       <p>The strip above the timeline is an attacks-per-month histogram (2000&nbsp;→&nbsp;today) — click any bar to jump there. The on-map counter tracks cumulative documented attacks and the tempo multiplier versus the 2000–02 baseline. The green line is a year-on-year trend of peak monthly activity. Press <b>⟲ Replay</b> to watch the monthly missile salvos escalate.</p>
       <p class="small">AI built from primary sources as a personal project · no trackers or analytics.</p>
+    </section>
+    <section id="lookupMenu" class="moreMenu floatFrame hidden" aria-label="Look up an attack or group">
+      <div class="menuHead frameGrip"><h2 style="margin:0">🔍 Look up</h2><button id="lookupClose" class="menuClose" type="button" aria-label="Close">×</button></div>
+      <input id="lookupInput" type="text" placeholder="Type an attack, group, country or actor…" autocomplete="off" />
+      <div id="lookupResults" class="lookupResults"></div>
+      <div id="lookupGroup" class="hidden"></div>
     </section>
     <div id="yearBig">Jun 2026</div>
     <div id="escalation" aria-live="polite">
@@ -676,7 +704,9 @@ let histoCounts=[],histoPrefix=[],histoDirty=true;
 function histoFiltered(){
  const sev=checked("severity"),sec=checked("sector"),type=typeFilter.value;
  const q=search.value.trim().toLowerCase();
- return attacks.filter(a=>enabledSources.has(sourceLayerName(a))&&sev.includes(a.severity)&&sec.includes(a.sector)&&(!type||a.type===type)&&(!q||Object.values(a).join(" ").toLowerCase().includes(q)));
+ const showUnattr=document.getElementById("showUnattributed").checked;
+ const showEx=document.getElementById("showExercise").checked;
+ return attacks.filter(a=>enabledSources.has(sourceLayerName(a))&&sev.includes(a.severity)&&sec.includes(a.sector)&&(!type||a.type===type)&&(showUnattr||!isUnattributed(a))&&(showEx||!isExercise(a))&&(!q||Object.values(a).join(" ").toLowerCase().includes(q)));
 }
 function computeHistoCounts(){
  histoCounts=new Array(endTimelineIndex+1).fill(0);
@@ -1440,6 +1470,8 @@ function play(){
  update();
 }
 function restartTimer(){if(timer){clearInterval(timer);timer=null;play()}}
+function pausePlayback(){if(timer){clearInterval(timer);timer=null;playBtn.textContent="▶ Play";update()}}
+function resumePlayback(){if(!timer){play()}}
 function resize(){globe.width(globeEl.clientWidth).height(globeEl.clientHeight);renderHisto()}
 const citiesBox=document.getElementById("cities");
 yearSlider.addEventListener("input",e=>setTimeline(e.target.value));
@@ -1471,6 +1503,42 @@ window.addEventListener("resize",resize);resize();
 renderSourceMenu();
 moreButton.addEventListener("click",()=>{const opening=moreMenu.classList.contains("hidden");moreMenu.classList.toggle("hidden");moreButton.setAttribute("aria-expanded",String(opening));document.getElementById("infoMenu").classList.add("hidden")});
 moreClose.addEventListener("click",()=>{moreMenu.classList.add("hidden");moreButton.setAttribute("aria-expanded","false")});
+/* ── Draggable frames: grab a frame's header to float and reposition it; double-click header to re-dock ── */
+function makeDraggable(frame,grip){
+ if(!frame||!grip)return;
+ let dragging=false,sx=0,sy=0,ox=0,oy=0;
+ const down=e=>{
+   if(e.target.closest("button,input,a,select"))return;
+   dragging=true;
+   const p=e.touches?e.touches[0]:e;
+   const r=frame.getBoundingClientRect();
+   frame.classList.add("frameFloating");
+   frame.style.left=r.left+"px";frame.style.top=r.top+"px";frame.style.right="auto";
+   sx=p.clientX;sy=p.clientY;ox=r.left;oy=r.top;
+   e.preventDefault();
+ };
+ const move=e=>{
+   if(!dragging)return;
+   const p=e.touches?e.touches[0]:e;
+   let nx=ox+(p.clientX-sx),ny=oy+(p.clientY-sy);
+   const w=frame.offsetWidth,h=frame.offsetHeight;
+   nx=Math.max(4,Math.min(window.innerWidth-w-4,nx));
+   ny=Math.max(4,Math.min(window.innerHeight-h-4,ny));
+   frame.style.left=nx+"px";frame.style.top=ny+"px";
+   e.preventDefault();
+ };
+ const up=()=>{dragging=false};
+ grip.addEventListener("mousedown",down);grip.addEventListener("touchstart",down,{passive:false});
+ window.addEventListener("mousemove",move);window.addEventListener("touchmove",move,{passive:false});
+ window.addEventListener("mouseup",up);window.addEventListener("touchend",up);
+ grip.addEventListener("dblclick",()=>{frame.classList.remove("frameFloating");frame.style.left=frame.style.top="";frame.style.right=""});
+}
+makeDraggable(document.getElementById("lookupMenu"),document.querySelector("#lookupMenu .frameGrip"));
+makeDraggable(document.getElementById("moreMenu"),document.querySelector("#moreMenu .menuHead"));
+makeDraggable(document.getElementById("infoMenu"),document.querySelector("#infoMenu .menuHead"));
+/* add a grip cursor to the menu heads that are now draggable */
+document.querySelectorAll("#moreMenu .menuHead,#infoMenu .menuHead").forEach(h=>h.classList.add("frameGrip"));
+
 const infoButton=document.getElementById("infoButton"),infoMenu=document.getElementById("infoMenu");
 infoButton.addEventListener("click",()=>{const opening=infoMenu.classList.contains("hidden");infoMenu.classList.toggle("hidden");infoButton.setAttribute("aria-expanded",String(opening));moreMenu.classList.add("hidden")});
 document.getElementById("infoClose").addEventListener("click",()=>{infoMenu.classList.add("hidden");infoButton.setAttribute("aria-expanded","false")});
@@ -1478,7 +1546,156 @@ document.getElementById("sectorAll").addEventListener("click",()=>{document.quer
 document.getElementById("sectorNone").addEventListener("click",()=>{document.querySelectorAll(".sector").forEach(x=>x.checked=false);markHistoDirty();update()});
 document.getElementById("showUnattributed").addEventListener("change",()=>{markHistoDirty();update()});
 document.getElementById("showExercise").addEventListener("change",()=>{markHistoDirty();update()});
-document.getElementById("sigPause").addEventListener("change",e=>{if(!e.target.checked){sigLocked=false;significantShown=null;update()}});
+let sigPauseWasPlaying=false;
+document.getElementById("sigPause").addEventListener("change",e=>{
+ if(e.target.checked){
+   sigPauseWasPlaying=!!timer;
+   pausePlayback();
+ }else{
+   sigLocked=false;significantShown=null;
+   if(sigPauseWasPlaying)resumePlayback(); else update();
+ }
+});
+
+/* ── Look-up & navigate: find a specific attack or group, jump the timeline there, show it ── */
+const lookupButton=document.getElementById("lookupButton");
+const lookupMenu=document.getElementById("lookupMenu");
+const lookupInput=document.getElementById("lookupInput");
+const lookupResults=document.getElementById("lookupResults");
+const lookupGroupBox=document.getElementById("lookupGroup");
+lookupButton.addEventListener("click",()=>{
+ const opening=lookupMenu.classList.contains("hidden");
+ lookupMenu.classList.toggle("hidden");
+ lookupButton.setAttribute("aria-expanded",String(opening));
+ moreMenu.classList.add("hidden");document.getElementById("infoMenu").classList.add("hidden");
+ if(opening){lookupInput.focus();runLookup(lookupInput.value)}
+});
+document.getElementById("lookupClose").addEventListener("click",()=>{lookupMenu.classList.add("hidden");lookupButton.setAttribute("aria-expanded","false")});
+let lookupTimer=null;
+lookupInput.addEventListener("input",()=>{clearTimeout(lookupTimer);lookupTimer=setTimeout(()=>runLookup(lookupInput.value),160)});
+function distinctGroups(q){
+ const seen=new Map();
+ attacks.forEach(a=>{
+   const gp=findGroupProfile(a.actor);
+   const key=gp?gp.name:String(a.actor||"").replace(/\(.*?\)/g,"").trim();
+   if(!key)return;
+   if(key.toLowerCase().includes(q)){
+     if(!seen.has(key))seen.set(key,{name:key,gp,count:0});
+     seen.get(key).count++;
+   }
+ });
+ return [...seen.values()].sort((a,b)=>b.count-a.count).slice(0,6);
+}
+function runLookup(raw){
+ const q=String(raw||"").trim().toLowerCase();
+ lookupGroupBox.classList.add("hidden");lookupGroupBox.innerHTML="";
+ if(q.length<2){lookupResults.innerHTML='<p class="small">Type at least two characters. Try an attack name (“NotPetya”), a group (“Lazarus”), or a country.</p>';return}
+ const groups=distinctGroups(q);
+ const incidents=attacks.filter(a=>{
+   const hay=`${a.name} ${a.actor} ${a.victimCountry} ${a.originCountry} ${a.sector} ${a.type}`.toLowerCase();
+   return hay.includes(q);
+ }).sort((a,b)=>(b.impact-a.impact)||(idx(b.year,b.month)-idx(a.year,a.month))).slice(0,40);
+ let html="";
+ if(groups.length){
+   html+='<div class="lookupSectionLabel">Threat groups</div>';
+   groups.forEach((g,i)=>{
+     html+=`<button class="lookupRow groupRow" data-group="${encodeURIComponent(g.name)}"><span class="lookupIco">☰</span><span><b>${g.name}</b><br><span class="small">${g.count} incident${g.count!==1?"s":""} in view${g.gp&&g.gp.origin?` · ${g.gp.origin}`:""}</span></span></button>`;
+   });
+ }
+ if(incidents.length){
+   html+='<div class="lookupSectionLabel">Incidents</div>';
+   incidents.forEach(a=>{
+     html+=`<button class="lookupRow incidentRow" data-id="${encodeURIComponent(a.id)}"><span class="lookupIco impact-${a.severity.toLowerCase()}">◆</span><span><b>${a.name}</b><br><span class="small">${mon(a.month)} ${a.year} · ${a.victimCountry} · ${a.sector}</span></span></button>`;
+   });
+ }
+ if(!groups.length&&!incidents.length)html='<p class="small">No matches. Note that on your device only the loaded dataset is searchable — the full history needs the hosted data pack.</p>';
+ lookupResults.innerHTML=html;
+ lookupResults.querySelectorAll(".incidentRow").forEach(b=>b.addEventListener("click",()=>navigateToIncident(decodeURIComponent(b.dataset.id))));
+ lookupResults.querySelectorAll(".groupRow").forEach(b=>b.addEventListener("click",()=>showGroupCarousel(decodeURIComponent(b.dataset.group))));
+}
+function ensureVisibleFor(a){
+ // Make sure filters/timeline won't hide the target: enable its severity/sector, turn on cumulative,
+ // and (if needed) unattributed/exercise, then move the timeline to its month.
+ const sevBox=[...document.querySelectorAll(".severity")].find(x=>x.value===a.severity);if(sevBox&&!sevBox.checked)sevBox.checked=true;
+ const secBox=[...document.querySelectorAll(".sector")].find(x=>x.value===a.sector);if(secBox&&!secBox.checked)secBox.checked=true;
+ if(isUnattributed(a)&&!document.getElementById("showUnattributed").checked)document.getElementById("showUnattributed").checked=true;
+ if(isExercise(a)&&!document.getElementById("showExercise").checked)document.getElementById("showExercise").checked=true;
+ document.getElementById("cumulative").checked=true;
+ if(typeFilter.value&&typeFilter.value!==a.type)typeFilter.value="";
+ markHistoDirty();
+}
+function navigateToIncident(id){
+ const a=attacks.find(x=>String(x.id)===String(id));if(!a)return;
+ pausePlayback();
+ ensureVisibleFor(a);
+ timelineIndex=Math.max(0,Math.min(endTimelineIndex,idx(a.year,a.month)));
+ update();
+ showDetail(a);                    // locks the Significant panel to this incident
+ document.getElementById("app").classList.remove("right-hidden");
+ if(globe&&globe.pointOfView)globe.pointOfView({lat:a.endLat,lng:a.endLng,altitude:1.6},900);
+ flashTarget(a);
+ lookupMenu.classList.add("hidden");lookupButton.setAttribute("aria-expanded","false");
+}
+function flashTarget(a){
+ // brief ring pulse at the victim to draw the eye
+ const prev=globe.ringsData();
+ globe.ringsData([{lat:a.endLat,lng:a.endLng,severity:a.severity,impact:100,__flash:true}]);
+ setTimeout(()=>{if(typeof update==="function")update()},1600);
+}
+let groupCarouselIdx=0, groupCarouselItems=[];
+function showGroupCarousel(name){
+ const items=attacks.filter(a=>{const gp=findGroupProfile(a.actor);const key=gp?gp.name:String(a.actor||"").replace(/\(.*?\)/g,"").trim();return key===name;})
+   .sort((a,b)=>idx(a.year,a.month)-idx(b.year,b.month));
+ if(!items.length)return;
+ groupCarouselItems=items;groupCarouselIdx=0;
+ const gp=findGroupProfile(items[0].actor);
+ const years=items.map(a=>a.year);
+ const span=`${Math.min(...years)}–${Math.max(...years)}`;
+ const countries=[...new Set(items.map(a=>a.victimCountry))];
+ // show the whole active span on the timeline (cumulative) and enable everything needed
+ pausePlayback();
+ items.forEach(ensureVisibleFor);
+ timelineIndex=endTimelineIndex; markHistoDirty(); update();
+ // plot all of this group's victims as flashing rings so the footprint is visible at once
+ globe.ringsData(items.map(a=>({lat:a.endLat,lng:a.endLng,severity:a.severity,impact:Math.min(100,a.impact),__group:true})));
+ lookupGroupBox.classList.remove("hidden");
+ lookupGroupBox.innerHTML=`
+   <div class="groupHeader">
+     <div><b>${name}</b>${gp&&gp.origin?` <span class="small">(${gp.origin})</span>`:""}
+       <div class="small">${items.length} incidents · active ${span} · ${countries.length} countries</div>
+       ${gp&&gp.desc?`<p class="small" style="margin:6px 0 0">${gp.desc}</p>`:""}
+       ${gp&&gp.links?`<div class="sourceLinks">${gp.links.map(l=>`<a href="${l.url}" target="_blank" rel="noopener">${l.name}</a>`).join("")}</div>`:""}
+     </div>
+   </div>
+   <div class="carousel">
+     <button id="carPrev" class="carBtn" aria-label="Previous">‹</button>
+     <div id="carCard" class="carCard"></div>
+     <button id="carNext" class="carBtn" aria-label="Next">›</button>
+   </div>
+   <div id="carDots" class="carDots"></div>`;
+ document.getElementById("carPrev").addEventListener("click",()=>moveCarousel(-1));
+ document.getElementById("carNext").addEventListener("click",()=>moveCarousel(1));
+ renderCarouselCard();
+}
+function renderCarouselCard(){
+ const a=groupCarouselItems[groupCarouselIdx];if(!a)return;
+ const card=document.getElementById("carCard");
+ card.innerHTML=`<div class="carYear">${mon(a.month)} ${a.year}</div>
+   <b>${a.name}</b>
+   <div class="impact ${a.severity.toLowerCase()}" style="margin:5px 0">${a.severity} · impact ${a.impact}/100</div>
+   <div class="small">${a.victimCity}, ${a.victimCountry} · ${a.sector} · ${a.type}</div>
+   <p class="small" style="margin:6px 0">${a.summary||""}</p>
+   <button class="carGo" data-id="${encodeURIComponent(a.id)}">Show on map →</button>`;
+ card.querySelector(".carGo").addEventListener("click",()=>navigateToIncident(decodeURIComponent(card.querySelector(".carGo").dataset.id)));
+ const dots=document.getElementById("carDots");
+ dots.innerHTML=groupCarouselItems.map((_,i)=>`<i class="${i===groupCarouselIdx?"on":""}"></i>`).join("");
+ // move the globe to this incident as you flick through
+ if(globe&&globe.pointOfView)globe.pointOfView({lat:a.endLat,lng:a.endLng,altitude:2},700);
+}
+function moveCarousel(d){
+ groupCarouselIdx=(groupCarouselIdx+d+groupCarouselItems.length)%groupCarouselItems.length;
+ renderCarouselCard();
+}
 exportVisible.addEventListener("click",exportVisibleCsv);
 copySourceLinks.addEventListener("click",async()=>{const text=SOURCE_CATALOGUE.map(x=>`${x.name}: ${x.primary}`).join("\n");try{await navigator.clipboard.writeText(text);copySourceLinks.textContent="Copied";setTimeout(()=>copySourceLinks.textContent="Copy source links",1200)}catch(e){alert(text)}});
 update();
