@@ -1,0 +1,33 @@
+# Nightly refresh of the Cyber Attack Earth data pack.
+name: Update cyber data pack
+
+on:
+  schedule:
+    - cron: "20 3 * * *"   # 03:20 UTC nightly
+  workflow_dispatch: {}     # manual "Run workflow" button
+
+permissions:
+  contents: write
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Build data pack
+        run: |
+          pip install requests
+          python3 build_cyber_data.py cyber_data
+
+      - name: Commit if changed
+        run: |
+          git config user.name "data-pack-bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add cyber_data
+          git diff --cached --quiet || git commit -m "Refresh cyber data pack ($(date -u +%F))"
+          git push
