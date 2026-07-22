@@ -1,6 +1,6 @@
 {
  "schema": 3,
- "generated": "2026-07-22T08:33:00+00:00",
+ "generated": "2026-07-22T12:40:00+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -137,6 +137,14 @@
     }
    }
   },
+  "advisories": {
+   "files": {
+    "ics": {
+     "file": "advisories/ics.json",
+     "rows": 394
+    }
+   }
+  },
   "techniques": {
    "files": {
     "attack": {
@@ -165,7 +173,7 @@
    "cadence": "on release",
    "status": "ok",
    "rows": 4296,
-   "seconds": 3.4
+   "seconds": 2.3
   },
   {
    "id": "vcdb",
@@ -176,7 +184,7 @@
    "cadence": "weekly",
    "status": "ok",
    "rows": 10362,
-   "seconds": 6.0
+   "seconds": 5.6
   },
   {
    "id": "rwlive",
@@ -187,7 +195,7 @@
    "cadence": "daily",
    "status": "ok",
    "rows": 21298,
-   "seconds": 171.1
+   "seconds": 151.5
   },
   {
    "id": "kev",
@@ -209,7 +217,7 @@
    "cadence": "daily",
    "status": "ok",
    "rows": 17172,
-   "seconds": 1.0
+   "seconds": 0.9
   },
   {
    "id": "attack",
@@ -220,7 +228,7 @@
    "cadence": "on release",
    "status": "ok",
    "rows": 871,
-   "seconds": 0.6
+   "seconds": 0.5
   },
   {
    "id": "icsadv",
@@ -228,8 +236,10 @@
    "table": "advisories",
    "licence": "Open Database Licence (ODbL) v1.0 - attribution + share-alike",
    "homepage": "https://www.icsadvisoryproject.com/",
-   "status": "failed: zero advisories parsed",
-   "rows": 0
+   "cadence": "weekly",
+   "status": "ok",
+   "rows": 394,
+   "seconds": 0.4
   },
   {
    "id": "reports",
