@@ -1,6 +1,6 @@
 {
  "schema": 3,
- "generated": "2026-07-22T15:17:47+00:00",
+ "generated": "2026-07-22T23:28:00+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -128,7 +128,7 @@
    "files": {
     "kev": {
      "file": "vulns/kev.json",
-     "rows": 1651
+     "rows": 1653
     },
     "epss": {
      "file": "vulns/epss.json",
@@ -137,7 +137,7 @@
     },
     "cve": {
      "file": "vulns/cve.json",
-     "months": 40
+     "months": 56
     }
    }
   },
@@ -177,7 +177,7 @@
    "cadence": "on release",
    "status": "ok",
    "rows": 4296,
-   "seconds": 2.6
+   "seconds": 2.4
   },
   {
    "id": "vcdb",
@@ -188,7 +188,7 @@
    "cadence": "weekly",
    "status": "ok",
    "rows": 10362,
-   "seconds": 4.9
+   "seconds": 5.6
   },
   {
    "id": "rwlive",
@@ -199,7 +199,7 @@
    "cadence": "daily",
    "status": "ok",
    "rows": 21298,
-   "seconds": 148.8
+   "seconds": 156.3
   },
   {
    "id": "kev",
@@ -209,8 +209,8 @@
    "homepage": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
    "cadence": "daily",
    "status": "ok",
-   "rows": 1651,
-   "seconds": 0.1
+   "rows": 1653,
+   "seconds": 0.3
   },
   {
    "id": "epss",
@@ -221,7 +221,7 @@
    "cadence": "daily",
    "status": "ok",
    "rows": 17182,
-   "seconds": 1.4
+   "seconds": 1.1
   },
   {
    "id": "attack",
@@ -232,7 +232,7 @@
    "cadence": "on release",
    "status": "ok",
    "rows": 871,
-   "seconds": 0.5
+   "seconds": 0.6
   },
   {
    "id": "icsadv",
@@ -247,11 +247,11 @@
   },
   {
    "id": "cissm",
-   "title": "CISSM Cyber Events Database (manual export)",
+   "title": "CISSM / GoTech Cyber Events Database",
    "table": "incidents",
    "licence": "Access granted by CISSM on request - do not redistribute raw records",
-   "homepage": "https://cissm.umd.edu/cyber-events-database",
-   "status": "failed: no manual_sources/cissm.csv - request an export from CISSM (charry@umd.edu) and drop the CSV there to enable this layer",
+   "homepage": "https://cybereventsdatabase.org",
+   "status": "failed: no portal download and no manual_sources/cissm.csv. Either set the CISSM_USER/CISSM_PASS secrets, or export the CSV from",
    "rows": 0
   },
   {
@@ -263,7 +263,7 @@
    "cadence": "daily",
    "status": "ok",
    "rows": 2,
-   "seconds": 268.0
+   "seconds": 267.1
   },
   {
    "id": "reports",
