@@ -419,33 +419,86 @@ def build_icsadv():
     print("  [icsadv] using %s" % newest["name"])
     text = get(newest["download_url"], timeout=180).content.decode("utf-8", "replace")
     rdr = csv.DictReader(io.StringIO(text))
+    header = rdr.fieldnames or []
+    print("  [icsadv] header: %s" % (header,))
 
-    def pick(row, *names):
-        for n in names:
-            for k in row:
-                if k and k.strip().lower() == n:
-                    v = (row.get(k) or "").strip()
-                    if v:
-                        return v
-        return ""
+    def norm(s):
+        return re.sub(r"[^a-z0-9]+", " ", str(s or "").lower()).strip()
+
+    normmap = {norm(h): h for h in header if h}
+
+    def find_col(*cands):
+        """Match a column by normalised name, exact first then substring."""
+        for c in cands:
+            if c in normmap:
+                return normmap[c]
+        for c in cands:
+            for nk, orig in normmap.items():
+                if c in nk or nk in c:
+                    return orig
+        return None
+
+    rows = list(rdr)
+    if not rows:
+        raise RuntimeError("CSV contained no data rows")
+
+    col_id = find_col("ics cert number", "ics cert no", "advisory id", "advisory number", "id")
+    # Fallback: identify the ID column by its values (ICSA-24-123-01 / ICSMA-…)
+    if not col_id:
+        pat = re.compile(r"^ICS(MA)?A?-\d{2}-\d{3}", re.I)
+        for h in header:
+            hits = sum(1 for r in rows[:60] if pat.match(str(r.get(h) or "").strip()))
+            if hits >= 20:
+                col_id = h
+                print("  [icsadv] ID column detected by value pattern: %r" % h)
+                break
+    if not col_id:
+        print("  [icsadv] sample row: %s" % (rows[0],))
+        raise RuntimeError("could not identify the advisory-ID column (see header/sample above)")
+
+    col_date = find_col("original release date", "release date", "date published", "date")
+    col_vendor = find_col("vendor")
+    col_product = find_col("product")
+    col_sector = find_col("critical infrastructure sectors", "critical infrastructure sector",
+                          "ci sector", "sector")
+    col_cve = find_col("cve", "cves")
+    col_cvss = find_col("cvss v4 base", "cvss v3 base", "cvss v4", "cvss v3", "cvss")
+    print("  [icsadv] columns -> id=%r date=%r vendor=%r product=%r sector=%r cve=%r cvss=%r"
+          % (col_id, col_date, col_vendor, col_product, col_sector, col_cve, col_cvss))
+
+    def val(row, col, limit=120):
+        if not col:
+            return ""
+        return (row.get(col) or "").strip()[:limit]
 
     out = []
-    for row in rdr:
-        adv = pick(row, "ics-cert number", "ics_cert_number", "advisory id", "id")
-        rel = pick(row, "original release date", "release date", "date")
+    for row in rows:
+        adv = val(row, col_id, 24)
         if not adv:
             continue
-        ym = re.search(r"(20\d{2})", rel or adv)
+        rel = val(row, col_date, 24)
+        ym = re.search(r"(20\d{2})", rel) or re.search(r"ICS\w*-(\d{2})-", adv)
+        year = None
+        if ym:
+            g = ym.group(1)
+            year = int(g) if len(g) == 4 else 2000 + int(g)
+        # normalise the date to YYYY-MM-DD where possible so charts can bucket it
+        iso = ""
+        m1 = re.match(r"(20\d{2})[-/](\d{1,2})[-/](\d{1,2})", rel)
+        m2 = re.match(r"(\d{1,2})[-/](\d{1,2})[-/](20\d{2})", rel)
+        if m1:
+            iso = "%s-%02d-%02d" % (m1.group(1), int(m1.group(2)), int(m1.group(3)))
+        elif m2:
+            iso = "%s-%02d-%02d" % (m2.group(3), int(m2.group(1)), int(m2.group(2)))
         out.append({
-            "id": adv[:24],
-            "title": pick(row, "product", "title", "advisory title")[:120],
-            "vendor": pick(row, "vendor")[:60],
-            "date": rel[:10],
-            "year": int(ym.group(1)) if ym else None,
-            "sectors": pick(row, "critical infrastructure sectors",
-                            "critical infrastructure sector", "sector")[:160],
-            "cves": pick(row, "cve", "cves")[:120],
-            "cvss": pick(row, "cvss v3", "cvss", "cvss v4")[:8],
+            "id": adv,
+            "title": val(row, col_product) or val(row, col_vendor),
+            "vendor": val(row, col_vendor, 60),
+            "date": iso or rel[:10],
+            "year": year,
+            "sectors": val(row, col_sector, 160),
+            "cves": val(row, col_cve, 120),
+            "cvss": val(row, col_cvss, 8),
         })
     seen, dedup = set(), []
     for a in out:
