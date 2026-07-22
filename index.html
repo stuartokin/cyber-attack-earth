@@ -24,8 +24,6 @@
     #toolbar{position:fixed;z-index:90;top:14px;left:14px;display:flex;align-items:stretch;gap:4px;
       background:rgba(6,13,26,.97);backdrop-filter:blur(12px);border:1px solid #34506f;border-radius:12px;
       padding:5px;box-shadow:0 14px 40px rgba(0,0,0,.5);max-width:calc(100vw - 20px);flex-wrap:wrap}
-    .tbGrip{display:flex;align-items:center;padding:0 7px;color:#5f7a9c;cursor:grab;touch-action:none;user-select:none;font-size:15px;letter-spacing:-2px}
-    #toolbar:active .tbGrip{cursor:grabbing}
     .tbBtn{display:flex;align-items:center;gap:7px;padding:8px 11px;font-size:12.5px;background:transparent;
       border:1px solid transparent;border-radius:8px;color:var(--muted);white-space:nowrap;line-height:1}
     .tbBtn:hover{background:rgba(20,38,63,.7);color:var(--text);border-color:#2c4666}
@@ -39,16 +37,22 @@
       border-bottom:1px solid #22374f;background:rgba(9,18,34,.95);cursor:grab;touch-action:none;user-select:none}
     .frameHead:active{cursor:grabbing}
     .frameHead h2{margin:0;font-size:13px;letter-spacing:.02em}
-    .frameClose{font-size:19px;line-height:1;padding:2px 9px;min-width:34px}
+    .frameBtns{display:flex;gap:5px;align-items:center}
+    .frameClose,.frameMax{font-size:17px;line-height:1;padding:3px 9px;min-width:32px}
+    .frame.maxed{left:2vw!important;top:2vh!important;width:96vw!important;max-width:96vw!important}
+    .frame.maxed .frameMax{border-color:var(--accent);color:var(--accent)}
+    .tbGrip{background:transparent;border:1px solid transparent;border-radius:8px;padding:6px 8px;
+      color:#7f95b4;cursor:grab;touch-action:none;user-select:none;font-size:16px;letter-spacing:-1px}
+    .tbGrip:hover{background:rgba(20,38,63,.7);color:var(--text);border-color:#2c4666}
+    #toolbar.min .tbGrip{border-color:var(--accent);color:var(--accent)}
     .frameBody{overflow:auto;padding:13px 15px}
     .frame.front{z-index:86}
     /* ── Minimise states ──────────────────────────────────────────────────── */
-    .tbMin,.tlIconBtn{background:transparent;border:1px solid #2c4666;color:var(--muted);
+    .tlIconBtn{background:transparent;border:1px solid #2c4666;color:var(--muted);
       border-radius:8px;padding:5px 8px;font-size:13px;line-height:1;min-width:30px}
-    .tbMin:hover,.tlIconBtn:hover{color:var(--text);background:rgba(20,38,63,.7)}
+    .tlIconBtn:hover{color:var(--text);background:rgba(20,38,63,.7)}
     #toolbar.min{padding:4px}
     #toolbar.min .tbBtn{display:none}
-    #toolbar.min .tbMin{border-color:var(--accent);color:var(--accent)}
     #timeline.min .histoHead,#timeline.min #histo,#timeline.min .timelineBottom{display:none}
     #timeline.min{padding:7px 16px}
     #timeline.min #timelineMin{border-color:var(--accent);color:var(--accent)}
@@ -133,6 +137,9 @@
     .sigHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
     .sigPause{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:0}.sigPause input{margin:0}
     .sectorHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
+    .countryChecks{max-height:190px;overflow:auto;border:1px solid #1e3350;border-radius:8px;padding:6px;margin-top:6px}
+    .countryChecks label{display:flex;gap:7px;align-items:center;font-size:12px;padding:2px 0}
+    .countryChecks .cnt{margin-left:auto;color:#7f95b4;font-size:10.5px;font-variant-numeric:tabular-nums}
     .miniLinks{display:flex;gap:6px}.miniLinks button{font-size:10.5px;padding:3px 8px;background:transparent;border:1px solid #34506f;color:var(--accent)}
     .lookupResults{max-height:40vh;overflow:auto;margin-top:6px}
     .lookupScope{font-size:10.5px;color:#8fa6c4;background:rgba(16,32,57,.4);border:1px solid #223a58;border-radius:8px;padding:6px 9px;margin-bottom:6px;line-height:1.5}
@@ -192,8 +199,7 @@
 <body>
 <div id="app">
   <div id="toolbar" aria-label="Tool bar">
-    <span class="tbGrip" title="Drag to move the tool bar" aria-hidden="true">⠿</span>
-    <button id="tbMin" class="tbMin" type="button" aria-label="Minimise tool bar" aria-expanded="true" title="Minimise / expand the tool bar">▾</button>
+    <button id="tbGrip" class="tbGrip" type="button" aria-label="Drag to move, click to minimise or expand the tool bar" aria-expanded="true" title="Drag to move &#183; click to minimise or expand">⠿</button>
     <button class="tbBtn" data-frame="controls" type="button" title="Controls — display options, severity, sector and type filters" aria-label="Controls"><span class="tbIco">☰</span><span class="tbLabel">Controls</span></button>
     <button class="tbBtn" data-frame="details" type="button" title="Details — visible counts, rankings and the significant incident" aria-label="Details"><span class="tbIco">▤</span><span class="tbLabel">Details</span></button>
     <button class="tbBtn" data-frame="search" type="button" title="Search — look up an attack or threat group and jump to it" aria-label="Search"><span class="tbIco">🔍</span><span class="tbLabel">Search</span></button>
@@ -203,18 +209,19 @@
   <div id="frames">
 
       <section class="frame hidden" id="frame-controls" aria-label="Controls">
-        <div class="frameHead"><h2>Controls</h2><button class="frameClose" type="button" aria-label="Close Controls">×</button></div>
+        <div class="frameHead"><h2>Controls</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Controls" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Controls">&#215;</button></span></div>
         <div class="frameBody">
         <h2 style="margin-top:0">Display</h2>
+        <p class="small" style="margin:0 0 8px">Each missile is one publicly documented attack, flying from where it was attributed to where it landed.</p>
         <div class="btnrow" style="margin-bottom:10px">
           <button id="sphereBtn" class="primary">Sphere</button>
           <button id="flatBtn">Flat map</button>
         </div>
-        <label for="viewMode">Country emphasis</label>
+        <label for="viewMode">What to highlight on the map</label>
         <select id="viewMode">
-          <option value="attacks">Attack events</option>
-          <option value="origins">Origin countries</option>
-          <option value="victims">Victim countries</option>
+          <option value="attacks">Individual attacks</option>
+          <option value="origins">Countries attacks came from</option>
+          <option value="victims">Countries that were attacked</option>
         </select>
         <label for="speed">Playback speed</label>
         <select id="speed">
@@ -222,26 +229,27 @@
         </select>
         <label for="densityMode">Missile density</label>
         <select id="densityMode">
-          <option value="full" selected>Full detail</option>
-          <option value="performance">Performance (cap 900)</option>
+          <option value="full" selected>Every attack (may slow older devices)</option>
+          <option value="performance">Fewer missiles (smoother on phones)</option>
         </select>
         <label class="form-check" style="display:flex;gap:8px;align-items:center">
-          <input id="cumulative" type="checkbox" checked /> Show all attacks up to selected month
+          <input id="cumulative" type="checkbox" checked /> Build up attacks over time (rather than one month at a time)
         </label>
         <label class="form-check" style="display:flex;gap:8px;align-items:center">
-          <input id="heatToggle" type="checkbox" checked /> Show country attack heat
+          <input id="heatToggle" type="checkbox" checked /> Shade countries by how often they are hit
         </label>
         <label class="form-check" style="display:flex;gap:8px;align-items:center">
           <input id="cities" type="checkbox" checked /> Show major cities
         </label>
         <label class="form-check" style="display:flex;gap:8px;align-items:center">
-          <input id="showUnattributed" type="checkbox" checked /> Show unattributed-origin attacks
+          <input id="showUnattributed" type="checkbox" checked /> Include attacks with no known origin
         </label>
         <label class="form-check" style="display:flex;gap:8px;align-items:center">
-          <input id="showExercise" type="checkbox" /> Include exercises &amp; test events
+          <input id="showExercise" type="checkbox" /> Include exercises and test events (not real attacks)
         </label>
 
         <h2>Severity</h2>
+        <p class="small" style="margin:0 0 6px">How much damage each source recorded.</p>
         <div class="checks">
           <label><input class="severity" type="checkbox" value="Critical" checked> Critical</label>
           <label><input class="severity" type="checkbox" value="High" checked> High</label>
@@ -254,11 +262,23 @@
 
         <h2>Attack type</h2>
         <select id="typeFilter"><option value="">All attack types</option></select>
+
+        <div class="sectorHead"><h2 style="margin:0">Countries</h2><span class="miniLinks"><button id="countryNone" type="button">Clear</button></span></div>
+        <p class="small" style="margin:2px 0 6px">Pick two or more countries to study how they attack one another. Leave empty to show the whole world.</p>
+        <select id="countryMode">
+          <option value="between">Only attacks between the countries I pick</option>
+          <option value="any">Any attack involving them</option>
+          <option value="victim">Attacks on them (as victim)</option>
+          <option value="origin">Attacks from them (as origin)</option>
+        </select>
+        <input id="countrySearch" type="text" placeholder="Find a country…" autocomplete="off" style="margin-top:7px" />
+        <div id="countryChecks" class="checks countryChecks"></div>
+        <div id="countrySelected" class="small" style="margin-top:5px"></div>
         </div>
       </section>
 
       <section class="frame hidden" id="frame-details" aria-label="Details">
-        <div class="frameHead"><h2>Details</h2><button class="frameClose" type="button" aria-label="Close Details">×</button></div>
+        <div class="frameHead"><h2>Details</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Details" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Details">&#215;</button></span></div>
         <div class="frameBody">
         <div class="stats">
           <div class="stat"><strong id="visibleCount">0</strong><span>attacks</span></div>
@@ -266,35 +286,35 @@
         </div>
         <h2>Regional coverage</h2>
         <div id="regionCoverage" class="stats" style="grid-template-columns:1fr 1fr"></div>
-        <p id="coverageNote" class="small">Counts show visible victim routes by broad geographic region.</p>
+        <p id="coverageNote" class="small">How the attacks currently on screen are spread around the world.</p>
         <h2>Top origins</h2>
         <div id="originRanks"></div>
         <h2>Top victims</h2>
         <div id="victimRanks"></div>
         <div class="sigHead"><h2 style="margin:0">Significant incident</h2><label class="sigPause"><input id="sigPause" type="checkbox"> Pause</label></div>
-        <div id="detail"><p>The most significant incident visible at the current moment appears here as the timeline runs. Tick <b>Pause</b> to hold one in view, or click any missile to inspect it.</p></div>
+        <div id="detail"><p>As the timeline plays, the most serious attack on screen appears here. Tick <b>Pause</b> to stop the clock and hold one in view, or click any missile on the map to read about it.</p></div>
         </div>
       </section>
 
       <section class="frame hidden" id="frame-search" aria-label="Search">
-        <div class="frameHead"><h2>Search</h2><button class="frameClose" type="button" aria-label="Close Search">×</button></div>
+        <div class="frameHead"><h2>Search</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Search" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Search">&#215;</button></span></div>
         <div class="frameBody">
-        <input id="lookupInput" type="text" placeholder="Type an attack, group, country or actor…" autocomplete="off" />
+        <input id="lookupInput" type="text" placeholder="Search an attack, group, country or actor…" autocomplete="off" />
         <div id="lookupResults" class="lookupResults"></div>
         <div id="lookupGroup" class="hidden"></div>
         </div>
       </section>
 
       <section class="frame hidden" id="frame-charts" aria-label="Charts">
-        <div class="frameHead"><h2>Charts</h2><button class="frameClose" type="button" aria-label="Close Charts">×</button></div>
+        <div class="frameHead"><h2>Charts</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Charts" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Charts">&#215;</button></span></div>
         <div class="frameBody">
-        <p class="small" style="margin-top:0">Charts reflect the filters set in <b>Controls</b>. Reference series (KEV, ICS advisories) come from the data lake and are not filtered by incident criteria.</p>
+        <p class="small" style="margin-top:0">These charts follow whatever you have chosen in <b>Controls</b> — change a filter and they redraw. The reference charts lower down (known-exploited vulnerabilities, industrial control advisories, published vulnerabilities) describe the wider landscape and are <i>not</i> affected by your filters.</p>
         <div id="chartsBody"></div>
         </div>
       </section>
 
       <section class="frame hidden" id="frame-sources" aria-label="Sources and info">
-        <div class="frameHead"><h2>Sources &amp; info</h2><button class="frameClose" type="button" aria-label="Close">×</button></div>
+        <div class="frameHead"><h2>Sources &amp; info</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Sources" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Sources">&#215;</button></span></div>
         <div class="frameBody">
         <h3 style="margin-top:0">About this map</h3>
         <p class="demo"><b>Mapped incident sources:</b> a ~90-incident curated layer embedded in this file (works fully offline), plus — when hosted — EuRepoC (2000–2024), VCDB, and recent-months ransomware leak-site claims from Ransomware.live, deduplicated across sources. Incident actors link to a cited threat-group directory (MITRE ATT&amp;CK + Ransomware.live profiles). MITRE ATT&amp;CK and CISA KEV load as enrichment. Origins are attribution or ecosystem proxies — see each incident's note.</p>
@@ -359,7 +379,7 @@
 
   <section id="timeline">
     <div class="histoHead">
-      <span class="small">Attacks per month, 2000 → today</span>
+      <span class="small">Attacks per month, 2000 &rarr; today &#183; click a bar to jump there</span>
       <span class="histoHeadRight">
         <label class="small" style="margin:0;display:flex;align-items:center;gap:6px">Overlay
           <select id="histoOverlay" style="width:auto;padding:3px 6px;font-size:11px">
@@ -375,13 +395,13 @@
     <div class="timelineTop">
       <button id="playBtn" class="primary">▶ Play</button>
       <strong id="yearLabel">Jun 2026</strong>
-      <input id="yearSlider" type="range" min="0" max="323" value="318" step="1" />
+      <input id="yearSlider" type="range" min="0" max="323" value="318" step="1" aria-label="Month" />
       <button id="timelineInfo" class="tlIconBtn" type="button" aria-label="Data and status information" aria-expanded="false" title="Data status, sources loaded and credits">ⓘ</button>
       <button id="timelineMin" class="tlIconBtn" type="button" aria-label="Minimise timeline" aria-expanded="true" title="Minimise / expand the timeline">▾</button>
     </div>
     <div class="timelineBottom">
       <div class="btnrow">
-        <button id="launchSeq" title="Reset to January 2000 and play the monthly missile salvos through to today">⟲ Replay</button><button id="prevBtn">−1 mo</button><button id="nextBtn">+1 mo</button><button id="monthOnlyBtn">Month only</button><button id="allToDateBtn" class="primary">All to date</button>
+        <button id="launchSeq" title="Go back to January 2000 and play forward to today">&#8634; Replay from 2000</button><button id="prevBtn">−1 mo</button><button id="nextBtn">+1 mo</button><button id="monthOnlyBtn" title="Show only the attacks in the selected month">This month only</button><button id="allToDateBtn" class="primary" title="Show every attack from 2000 up to the selected month">Everything so far</button>
       </div>
       <span id="status" class="small" aria-live="polite">Paused</span>
     </div>
@@ -623,9 +643,22 @@ globe.controls().autoRotate = false;
 globe.controls().enableDamping = true;
 globe.pointOfView({lat:25,lng:10,altitude:2.05},0);
 
-let timelineIndex=318, year=2026, month=7, timer=null, mapMode="sphere", selectedAttack=null;
 const startYear=2000;
-const endTimelineIndex=323;
+/* The timeline used to end at a hardcoded index, which meant it silently stopped
+   accepting new months. It is now derived from today's date, so the axis extends
+   itself as time passes and new data arrives — no code change needed. */
+const _now=new Date();
+const endTimelineIndex=(_now.getFullYear()-startYear)*12+_now.getMonth();   // current month
+/* Open on the last five years and a month. Recent history is where the data is
+   densest and the story clearest; the slider still reaches back to 2000. */
+const DEFAULT_WINDOW_MONTHS=61;
+const defaultTimelineIndex=Math.max(0,endTimelineIndex-DEFAULT_WINDOW_MONTHS+1);
+let timelineIndex=defaultTimelineIndex,
+    year=startYear+Math.floor(timelineIndex/12), month=(timelineIndex%12)+1,
+    timer=null, mapMode="sphere", selectedAttack=null;
+/* Countries the user has picked in Controls (empty = whole world). Declared here
+   because the filter helpers run during the initial control build. */
+const selectedCountries=new Set();
 function idx(y,m){return (y-startYear)*12+(m-1)}
 function fromIdx(i){return {year:startYear+Math.floor(i/12),month:(i%12)+1}}
 function mon(m){return ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][m-1]}
@@ -698,6 +731,7 @@ function refreshFilterOptions(){
  typeFilter.innerHTML='<option value="">All attack types</option>'+types.map(t=>`<option>${t}</option>`).join("");
  if(types.includes(priorType)) typeFilter.value=priorType;
  sectorChecks.querySelectorAll("input").forEach(x=>x.addEventListener("change",()=>{markHistoDirty();update()}));
+ renderCountryList();renderCountrySelected();
 }
 refreshFilterOptions();
 
@@ -711,6 +745,46 @@ function isExercise(a){
  const hay=`${a.name} ${a.type} ${a.actor} ${a.summary||""}`.toLowerCase();
  return /\b(exercise|tabletop|table-top|test event|simulation|simulated|red team|red-team|drill|war ?game|scenario inject)\b/.test(hay);
 }
+/* ── Country selection: study who attacks whom ───────────────────────────── */
+function countryPass(a){
+ if(!selectedCountries.size)return true;
+ const mode=document.getElementById("countryMode").value;
+ const vin=selectedCountries.has(a.victimCountry);
+ const oin=selectedCountries.has(a.originCountry);
+ if(mode==="victim")return vin;
+ if(mode==="origin")return oin;
+ if(mode==="any")return vin||oin;
+ // "between": both ends inside the selection, and not self-to-self unless only one picked
+ return vin&&oin&&(selectedCountries.size===1||a.victimCountry!==a.originCountry||true);
+}
+function renderCountryList(){
+ const box=document.getElementById("countryChecks"); if(!box)return;
+ const q=(document.getElementById("countrySearch").value||"").trim().toLowerCase();
+ const tally={};
+ attacks.forEach(a=>{
+   if(a.victimCountry)tally[a.victimCountry]=(tally[a.victimCountry]||0)+1;
+   if(a.originCountry&&!isUnattributed(a))tally[a.originCountry]=(tally[a.originCountry]||0)+1;
+ });
+ const list=Object.entries(tally).sort((x,y)=>y[1]-x[1])
+   .filter(([c])=>!q||c.toLowerCase().includes(q));
+ const shown=list.slice(0,q?200:60);
+ box.innerHTML=shown.map(([c,n])=>
+   `<label><input class="countryChk" type="checkbox" value="${c.replace(/"/g,"&quot;")}" ${selectedCountries.has(c)?"checked":""}> <span>${c}</span><span class="cnt">${n.toLocaleString()}</span></label>`
+ ).join("")||'<div class="small">No matches.</div>';
+ box.querySelectorAll(".countryChk").forEach(el=>el.addEventListener("change",()=>{
+   el.checked?selectedCountries.add(el.value):selectedCountries.delete(el.value);
+   renderCountrySelected();markHistoDirty();update();
+ }));
+ if(!q&&list.length>shown.length)
+   box.insertAdjacentHTML("beforeend",`<div class="small" style="margin-top:5px">Showing the ${shown.length} most active of ${list.length} countries — search to find others.</div>`);
+}
+function renderCountrySelected(){
+ const el=document.getElementById("countrySelected"); if(!el)return;
+ if(!selectedCountries.size){el.textContent="No countries picked — showing the whole world.";return}
+ const mode=document.getElementById("countryMode").value;
+ const words={between:"attacks between",any:"attacks involving",victim:"attacks on",origin:"attacks from"}[mode];
+ el.innerHTML=`Showing <b>${words}</b>: ${[...selectedCountries].join(", ")}`;
+}
 function filtered(){
  const sev=checked("severity"), sec=checked("sector"), type=typeFilter.value;
  const cumulative=document.getElementById("cumulative").checked;
@@ -718,7 +792,7 @@ function filtered(){
  const showEx=document.getElementById("showExercise").checked;
  const q=document.getElementById("search").value.trim().toLowerCase();
  const all=attacks.filter(a=>enabledSources.has(sourceLayerName(a))&&(cumulative?idx(a.year,a.month)<=timelineIndex:idx(a.year,a.month)===timelineIndex)&&sev.includes(a.severity)&&sec.includes(a.sector)&&(!type||a.type===type)&&
-  (showUnattr||!isUnattributed(a))&&(showEx||!isExercise(a))&&
+  (showUnattr||!isUnattributed(a))&&(showEx||!isExercise(a))&&countryPass(a)&&
   (!q||Object.values(a).join(" ").toLowerCase().includes(q)));
  const perfCap=(window.__perfCap||900);
  if(densityMode && densityMode.value==="performance" && all.length>perfCap){
@@ -730,7 +804,9 @@ function update(){
  if(heatLegend && heatToggle) heatLegend.classList.toggle("hidden",!heatToggle.checked);
  const data=filtered();
  const dt=fromIdx(timelineIndex);year=dt.year;month=dt.month;
- yearLabel.textContent=`${mon(month)} ${year}`;yearBig.textContent=`${mon(month)} ${year}`;yearSlider.value=timelineIndex;
+ yearLabel.textContent=`${mon(month)} ${year}`;yearBig.textContent=`${mon(month)} ${year}`;
+ if(yearSlider.max!=String(endTimelineIndex))yearSlider.max=String(endTimelineIndex);
+ yearSlider.value=timelineIndex;
  const mode=viewMode.value;
  globe.arcsData(mode==="attacks"?data:[]);
  // Impact rings are expensive; with a large cumulative field, only pulse the freshest salvo (current month) plus the highest-impact strikes.
@@ -797,7 +873,7 @@ function histoFiltered(){
  const q=search.value.trim().toLowerCase();
  const showUnattr=document.getElementById("showUnattributed").checked;
  const showEx=document.getElementById("showExercise").checked;
- return attacks.filter(a=>enabledSources.has(sourceLayerName(a))&&sev.includes(a.severity)&&sec.includes(a.sector)&&(!type||a.type===type)&&(showUnattr||!isUnattributed(a))&&(showEx||!isExercise(a))&&(!q||Object.values(a).join(" ").toLowerCase().includes(q)));
+ return attacks.filter(a=>enabledSources.has(sourceLayerName(a))&&sev.includes(a.severity)&&sec.includes(a.sector)&&(!type||a.type===type)&&(showUnattr||!isUnattributed(a))&&(showEx||!isExercise(a))&&countryPass(a)&&(!q||Object.values(a).join(" ").toLowerCase().includes(q)));
 }
 function computeHistoCounts(){
  histoCounts=new Array(endTimelineIndex+1).fill(0);
@@ -845,25 +921,38 @@ function renderHisto(){
      overlayLabel=`<text x="${W-6}" y="19" text-anchor="end" fill="#ffd24d" font-size="8">${ovName} (relative scale)</text>`;
    }
  }
- // Year-on-year trend: for each calendar year, take that year's PEAK monthly count, then draw a line
- // through those annual peaks. This answers "are the peaks rising year on year?" for the current filter,
- // rather than smoothing month to month. Anchored at each year's mid-point.
- const yearPeak={};
- for(let i=0;i<=endTimelineIndex;i++){const yr=fromIdx(i).year;const n=histoCounts[i]||0;if(n>(yearPeak[yr]||0))yearPeak[yr]=n}
- const years=Object.keys(yearPeak).map(Number).sort((a,b)=>a-b);
+ // Long-run trend for whatever is currently filtered: a 12-month rolling mean across the
+ // full 2000-to-today window. Unlike annual peaks this is smooth, so the question "have
+ // these particular attacks grown?" is answered by the shape of one line.
+ const win=12, roll=new Array(endTimelineIndex+1).fill(0);
+ let acc=0;
+ for(let i=0;i<=endTimelineIndex;i++){
+   acc+=histoCounts[i]||0;
+   if(i>=win)acc-=histoCounts[i-win]||0;
+   roll[i]=acc/Math.min(win,i+1);
+ }
  let trend="";
- years.forEach((yr,k)=>{
-   const midIdx=idx(yr,7); const tx=(midIdx*bw+bw/2).toFixed(1);
-   const ty=((H-12)-(yearPeak[yr]/max)*(H-13)).toFixed(1);
-   trend+=(k?"L":"M")+tx+","+ty;
- });
+ for(let i=0;i<=endTimelineIndex;i++){
+   const tx=(i*bw+bw/2).toFixed(1), ty=((H-12)-(roll[i]/max)*(H-13)).toFixed(1);
+   trend+=(i?"L":"M")+tx+","+ty;
+ }
+ // Growth read-out: early baseline vs the latest 12 months, both as monthly averages.
+ const baseSlice=histoCounts.slice(0,36).filter((_,i)=>i<=endTimelineIndex);
+ const baseAvg=baseSlice.length?baseSlice.reduce((a,b)=>a+b,0)/baseSlice.length:0;
+ const nowAvg=roll[endTimelineIndex]||0;
+ let growthTxt="";
+ if(baseAvg>0.05&&nowAvg>0){
+   const x=nowAvg/baseAvg;
+   growthTxt=`12-mo avg ${baseAvg.toFixed(1)}/mo (2000-02) to ${nowAvg.toFixed(nowAvg<10?1:0)}/mo now (x${x>=10?Math.round(x):x.toFixed(1)})`;
+ }else if(nowAvg>0){
+   growthTxt=`12-mo avg now ${nowAvg.toFixed(nowAvg<10?1:0)}/mo`;
+ }
  let dots="";
- years.forEach(yr=>{const midIdx=idx(yr,7);const cx=(midIdx*bw+bw/2).toFixed(1);const cy=((H-12)-(yearPeak[yr]/max)*(H-13)).toFixed(1);dots+=`<circle cx="${cx}" cy="${cy}" r="1.7" fill="#4ee6a5"/>`});
  histoEl.innerHTML=`<svg width="${W}" height="${H}" aria-hidden="true">
   <defs><linearGradient id="hgrad" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ff9d3c"/><stop offset="1" stop-color="#ff4d66"/></linearGradient></defs>
   ${bars}${ticks}
   <path d="${trend}" fill="none" stroke="#4ee6a5" stroke-width="1.6" opacity=".95"/>${dots}${overlay}
-  <text x="${W-6}" y="9" text-anchor="end" fill="#4ee6a5" font-size="8.5">annual peak trend (year on year)</text>${overlayLabel}
+  <text x="${W-6}" y="9" text-anchor="end" fill="#4ee6a5" font-size="8.5">12-month average${growthTxt?" &#183; "+growthTxt:""}</text>${overlayLabel}
   <line class="histoPlayhead" x1="${px}" x2="${px}" y1="0" y2="${H-12}" stroke="#4dd8ff" stroke-width="1.4"/></svg>`;
 }
 let cumShown=0,cumTarget=0,cumAnim=null;
@@ -1746,7 +1835,8 @@ launchSeq.addEventListener("click",()=>{
 });
 resetBtn.addEventListener("click",()=>{
  search.value=""; typeFilter.value=""; cumulative.checked=true; viewMode.value="attacks";
- document.querySelectorAll(".severity,.sector").forEach(x=>x.checked=true);document.getElementById("showUnattributed").checked=true;document.getElementById("showExercise").checked=false;document.getElementById("sigPause").checked=false;sigLocked=false;significantShown=null;impactLabel.classList.add("hidden");attackDrawer.classList.add("hidden");selectedAttack=null;markHistoDirty();setTimeline(318);
+ selectedCountries.clear();renderCountryList();renderCountrySelected();
+ document.querySelectorAll(".severity,.sector").forEach(x=>x.checked=true);document.getElementById("showUnattributed").checked=true;document.getElementById("showExercise").checked=false;document.getElementById("sigPause").checked=false;sigLocked=false;significantShown=null;impactLabel.classList.add("hidden");attackDrawer.classList.add("hidden");selectedAttack=null;markHistoDirty();setTimeline(defaultTimelineIndex);
 });
 /* ── Movable tool bar + independent movable frames ────────────────────────
    Each function lives in its own frame, opened from the tool bar. Frames are
@@ -1803,11 +1893,29 @@ function showTab(name){openFrame(name==="data"||name==="info"?"sources":name)}
 document.querySelectorAll(".tbBtn").forEach(b=>b.addEventListener("click",()=>toggleFrame(b.dataset.frame)));
 document.querySelectorAll(".frame").forEach(f=>{
  f.querySelector(".frameClose").addEventListener("click",()=>closeFrame(f.id.replace("frame-","")));
+ const mx=f.querySelector(".frameMax");
+ if(mx)mx.addEventListener("click",()=>toggleMaximise(f));
  f.addEventListener("mousedown",()=>bringToFront(f));
  f.addEventListener("touchstart",()=>bringToFront(f),{passive:true});
 });
+/* Maximise: fill most of the screen for reading long text or studying a chart. */
+function toggleMaximise(f){
+ const on=f.classList.toggle("maxed");
+ bringToFront(f);
+ const btn=f.querySelector(".frameMax");
+ if(btn){btn.textContent=on?"\u2750":"\u2751";btn.setAttribute("aria-label",(on?"Restore ":"Maximise ")+f.getAttribute("aria-label"))}
+ if(on){
+   f.dataset.prevLeft=f.style.left;f.dataset.prevTop=f.style.top;
+   f.style.left="";f.style.top="";
+   f.style.maxHeight=Math.max(200,safeBottom()-(window.innerHeight*0.02)-20)+"px";
+ }else{
+   f.style.left=f.dataset.prevLeft||"";f.style.top=f.dataset.prevTop||"";
+   fitFrame(f);
+ }
+ if(!f.classList.contains("hidden")&&f.id==="frame-charts")renderCharts();
+}
 /* generic drag: pass the element and its grab handle */
-function dragBy(el,handle,onStart){
+function dragBy(el,handle,onStart,onMove){
  let dragging=false,sx=0,sy=0,ox=0,oy=0;
  const down=e=>{
    if(e.target.closest("button,input,select,a"))return;
@@ -1827,6 +1935,7 @@ function dragBy(el,handle,onStart){
    const maxY=isFrame?Math.max(4,safeBottom()-60):window.innerHeight-h-4;
    const nx=Math.max(4,Math.min(window.innerWidth-w-4,ox+(p.clientX-sx)));
    const ny=Math.max(4,Math.min(maxY,oy+(p.clientY-sy)));
+   if(onMove&&(Math.abs(p.clientX-sx)>4||Math.abs(p.clientY-sy)>4))onMove();
    el.style.left=nx+"px";el.style.top=ny+"px";
    if(isFrame)fitFrame(el);
    e.preventDefault();
@@ -1848,18 +1957,17 @@ function dragBy(el,handle,onStart){
  }
  ["attribLink","attribLink2"].forEach(id=>{const a=document.getElementById(id);if(a)a.href=url});
 })();
-dragBy(toolbar,toolbar.querySelector(".tbGrip"));
-/* ── Minimise: tool bar and timeline, to hand the screen back to the globe ── */
-const tbMin=document.getElementById("tbMin");
-tbMin.addEventListener("click",()=>{
+const tbGrip=document.getElementById("tbGrip");
+let gripMoved=false;
+dragBy(toolbar,tbGrip,null,()=>{gripMoved=true});
+tbGrip.addEventListener("click",()=>{
+ if(gripMoved){gripMoved=false;return}          // that was a drag, not a click
  const m=toolbar.classList.toggle("min");
- tbMin.textContent=m?"▸":"▾";
- tbMin.setAttribute("aria-expanded",String(!m));
- tbMin.setAttribute("aria-label",m?"Expand tool bar":"Minimise tool bar");
- // keep it on-screen after the width change
+ tbGrip.setAttribute("aria-expanded",String(!m));
  const r=toolbar.getBoundingClientRect();
  if(r.right>window.innerWidth-4)toolbar.style.left=Math.max(4,window.innerWidth-toolbar.offsetWidth-4)+"px";
 });
+/* ── Minimise: tool bar and timeline, to hand the screen back to the globe ── */
 const timelineEl=document.getElementById("timeline");
 const tlMin=document.getElementById("timelineMin");
 tlMin.addEventListener("click",()=>{
@@ -1911,6 +2019,9 @@ window.addEventListener("resize",resize);resize();
 
 renderSourceMenu();
 document.getElementById("histoOverlay").addEventListener("change",()=>{renderHisto();renderCharts()});
+document.getElementById("countrySearch").addEventListener("input",renderCountryList);
+document.getElementById("countryMode").addEventListener("change",()=>{renderCountrySelected();markHistoDirty();update()});
+document.getElementById("countryNone").addEventListener("click",()=>{selectedCountries.clear();renderCountryList();renderCountrySelected();markHistoDirty();update()});
 document.getElementById("sectorAll").addEventListener("click",()=>{document.querySelectorAll(".sector").forEach(x=>x.checked=true);markHistoDirty();update()});
 document.getElementById("sectorNone").addEventListener("click",()=>{document.querySelectorAll(".sector").forEach(x=>x.checked=false);markHistoDirty();update()});
 document.getElementById("showUnattributed").addEventListener("change",()=>{markHistoDirty();update()});
@@ -1985,7 +2096,32 @@ function renderCharts(){
  html+=`<h3 style="margin-top:4px">Documented incidents / month</h3>
    <div class="chartBox">${svgBars(histoCounts,{color:"#ff6b78",ticks:yearTicks(),
      label:(i,n)=>`${mon(fromIdx(i).month)} ${fromIdx(i).year}: ${n}`})}</div>
-   <p class="chartNote">${histoCounts.reduce((a,b)=>a+b,0).toLocaleString()} incidents in the current filter.</p>`;
+   <p class="chartNote">${histoCounts.reduce((a,b)=>a+b,0).toLocaleString()} incidents match your current filters. The green line is a 12-month average, which smooths out monthly spikes so you can see whether this kind of attack is genuinely growing.</p>`;
+ // 1b) Who is being hit, and from where — both from the current filter
+ const vis=filtered();
+ const tally=(arr,key)=>{const t={};arr.forEach(a=>{const k=a[key];if(k)t[k]=(t[k]||0)+1});
+   return Object.entries(t).sort((x,y)=>y[1]-x[1])};
+ const vTop=tally(vis,"victimCountry").slice(0,8);
+ if(vTop.length){
+   html+=`<h3>Most-targeted countries (visible)</h3>`+svgHBars(vTop,{color:"#ff6b78"})+
+     `<p class="chartNote">Counts the attacks currently shown on the map. Countries with strong disclosure rules appear more often — this measures <b>reporting</b> as much as risk.</p>`;
+ }
+ const oTop=tally(vis.filter(a=>!isUnattributed(a)),"originCountry").slice(0,8);
+ if(oTop.length){
+   html+=`<h3>Most-named origin countries (visible)</h3>`+svgHBars(oTop,{color:"#4dd8ff"})+
+     `<p class="chartNote">Where an origin has been publicly named. These are attribution or ecosystem proxies, not verified launch locations, and unattributed attacks are left out of this chart.</p>`;
+ }
+ const secTop=tally(vis,"sector").slice(0,8);
+ if(secTop.length){
+   html+=`<h3>Sectors hit (visible)</h3>`+svgHBars(secTop,{color:"#c58cff"})+
+     `<p class="chartNote">Which parts of the economy the visible attacks landed on.</p>`;
+ }
+ const sevOrder=["Critical","High","Medium","Low"];
+ const sevTally=sevOrder.map(s=>[s,vis.filter(a=>a.severity===s).length]).filter(x=>x[1]);
+ if(sevTally.length>1){
+   html+=`<h3>Severity mix (visible)</h3>`+svgHBars(sevTally,{color:"#ff9d3c"})+
+     `<p class="chartNote">Severity comes from the impact recorded in each source, so it compares well within a source but only roughly across sources.</p>`;
+ }
  // 2) KEV additions per month
  const kev=kevMonthly();
  if(kev){
@@ -1993,7 +2129,7 @@ function renderCharts(){
    html+=`<h3>KEV additions / month</h3>
      <div class="chartBox">${svgBars(kev,{color:"#ffd24d",ticks:yearTicks(),
        label:(i,n)=>`${mon(fromIdx(i).month)} ${fromIdx(i).year}: ${n} added`})}</div>
-     <p class="chartNote">${LAKE.kev.length.toLocaleString()} catalogue entries · ${last12} added in the 12 months to ${mon(month)} ${year}. CISA KEV, public domain.</p>`;
+     <p class="chartNote">A "known exploited vulnerability" is a software flaw attackers have been seen actually using. ${LAKE.kev.length.toLocaleString()} are catalogued in total; ${last12} were added in the 12 months to ${mon(month)} ${year}. Source: CISA KEV (public domain).</p>`;
  }
  // 3) ICS advisories per year + top sectors
  if(LAKE.ics.length){
