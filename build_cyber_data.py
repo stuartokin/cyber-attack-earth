@@ -546,23 +546,118 @@ def col_finder(header):
     return find
 
 
+# Automated download from the GoTech Cyber Events Database portal
+# (https://cybereventsdatabase.org). Credentials come from environment variables
+# only -- NEVER hardcode them, and never commit them: this repository is public.
+#
+#   Repo -> Settings -> Secrets and variables -> Actions -> New repository secret
+#       CISSM_USER   your portal email
+#       CISSM_PASS   your portal password
+#   then in .github/workflows/update-cyber-data.yml add to the build step:
+#       env:
+#         CISSM_USER: ${{ secrets.CISSM_USER }}
+#         CISSM_PASS: ${{ secrets.CISSM_PASS }}
+#
+# Portals change their login flow without notice, so if the automated route
+# fails the connector falls back to a manual export at manual_sources/cissm.csv
+# and tells you exactly what it saw. Optional overrides if the paths move:
+#       CISSM_LOGIN_URL, CISSM_DOWNLOAD_URL
+CISSM_BASE = "https://cybereventsdatabase.org"
+CISSM_LOGIN_CANDIDATES = ["/api/login", "/login", "/api/auth/login", "/users/sign_in"]
+CISSM_DOWNLOAD_CANDIDATES = ["/api/events/download?format=csv", "/api/events.csv",
+                             "/download/csv", "/api/events?format=json", "/api/events"]
+
+
+def _cissm_rows_from_json(payload):
+    if isinstance(payload, dict):
+        for k in ("data", "events", "results", "rows", "items"):
+            if isinstance(payload.get(k), list):
+                return payload[k]
+        return []
+    return payload if isinstance(payload, list) else []
+
+
+def _cissm_fetch_remote():
+    """Log in and download. Returns list-of-dicts, or None if the portal path fails."""
+    user = os.environ.get("CISSM_USER", "").strip()
+    pw = os.environ.get("CISSM_PASS", "")
+    if not (user and pw):
+        print("  [cissm] CISSM_USER / CISSM_PASS not set - skipping portal download")
+        return None
+    s = requests.Session()
+    s.headers.update(UA)
+    login_urls = ([os.environ["CISSM_LOGIN_URL"]] if os.environ.get("CISSM_LOGIN_URL")
+                  else [CISSM_BASE + p for p in CISSM_LOGIN_CANDIDATES])
+    logged_in = False
+    for url in login_urls:
+        for payload_key in ("json", "data"):
+            try:
+                kw = {payload_key: {"email": user, "username": user, "password": pw}}
+                r = s.post(url, timeout=60, allow_redirects=True, **kw)
+                # treat any 2xx, or a redirect that drops a session cookie, as success
+                if r.status_code < 400 and (s.cookies or "token" in r.text.lower()[:400]):
+                    print("  [cissm] authenticated via %s (%s)" % (url, payload_key))
+                    logged_in = True
+                    break
+                print("  [cissm] login attempt %s (%s) -> HTTP %d" % (url, payload_key, r.status_code))
+            except Exception as exc:                          # noqa: BLE001
+                print("  [cissm] login attempt %s failed: %s" % (url, str(exc)[:90]))
+        if logged_in:
+            break
+    if not logged_in:
+        print("  [cissm] could not authenticate - the portal's login flow may differ "
+              "from the paths tried. Set CISSM_LOGIN_URL/CISSM_DOWNLOAD_URL, or use "
+              "the manual export route.")
+        return None
+    dl_urls = ([os.environ["CISSM_DOWNLOAD_URL"]] if os.environ.get("CISSM_DOWNLOAD_URL")
+               else [CISSM_BASE + p for p in CISSM_DOWNLOAD_CANDIDATES])
+    for url in dl_urls:
+        try:
+            r = s.get(url, timeout=300)
+            if r.status_code >= 400:
+                print("  [cissm] %s -> HTTP %d" % (url, r.status_code))
+                continue
+            ctype = (r.headers.get("content-type") or "").lower()
+            body = r.content.decode("utf-8", "replace")
+            if "json" in ctype or body.lstrip()[:1] in "[{":
+                rows = _cissm_rows_from_json(json.loads(body))
+                if rows:
+                    print("  [cissm] downloaded %d records (JSON) from %s" % (len(rows), url))
+                    return rows
+            if "csv" in ctype or "," in body.split("\n", 1)[0]:
+                rows = list(csv.DictReader(io.StringIO(body)))
+                if rows:
+                    print("  [cissm] downloaded %d records (CSV) from %s" % (len(rows), url))
+                    return rows
+            print("  [cissm] %s returned %s but no usable rows" % (url, ctype or "unknown type"))
+        except Exception as exc:                              # noqa: BLE001
+            print("  [cissm] download %s failed: %s" % (url, str(exc)[:90]))
+    print("  [cissm] authenticated but no download endpoint matched")
+    return None
+
+
 @source(id="cissm", table="incidents",
-        title="CISSM Cyber Events Database (manual export)",
+        title="CISSM / GoTech Cyber Events Database",
         licence="Access granted by CISSM on request - do not redistribute raw records",
-        cadence="manual", homepage="https://cissm.umd.edu/cyber-events-database")
+        cadence="daily", homepage="https://cybereventsdatabase.org")
 def build_cissm():
-    path = MANUAL_DIR / "cissm.csv"
-    if not path.exists():
-        raise RuntimeError(
-            "no manual_sources/cissm.csv - request an export from CISSM "
-            "(charry@umd.edu) and drop the CSV there to enable this layer")
-    rows = list(csv.DictReader(io.StringIO(path.read_text(encoding="utf-8", errors="replace"))))
+    rows = _cissm_fetch_remote()
+    if rows is None:
+        path = MANUAL_DIR / "cissm.csv"
+        if not path.exists():
+            raise RuntimeError(
+                "no portal download and no manual_sources/cissm.csv. Either set the "
+                "CISSM_USER/CISSM_PASS secrets, or export the CSV from "
+                "cybereventsdatabase.org and commit it to manual_sources/cissm.csv")
+        rows = list(csv.DictReader(io.StringIO(
+            path.read_text(encoding="utf-8", errors="replace"))))
+        print("  [cissm] using manual export (%d rows)" % len(rows))
     if not rows:
-        raise RuntimeError("cissm.csv contained no rows")
-    header = list(rows[0])
-    print("  [cissm] header: %s" % (header,))
+        raise RuntimeError("no rows obtained")
+    header = list(rows[0].keys())
+    print("  [cissm] fields: %s" % (header,))
     find = col_finder(header)
-    c_date = find("event date", "date", "date published", "eventdate")
+    c_date = find("event date", "date", "date published", "eventdate", "event_date")
     c_actor = find("actor", "threat actor", "actor name")
     c_actorc = find("actor country", "threat actor country", "country of actor")
     c_org = find("organization", "target", "victim", "organisation", "entity")
@@ -571,13 +666,13 @@ def build_cissm():
     c_type = find("event type", "type", "event subtype", "attack type")
     c_desc = find("description", "summary", "event description")
     c_url = find("source url", "url", "source", "link")
-    print("  [cissm] columns -> date=%r actor=%r actor_country=%r org=%r industry=%r country=%r type=%r"
-          % (c_date, c_actor, c_actorc, c_org, c_ind, c_country, c_type))
+    print("  [cissm] mapped -> date=%r actor=%r actor_country=%r org=%r industry=%r "
+          "country=%r type=%r" % (c_date, c_actor, c_actorc, c_org, c_ind, c_country, c_type))
     if not (c_date and c_country):
-        raise RuntimeError("could not identify date and country-of-impact columns")
+        raise RuntimeError("could not identify date and country columns")
 
     def v(row, col, limit=160):
-        return (row.get(col) or "").strip()[:limit] if col else ""
+        return str(row.get(col) or "").strip()[:limit] if col else ""
 
     out = []
     for row in rows:
@@ -603,7 +698,7 @@ def build_cissm():
             "desc": v(row, c_desc, 400),
             "url": v(row, c_url, 200),
         })
-    print("  [cissm] %d rows -> %d usable events" % (len(rows), len(out)))
+    print("  [cissm] %d records -> %d usable events" % (len(rows), len(out)))
     if not out:
         raise RuntimeError("no usable events parsed")
     return out

@@ -258,12 +258,12 @@
         <div class="btnrow" style="margin-top:10px"><button id="resetDefaults" type="button">Reset everything to defaults</button></div>
 
         <h2>Severity</h2>
-        <p class="small" style="margin:0 0 6px">How much damage each source recorded.</p>
+        <p class="small" style="margin:0 0 6px">How much damage each source recorded. Medium and Low start switched off because there are so many of them &mdash; tick them to see everything.</p>
         <div class="checks">
           <label><input class="severity" type="checkbox" value="Critical" checked> Critical</label>
           <label><input class="severity" type="checkbox" value="High" checked> High</label>
-          <label><input class="severity" type="checkbox" value="Medium" checked> Medium</label>
-          <label><input class="severity" type="checkbox" value="Low" checked> Low</label>
+          <label><input class="severity" type="checkbox" value="Medium"> Medium</label>
+          <label><input class="severity" type="checkbox" value="Low"> Low</label>
         </div>
 
         <div class="sectorHead"><h2 style="margin:0">Sector</h2><span class="miniLinks"><button id="sectorAll" type="button">Select all</button><button id="sectorNone" type="button">Clear all</button></span></div>
@@ -302,6 +302,7 @@
           <div class="stat"><strong id="visibleCount">0</strong><span>attacks</span></div>
           <div class="stat"><strong id="impactTotal">0</strong><span>impact score</span></div>
         </div>
+        <p id="capNote" class="small" style="color:var(--orange)"></p>
         <h2>Regional coverage</h2>
         <div id="regionCoverage" class="stats" style="grid-template-columns:1fr 1fr"></div>
         <p id="coverageNote" class="small">How the attacks currently on screen are spread around the world.</p>
@@ -429,7 +430,7 @@
     </div>
     <div class="timelineBottom">
       <div class="btnrow">
-        <button id="launchSeq" title="Go back to January 2000 and play forward to today">&#8634; Replay from 2000</button><button id="prevBtn">−1 mo</button><button id="nextBtn">+1 mo</button><button id="monthOnlyBtn" title="Show only the attacks in the selected month">This month only</button><button id="allToDateBtn" class="primary" title="Show every attack from 2000 up to the selected month">Everything so far</button>
+        <button id="launchSeq" title="Jump to the first year you have selected and play forward">&#8634; Replay</button><button id="prevBtn">−1 mo</button><button id="nextBtn">+1 mo</button><button id="monthOnlyBtn" title="Show only the attacks in the selected month">This month only</button><button id="allToDateBtn" class="primary" title="Show every attack from 2000 up to the selected month">Everything so far</button>
       </div>
       <span id="status" class="small" aria-live="polite">Paused</span>
     </div>
@@ -841,6 +842,15 @@ function filtered(){
  if(densityMode && densityMode.value==="performance" && all.length>perfCap){
    const step=all.length/perfCap; return Array.from({length:perfCap},(_,i)=>all[Math.floor(i*step)]);
  }
+ // Safety valve: even on "every attack", cap what reaches the renderer. Beyond a few
+ // thousand animated arcs the browser stalls, which reads to the user as a crash.
+ const HARD_CAP=4000;
+ if(all.length>HARD_CAP){
+   const step=all.length/HARD_CAP;
+   const sample=Array.from({length:HARD_CAP},(_,i)=>all[Math.floor(i*step)]);
+   sample.__capped=all.length;
+   return sample;
+ }
  return all;
 }
 function update(){
@@ -863,9 +873,13 @@ function update(){
    {lat:a.endLat,lng:a.endLng,role:"victim",city:a.victimCity,country:a.victimCountry,impact:a.impact,severity:a.severity,attack:a}
  ]);
  globe.pointsData(mode==="attacks"?[...(citiesBox.checked?cities:[]),...attackPoints]:(citiesBox.checked?cities:[]));
- const anchorLabel=(mode==="attacks"&&data.some(isUnattributed))?[{lat:0,lng:-30,name:"⚑ Unknown / unattributed origin",unknownAnchor:true}]:[];
+ const unattrCount=(mode==="attacks")?data.filter(isUnattributed).length:0;
+ const anchorLabel=unattrCount?[{lat:0,lng:-30,unknownAnchor:true,
+   name:`\u2691 Unknown / unattributed origin \u00b7 ${unattrCount.toLocaleString()}`}]:[];
  globe.labelsData([...(citiesBox.checked?cities:[]),...anchorLabel]);
- visibleCount.textContent=data.length;
+ visibleCount.textContent=(data.__capped?data.__capped:data.length).toLocaleString();
+ const capNote=document.getElementById("capNote");
+ if(capNote)capNote.textContent=data.__capped?`Showing a representative ${data.length.toLocaleString()} of ${data.__capped.toLocaleString()} on the map — narrow the years or filters to see them all.`:"";
  impactTotal.textContent=data.reduce((s,a)=>s+a.impact,0);
  renderRanks(originRanks,data,"originCountry");
  renderRanks(victimRanks,data,"victimCountry");
@@ -1134,6 +1148,16 @@ function renderFlat(data){
  flatZoomLayer.selectAll(".country").style("fill",d=>heatColor(hits[String(d.id).padStart(3,"0")]||0,mx));
  flatZoomLayer.selectAll(".flat-attack-layer").remove();
  const layer=flatZoomLayer.append("g").attr("class","flat-attack-layer");
+ // Label the neutral ocean anchor used for attacks with no known origin.
+ if(mode==="attacks"&&data.some(isUnattributed)){
+   const anc=flatProjection([-30,0]);
+   const g=layer.append("g").attr("class","flat-unknown-anchor");
+   g.append("circle").attr("cx",anc[0]).attr("cy",anc[1]).attr("r",5)
+     .attr("fill","none").attr("stroke","#ff9d3c").attr("stroke-width",1.4).attr("opacity",.9);
+   g.append("text").attr("x",anc[0]).attr("y",anc[1]-9).attr("text-anchor","middle")
+     .attr("fill","#ff9d3c").attr("font-size",9).attr("font-weight",700)
+     .text("Unknown / unattributed origin");
+ }
  const mode=viewMode.value;
  if(mode==="attacks"){
    const flightMs=Math.min(850,Math.max(160,(+speed.value||1000)*0.82));
@@ -1148,8 +1172,15 @@ function renderFlat(data){
     .attr("stroke-dasharray",function(){return this.getTotalLength()})
     .attr("stroke-dashoffset",function(){return this.getTotalLength()})
     .on("click",(e,d)=>showDetail(d));
-   if(data.length<=1200) paths.transition().duration(flightMs).ease(d3.easeLinear).attr("stroke-dashoffset",0);
-   else paths.attr("stroke-dashoffset",0).attr("opacity",.42);
+   // Always draw the arc as it travels — that is the point of the visualisation.
+   // With a lot of arcs, stagger and shorten rather than skipping the animation.
+   const many=data.length>1500;
+   paths.transition("draw")
+     .delay((d,i)=>many?(i%40)*8:0)
+     .duration(many?Math.max(220,flightMs*0.55):flightMs)
+     .ease(d3.easeLinear)
+     .attr("stroke-dashoffset",0)
+     .attr("opacity",many?.5:.85);
    if(data.length<=1200) paths.each(function(d){
      const pathNode=this;
      const dot=layer.append("circle").attr("class","missile-dot").attr("r",4.2).attr("fill",severityColor[d.severity]);
@@ -2159,7 +2190,8 @@ document.getElementById("skipEmpty").addEventListener("change",()=>{markHistoDir
 document.getElementById("resetDefaults").addEventListener("click",()=>{
  pausePlayback();
  selectedCountries.clear();
- document.querySelectorAll(".severity,.sector").forEach(x=>x.checked=true);
+ document.querySelectorAll(".sector").forEach(x=>x.checked=true);
+ document.querySelectorAll(".severity").forEach(x=>{x.checked=(x.value==="Critical"||x.value==="High")});
  document.getElementById("showUnattributed").checked=true;
  document.getElementById("showExercise").checked=false;
  document.getElementById("skipEmpty").checked=true;
@@ -2408,7 +2440,9 @@ function ensureVisibleFor(a){
  const secBox=[...document.querySelectorAll(".sector")].find(x=>x.value===a.sector);if(secBox&&!secBox.checked)secBox.checked=true;
  if(isUnattributed(a)&&!document.getElementById("showUnattributed").checked)document.getElementById("showUnattributed").checked=true;
  if(isExercise(a)&&!document.getElementById("showExercise").checked)document.getElementById("showExercise").checked=true;
- document.getElementById("cumulative").checked=true;
+ // Show just this incident's month. Turning cumulative ON here used to render every
+ // attack since 2000 at once, which froze the browser on large datasets.
+ document.getElementById("cumulative").checked=false;
  if(typeFilter.value&&typeFilter.value!==a.type)typeFilter.value="";
  markHistoDirty();
 }
