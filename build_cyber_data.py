@@ -620,7 +620,9 @@ def build_cissm():
 # is refetched on later runs.
 # ===========================================================================
 NVD_API = "https://services.nvd.nist.gov/rest/json/cves/2.0"
-CVE_REFRESH_MONTHS = 24
+CVE_REFRESH_MONTHS = 24        # trailing months re-checked every run
+CVE_MAX_FETCH_PER_RUN = 40     # bound the work: history fills in over several runs
+CVE_MAX_SECONDS = 420          # hard stop, so one slow source cannot stall the build
 
 
 @source(id="cve", table="vulns", title="CVE publication volume (NVD)",
@@ -650,13 +652,25 @@ def build_cve(out_dir=None):
         if m == 13:
             y, m = y + 1, 1
 
-    counts, fetched, reused = dict(prior), 0, 0
+    # Newest first: the recent end of the chart is the useful part, and it means a
+    # partial history still looks sensible. Older months fill in on later runs.
+    months.reverse()
+    counts, fetched, reused, t_start = dict(prior), 0, 0, time.time()
+    throttled, failures = 0, 0
     for (y, m) in months:
         keyname = "%d-%02d" % (y, m)
         recent = (now_idx - (y * 12 + m)) < CVE_REFRESH_MONTHS
         if keyname in counts and not recent:
             reused += 1
             continue
+        if fetched >= CVE_MAX_FETCH_PER_RUN:
+            print("  [cve] per-run fetch cap (%d) reached; remaining history will fill "
+                  "in on later runs" % CVE_MAX_FETCH_PER_RUN)
+            break
+        if time.time() - t_start > CVE_MAX_SECONDS:
+            print("  [cve] time budget (%ds) reached; stopping this run cleanly"
+                  % CVE_MAX_SECONDS)
+            break
         last_day = 28
         for d in (31, 30, 29, 28):
             try:
@@ -669,25 +683,37 @@ def build_cve(out_dir=None):
             "resultsPerPage": 1,
         }
         try:
-            r = requests.get(NVD_API, params=params, headers=headers, timeout=90)
+            r = requests.get(NVD_API, params=params, headers=headers, timeout=60)
             if r.status_code in (403, 429):
-                print("  [cve] throttled at %s; backing off 30s" % keyname)
-                time.sleep(30)
-                r = requests.get(NVD_API, params=params, headers=headers, timeout=90)
+                throttled += 1
+                if throttled >= 3:
+                    print("  [cve] NVD is throttling this runner repeatedly - stopping "
+                          "here and keeping what we have. Add a free NVD_API_KEY secret "
+                          "to raise the limit.")
+                    break
+                print("  [cve] throttled at %s; backing off 20s" % keyname)
+                time.sleep(20)
+                r = requests.get(NVD_API, params=params, headers=headers, timeout=60)
             r.raise_for_status()
             counts[keyname] = int(r.json().get("totalResults", 0))
             fetched += 1
-            if fetched % 24 == 0:
-                print("  [cve] %s: %d published (%d fetched, %d cached)"
-                      % (keyname, counts[keyname], fetched, reused))
+            if fetched % 10 == 0:
+                print("  [cve] %s: %d published (%d fetched, %d cached, %ds elapsed)"
+                      % (keyname, counts[keyname], fetched, reused,
+                         int(time.time() - t_start)))
             time.sleep(delay)
         except Exception as exc:                            # noqa: BLE001
             print("  [warn] cve %s failed (%s)" % (keyname, exc))
+            failures += 1
+            if failures >= 8:
+                print("  [cve] too many consecutive failures - stopping this run")
+                break
             time.sleep(3)
     if not counts:
-        raise RuntimeError("no CVE counts retrieved")
-    print("  [cve] %d months total (%d fetched this run, %d from cache)"
-          % (len(counts), fetched, reused))
+        raise RuntimeError("no CVE counts retrieved (NVD may be throttling this runner)")
+    missing = len(months) - len(counts)
+    print("  [cve] %d months total (%d fetched this run, %d cached, %d still to backfill)"
+          % (len(counts), fetched, reused, max(0, missing)))
     return {"months": counts, "note": "Monthly count of CVEs published, from NVD. "
                                       "Counts shift slightly over time as records are backdated."}
 
