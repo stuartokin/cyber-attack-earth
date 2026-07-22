@@ -1,0 +1,246 @@
+{
+ "schema": 3,
+ "generated": "2026-07-22T08:33:00+00:00",
+ "tables": {
+  "incidents": {
+   "files": {
+    "eurepoc": "incidents/eurepoc.json",
+    "vcdb_partitions": {
+     "2000": {
+      "file": "incidents/vcdb-2000.json",
+      "rows": 1
+     },
+     "2001": {
+      "file": "incidents/vcdb-2001.json",
+      "rows": 5
+     },
+     "2002": {
+      "file": "incidents/vcdb-2002.json",
+      "rows": 6
+     },
+     "2003": {
+      "file": "incidents/vcdb-2003.json",
+      "rows": 13
+     },
+     "2004": {
+      "file": "incidents/vcdb-2004.json",
+      "rows": 15
+     },
+     "2005": {
+      "file": "incidents/vcdb-2005.json",
+      "rows": 22
+     },
+     "2006": {
+      "file": "incidents/vcdb-2006.json",
+      "rows": 21
+     },
+     "2007": {
+      "file": "incidents/vcdb-2007.json",
+      "rows": 49
+     },
+     "2008": {
+      "file": "incidents/vcdb-2008.json",
+      "rows": 80
+     },
+     "2009": {
+      "file": "incidents/vcdb-2009.json",
+      "rows": 92
+     },
+     "2010": {
+      "file": "incidents/vcdb-2010.json",
+      "rows": 587
+     },
+     "2011": {
+      "file": "incidents/vcdb-2011.json",
+      "rows": 540
+     },
+     "2012": {
+      "file": "incidents/vcdb-2012.json",
+      "rows": 1265
+     },
+     "2013": {
+      "file": "incidents/vcdb-2013.json",
+      "rows": 1852
+     },
+     "2014": {
+      "file": "incidents/vcdb-2014.json",
+      "rows": 971
+     },
+     "2015": {
+      "file": "incidents/vcdb-2015.json",
+      "rows": 916
+     },
+     "2016": {
+      "file": "incidents/vcdb-2016.json",
+      "rows": 855
+     },
+     "2017": {
+      "file": "incidents/vcdb-2017.json",
+      "rows": 608
+     },
+     "2018": {
+      "file": "incidents/vcdb-2018.json",
+      "rows": 348
+     },
+     "2019": {
+      "file": "incidents/vcdb-2019.json",
+      "rows": 350
+     },
+     "2020": {
+      "file": "incidents/vcdb-2020.json",
+      "rows": 340
+     },
+     "2021": {
+      "file": "incidents/vcdb-2021.json",
+      "rows": 185
+     },
+     "2022": {
+      "file": "incidents/vcdb-2022.json",
+      "rows": 117
+     },
+     "2023": {
+      "file": "incidents/vcdb-2023.json",
+      "rows": 856
+     },
+     "2024": {
+      "file": "incidents/vcdb-2024.json",
+      "rows": 104
+     },
+     "2025": {
+      "file": "incidents/vcdb-2025.json",
+      "rows": 162
+     },
+     "2026": {
+      "file": "incidents/vcdb-2026.json",
+      "rows": 2
+     }
+    },
+    "rwlive": "incidents/rwlive.json"
+   },
+   "counts": {
+    "eurepoc": 4296,
+    "vcdb": 10362,
+    "rwlive": 21298
+   },
+   "total": 35956
+  },
+  "vulns": {
+   "files": {
+    "kev": {
+     "file": "vulns/kev.json",
+     "rows": 1651
+    },
+    "epss": {
+     "file": "vulns/epss.json",
+     "rows": 17172,
+     "min_score": 0.1
+    }
+   }
+  },
+  "techniques": {
+   "files": {
+    "attack": {
+     "file": "techniques/attack.json",
+     "techniques": 697,
+     "groups": 174
+    }
+   }
+  },
+  "reports": {
+   "files": {
+    "vendor": {
+     "file": "reports/vendor.json",
+     "rows": 9
+    }
+   }
+  }
+ },
+ "sources": [
+  {
+   "id": "eurepoc",
+   "title": "EuRepoC Global Dataset",
+   "table": "incidents",
+   "licence": "See Zenodo record terms",
+   "homepage": "https://eurepoc.eu/",
+   "cadence": "on release",
+   "status": "ok",
+   "rows": 4296,
+   "seconds": 3.4
+  },
+  {
+   "id": "vcdb",
+   "title": "VERIS Community Database",
+   "table": "incidents",
+   "licence": "Repository terms",
+   "homepage": "https://verisframework.org/vcdb.html",
+   "cadence": "weekly",
+   "status": "ok",
+   "rows": 10362,
+   "seconds": 6.0
+  },
+  {
+   "id": "rwlive",
+   "title": "Ransomware.live leak-site claims",
+   "table": "incidents",
+   "licence": "Free community API - fair use; review T&C for organisational use",
+   "homepage": "https://www.ransomware.live/about",
+   "cadence": "daily",
+   "status": "ok",
+   "rows": 21298,
+   "seconds": 171.1
+  },
+  {
+   "id": "kev",
+   "title": "CISA Known Exploited Vulnerabilities",
+   "table": "vulns",
+   "licence": "US Government work - public domain",
+   "homepage": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
+   "cadence": "daily",
+   "status": "ok",
+   "rows": 1651,
+   "seconds": 0.1
+  },
+  {
+   "id": "epss",
+   "title": "EPSS exploit-prediction scores (FIRST)",
+   "table": "vulns",
+   "licence": "Free to use; attribution to FIRST expected",
+   "homepage": "https://www.first.org/epss/",
+   "cadence": "daily",
+   "status": "ok",
+   "rows": 17172,
+   "seconds": 1.0
+  },
+  {
+   "id": "attack",
+   "title": "MITRE ATT&CK Enterprise",
+   "table": "techniques",
+   "licence": "MITRE terms of use - attribution required",
+   "homepage": "https://attack.mitre.org/",
+   "cadence": "on release",
+   "status": "ok",
+   "rows": 871,
+   "seconds": 0.6
+  },
+  {
+   "id": "icsadv",
+   "title": "CISA ICS advisories (via ICS Advisory Project)",
+   "table": "advisories",
+   "licence": "Open Database Licence (ODbL) v1.0 - attribution + share-alike",
+   "homepage": "https://www.icsadvisoryproject.com/",
+   "status": "failed: zero advisories parsed",
+   "rows": 0
+  },
+  {
+   "id": "reports",
+   "title": "Vendor & agency threat reports (curated)",
+   "table": "reports",
+   "licence": "Links only - reports are copyright of their publishers",
+   "homepage": "",
+   "cadence": "manual",
+   "status": "ok",
+   "rows": 9,
+   "seconds": 0.0
+  }
+ ]
+}
