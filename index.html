@@ -20,25 +20,51 @@
     #app{position:relative;height:100%;overflow:hidden}
     .panel{background:var(--panel);border-color:var(--line)}
     #stage{position:absolute;inset:0;background:radial-gradient(circle at center,#102248 0,#040812 62%)}
-    /* ── Unified floating control dock ─────────────────────────────────────── */
-    #dock{position:fixed;z-index:80;top:14px;left:14px;width:340px;max-width:calc(100vw - 20px);max-height:calc(100vh - 130px);display:flex;flex-direction:column;background:rgba(6,13,26,.97);backdrop-filter:blur(12px);border:1px solid #34506f;border-radius:14px;box-shadow:0 22px 60px rgba(0,0,0,.55);overflow:hidden}
-    #dock.collapsed{width:auto}
-    #dock.collapsed #dockBody,#dock.collapsed #dockTabs{display:none}
-    #dockBar{display:flex;align-items:center;gap:6px;padding:8px 10px;cursor:grab;touch-action:none;user-select:none;border-bottom:1px solid #22374f;background:rgba(9,18,34,.9)}
-    #dockBar:active{cursor:grabbing}
-    #dockBar .dockTitle{font-weight:700;font-size:13px;letter-spacing:.02em;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    #dockBar button{padding:5px 9px;font-size:13px;line-height:1}
-    #dockTabs{display:flex;gap:2px;padding:7px 8px 0;flex-wrap:wrap}
-    .dockTab{flex:1;min-width:56px;padding:8px 6px;font-size:12px;background:transparent;border:1px solid transparent;border-bottom:2px solid transparent;border-radius:8px 8px 0 0;color:var(--muted);white-space:nowrap}
-    .dockTab .tabIco{font-size:15px;margin-right:5px}
-    .dockTab.active{color:var(--text);background:rgba(20,38,63,.6);border-color:#2c4666;border-bottom-color:var(--accent)}
-    #dockBody{overflow:auto;padding:14px 16px}
-    .dockPanel{display:none}
-    .dockPanel.active{display:block}
-    @media(max-width:560px){
-      .dockTab .tabLabel{display:none}
-      .dockTab .tabIco{margin:0}
-      .dockTab{min-width:0}
+    /* ── Movable tool bar + independent movable frames ────────────────────── */
+    #toolbar{position:fixed;z-index:90;top:14px;left:14px;display:flex;align-items:stretch;gap:4px;
+      background:rgba(6,13,26,.97);backdrop-filter:blur(12px);border:1px solid #34506f;border-radius:12px;
+      padding:5px;box-shadow:0 14px 40px rgba(0,0,0,.5);max-width:calc(100vw - 20px);flex-wrap:wrap}
+    .tbGrip{display:flex;align-items:center;padding:0 7px;color:#5f7a9c;cursor:grab;touch-action:none;user-select:none;font-size:15px;letter-spacing:-2px}
+    #toolbar:active .tbGrip{cursor:grabbing}
+    .tbBtn{display:flex;align-items:center;gap:7px;padding:8px 11px;font-size:12.5px;background:transparent;
+      border:1px solid transparent;border-radius:8px;color:var(--muted);white-space:nowrap;line-height:1}
+    .tbBtn:hover{background:rgba(20,38,63,.7);color:var(--text);border-color:#2c4666}
+    .tbBtn.on{background:rgba(20,38,63,.9);color:var(--text);border-color:var(--accent)}
+    .tbIco{font-size:15px}
+    .frame{position:fixed;z-index:80;width:340px;max-width:calc(100vw - 20px);max-height:calc(100vh - 150px);
+      display:flex;flex-direction:column;background:rgba(6,13,26,.975);backdrop-filter:blur(12px);
+      border:1px solid #34506f;border-radius:14px;box-shadow:0 22px 60px rgba(0,0,0,.55);overflow:hidden}
+    .frame.hidden{display:none}
+    .frameHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;
+      border-bottom:1px solid #22374f;background:rgba(9,18,34,.95);cursor:grab;touch-action:none;user-select:none}
+    .frameHead:active{cursor:grabbing}
+    .frameHead h2{margin:0;font-size:13px;letter-spacing:.02em}
+    .frameClose{font-size:19px;line-height:1;padding:2px 9px;min-width:34px}
+    .frameBody{overflow:auto;padding:13px 15px}
+    .frame.front{z-index:86}
+    /* ── Minimise states ──────────────────────────────────────────────────── */
+    .tbMin,.tlIconBtn{background:transparent;border:1px solid #2c4666;color:var(--muted);
+      border-radius:8px;padding:5px 8px;font-size:13px;line-height:1;min-width:30px}
+    .tbMin:hover,.tlIconBtn:hover{color:var(--text);background:rgba(20,38,63,.7)}
+    #toolbar.min{padding:4px}
+    #toolbar.min .tbBtn{display:none}
+    #toolbar.min .tbMin{border-color:var(--accent);color:var(--accent)}
+    #timeline.min .histoHead,#timeline.min #histo,#timeline.min .timelineBottom{display:none}
+    #timeline.min{padding:7px 16px}
+    #timeline.min #timelineMin{border-color:var(--accent);color:var(--accent)}
+    .histoHeadRight{display:flex;align-items:center;gap:8px}
+    #timelineInfoPop{position:absolute;right:16px;bottom:calc(100% + 8px);z-index:60;width:min(430px,calc(100vw - 32px));
+      background:rgba(5,12,25,.985);border:1px solid #34506f;border-radius:12px;padding:11px 13px;
+      box-shadow:0 -12px 40px rgba(0,0,0,.5);line-height:1.55}
+    .tlPopHead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+    .tlCredit{opacity:.6;font-size:10px;margin-top:8px;border-top:1px solid #1e3350;padding-top:7px}
+    #dataStatusExtra:empty{display:none}
+    /* Small screens: icon-only tool bar. Buttons keep title + aria-label so the
+       meaning is available via tooltip (desktop hover / long-press on mobile). */
+    @media(max-width:620px){
+      .tbLabel{display:none}
+      .tbBtn{padding:9px 10px}
+      .tbIco{font-size:17px}
     }
     #globe,#flatMap{position:absolute;inset:0}
     #flatMap{display:none;padding:12px}
@@ -142,10 +168,10 @@
     .provenanceList{display:grid;gap:7px}.provenanceItem{border-left:3px solid var(--accent);padding-left:9px}
     /* Phone: dock adapts width, HUD shrinks, timeline stays a fixed bottom bar */
     @media(max-width:720px){
-      #dock{width:min(320px,calc(100vw - 20px))}
-      #dockBody{max-height:52vh}
-      #yearBig{font-size:29px;top:12px;left:14px}
-      #escalation{top:52px;left:16px;max-width:200px}
+      .frame{width:min(320px,calc(100vw - 20px))}
+      .frameBody{max-height:50vh}
+      #yearBig{font-size:26px;top:70px;right:14px;left:auto}
+      #escalation{top:102px;right:16px;left:auto;max-width:190px}
       #escalation strong{font-size:19px}
       #histo{height:36px}
       #timeline button{padding:7px 9px;font-size:12px}
@@ -160,22 +186,20 @@
 </head>
 <body>
 <div id="app">
-  <div id="dock">
-    <div id="dockBar">
-      <span class="dockTitle">Cyber Attack Earth</span>
-      <button id="dockCollapse" type="button" aria-label="Collapse dock" title="Collapse / expand">▁</button>
-    </div>
-    <div id="dockTabs" role="tablist">
-      <button class="dockTab active" data-tab="controls" role="tab"><span class="tabIco">☰</span><span class="tabLabel">Controls</span></button>
-      <button class="dockTab" data-tab="details" role="tab"><span class="tabIco">▤</span><span class="tabLabel">Details</span></button>
-      <button class="dockTab" data-tab="search" role="tab"><span class="tabIco">🔍</span><span class="tabLabel">Search</span></button>
-      <button class="dockTab" data-tab="charts" role="tab"><span class="tabIco">📊</span><span class="tabLabel">Charts</span></button>
-      <button class="dockTab" data-tab="info" role="tab"><span class="tabIco">ⓘ</span><span class="tabLabel">Info</span></button>
-      <button class="dockTab" data-tab="data" role="tab"><span class="tabIco">⋮</span><span class="tabLabel">Data</span></button>
-    </div>
-    <div id="dockBody">
+  <div id="toolbar" aria-label="Tool bar">
+    <span class="tbGrip" title="Drag to move the tool bar" aria-hidden="true">⠿</span>
+    <button id="tbMin" class="tbMin" type="button" aria-label="Minimise tool bar" aria-expanded="true" title="Minimise / expand the tool bar">▾</button>
+    <button class="tbBtn" data-frame="controls" type="button" title="Controls — display options, severity, sector and type filters" aria-label="Controls"><span class="tbIco">☰</span><span class="tbLabel">Controls</span></button>
+    <button class="tbBtn" data-frame="details" type="button" title="Details — visible counts, rankings and the significant incident" aria-label="Details"><span class="tbIco">▤</span><span class="tbLabel">Details</span></button>
+    <button class="tbBtn" data-frame="search" type="button" title="Search — look up an attack or threat group and jump to it" aria-label="Search"><span class="tbIco">🔍</span><span class="tbLabel">Search</span></button>
+    <button class="tbBtn" data-frame="charts" type="button" title="Charts — incident, KEV, ICS advisory and EPSS charts" aria-label="Charts"><span class="tbIco">📊</span><span class="tbLabel">Charts</span></button>
+    <button class="tbBtn" data-frame="sources" type="button" title="Sources & info — data layers, methodology, licences and about" aria-label="Sources and info"><span class="tbIco">ⓘ</span><span class="tbLabel">Sources</span></button>
+  </div>
+  <div id="frames">
 
-      <div class="dockPanel active" data-panel="controls">
+      <section class="frame hidden" id="frame-controls" aria-label="Controls">
+        <div class="frameHead"><h2>Controls</h2><button class="frameClose" type="button" aria-label="Close Controls">×</button></div>
+        <div class="frameBody">
         <h2 style="margin-top:0">Display</h2>
         <div class="btnrow" style="margin-bottom:10px">
           <button id="sphereBtn" class="primary">Sphere</button>
@@ -225,9 +249,12 @@
 
         <h2>Attack type</h2>
         <select id="typeFilter"><option value="">All attack types</option></select>
-      </div>
+        </div>
+      </section>
 
-      <div class="dockPanel" data-panel="details">
+      <section class="frame hidden" id="frame-details" aria-label="Details">
+        <div class="frameHead"><h2>Details</h2><button class="frameClose" type="button" aria-label="Close Details">×</button></div>
+        <div class="frameBody">
         <div class="stats">
           <div class="stat"><strong id="visibleCount">0</strong><span>attacks</span></div>
           <div class="stat"><strong id="impactTotal">0</strong><span>impact score</span></div>
@@ -241,26 +268,36 @@
         <div id="victimRanks"></div>
         <div class="sigHead"><h2 style="margin:0">Significant incident</h2><label class="sigPause"><input id="sigPause" type="checkbox"> Pause</label></div>
         <div id="detail"><p>The most significant incident visible at the current moment appears here as the timeline runs. Tick <b>Pause</b> to hold one in view, or click any missile to inspect it.</p></div>
-      </div>
+        </div>
+      </section>
 
-      <div class="dockPanel" data-panel="search">
+      <section class="frame hidden" id="frame-search" aria-label="Search">
+        <div class="frameHead"><h2>Search</h2><button class="frameClose" type="button" aria-label="Close Search">×</button></div>
+        <div class="frameBody">
         <input id="lookupInput" type="text" placeholder="Type an attack, group, country or actor…" autocomplete="off" />
         <div id="lookupResults" class="lookupResults"></div>
         <div id="lookupGroup" class="hidden"></div>
-      </div>
+        </div>
+      </section>
 
-      <div class="dockPanel" data-panel="charts">
+      <section class="frame hidden" id="frame-charts" aria-label="Charts">
+        <div class="frameHead"><h2>Charts</h2><button class="frameClose" type="button" aria-label="Close Charts">×</button></div>
+        <div class="frameBody">
         <p class="small" style="margin-top:0">Charts reflect the filters set in <b>Controls</b>. Reference series (KEV, ICS advisories) come from the data lake and are not filtered by incident criteria.</p>
         <div id="chartsBody"></div>
-      </div>
+        </div>
+      </section>
 
-      <div class="dockPanel" data-panel="info">
+      <section class="frame hidden" id="frame-sources" aria-label="Sources and info">
+        <div class="frameHead"><h2>Sources &amp; info</h2><button class="frameClose" type="button" aria-label="Close">×</button></div>
+        <div class="frameBody">
+        <h3 style="margin-top:0">About this map</h3>
         <p class="demo"><b>Mapped incident sources:</b> a ~90-incident curated layer embedded in this file (works fully offline), plus — when hosted — EuRepoC (2000–2024), VCDB, and recent-months ransomware leak-site claims from Ransomware.live, deduplicated across sources. Incident actors link to a cited threat-group directory (MITRE ATT&amp;CK + Ransomware.live profiles). MITRE ATT&amp;CK and CISA KEV load as enrichment. Origins are attribution or ecosystem proxies — see each incident's note.</p>
         <p>The strip above the timeline is an attacks-per-month histogram (2000&nbsp;→&nbsp;today) — click any bar to jump there. The on-map counter tracks cumulative documented attacks and the tempo multiplier versus the 2000–02 baseline. The green line is a year-on-year trend of peak monthly activity. Press <b>⟲ Replay</b> to watch the monthly missile salvos escalate.</p>
         <p class="small">AI built from primary sources as a personal project · no trackers or analytics.</p>
       </div>
 
-      <div class="dockPanel" data-panel="data">
+        <h3>Data &amp; sources</h3>
         <div class="warningBox">Missiles represent publicly documented incidents, not every attack. Disclosure and collection rates differ sharply by country.</div>
         <div class="btnrow" style="margin:8px 0"><button id="searchBtn" class="hidden"></button><button id="resetBtn">Reset all filters</button></div>
         <h3>Mapped incident layers</h3><div id="sourceLayerControls"></div>
@@ -270,7 +307,8 @@
         <div class="btnrow"><button id="exportVisible" type="button">Export visible CSV</button><button id="copySourceLinks" type="button">Copy source links</button></div>
       </div>
 
-    </div>
+        </div>
+      </section>
   </div>
 
   <input id="search" type="text" class="hidden" />
@@ -300,27 +338,35 @@
   <section id="timeline">
     <div class="histoHead">
       <span class="small">Attacks per month, 2000 → today</span>
-      <label class="small" style="margin:0;display:flex;align-items:center;gap:6px">Overlay
-        <select id="histoOverlay" style="width:auto;padding:3px 6px;font-size:11px">
-          <option value="">None</option>
-          <option value="kev">KEV additions</option>
-          <option value="ics">ICS advisories</option>
-        </select>
-      </label>
+      <span class="histoHeadRight">
+        <label class="small" style="margin:0;display:flex;align-items:center;gap:6px">Overlay
+          <select id="histoOverlay" style="width:auto;padding:3px 6px;font-size:11px">
+            <option value="">None</option>
+            <option value="kev">KEV additions</option>
+            <option value="ics">ICS advisories</option>
+          </select>
+        </label>
+      </span>
     </div>
     <div id="histo" role="slider" aria-label="Attacks per month, 2000 to 2026. Click to jump to a month." title="Attacks per month — click to jump"></div>
     <div class="timelineTop">
       <button id="playBtn" class="primary">▶ Play</button>
       <strong id="yearLabel">Jun 2026</strong>
       <input id="yearSlider" type="range" min="0" max="323" value="318" step="1" />
+      <button id="timelineInfo" class="tlIconBtn" type="button" aria-label="Data and status information" aria-expanded="false" title="Data status, sources loaded and credits">ⓘ</button>
+      <button id="timelineMin" class="tlIconBtn" type="button" aria-label="Minimise timeline" aria-expanded="true" title="Minimise / expand the timeline">▾</button>
     </div>
     <div class="timelineBottom">
       <div class="btnrow">
         <button id="launchSeq" title="Reset to January 2000 and play the monthly missile salvos through to today">⟲ Replay</button><button id="prevBtn">−1 mo</button><button id="nextBtn">+1 mo</button><button id="monthOnlyBtn">Month only</button><button id="allToDateBtn" class="primary">All to date</button>
       </div>
       <span id="status" class="small" aria-live="polite">Paused</span>
-      <span id="dataStatus" class="small" style="flex-basis:100%" aria-live="polite">Loading research dataset…</span>
-      <span class="small" style="flex-basis:100%;font-size:10px;opacity:.62">AI built from primary sources as a personal project · no trackers or analytics</span>
+    </div>
+    <div id="timelineInfoPop" class="hidden" role="dialog" aria-label="Data status">
+      <div class="tlPopHead"><b>Data status</b><button id="timelineInfoClose" class="tlIconBtn" type="button" aria-label="Close">×</button></div>
+      <div id="dataStatus" class="small" aria-live="polite">Loading research dataset…</div>
+      <div id="dataStatusExtra" class="small"></div>
+      <div class="small tlCredit">AI built from primary sources as a personal project · no trackers or analytics</div>
     </div>
   </section>
 </div>
@@ -689,8 +735,8 @@ function update(){
  renderHisto();
  renderEscalation();
  updateSignificant(data);
- const cp=document.querySelector('.dockPanel[data-panel="charts"]');
- if(cp&&cp.classList.contains("active"))renderCharts();
+ const cf=document.getElementById("frame-charts");
+ if(cf&&!cf.classList.contains("hidden"))renderCharts();
 }
 let sigLocked=false; // user clicked a specific incident
 function updateSignificant(data){
@@ -1616,55 +1662,152 @@ resetBtn.addEventListener("click",()=>{
  search.value=""; typeFilter.value=""; cumulative.checked=true; viewMode.value="attacks";
  document.querySelectorAll(".severity,.sector").forEach(x=>x.checked=true);document.getElementById("showUnattributed").checked=true;document.getElementById("showExercise").checked=false;document.getElementById("sigPause").checked=false;sigLocked=false;significantShown=null;impactLabel.classList.add("hidden");attackDrawer.classList.add("hidden");selectedAttack=null;markHistoDirty();setTimeline(318);
 });
-/* ── Unified dock: tab switching, drag-anywhere, collapse ─────────────────── */
-const dock=document.getElementById("dock");
-const dockBar=document.getElementById("dockBar");
-function showTab(name){
- document.querySelectorAll(".dockTab").forEach(t=>t.classList.toggle("active",t.dataset.tab===name));
- document.querySelectorAll(".dockPanel").forEach(p=>p.classList.toggle("active",p.dataset.panel===name));
- if(dock.classList.contains("collapsed")){dock.classList.remove("collapsed");document.getElementById("dockCollapse").textContent="▁"}
- document.getElementById("dockBody").scrollTop=0;
+/* ── Movable tool bar + independent movable frames ────────────────────────
+   Each function lives in its own frame, opened from the tool bar. Frames are
+   dragged by their header, cascade so they never open exactly on top of each
+   other, stay inside the viewport, and reset on reload (no persistence). */
+const toolbar=document.getElementById("toolbar");
+let frameSeq=0;
+function frameEl(name){return document.getElementById("frame-"+name)}
+function tbBtn(name){return document.querySelector('.tbBtn[data-frame="'+name+'"]')}
+function bringToFront(f){document.querySelectorAll(".frame").forEach(x=>x.classList.remove("front"));f.classList.add("front")}
+function safeBottom(){
+ const tl=document.getElementById("timeline");
+ return tl?tl.getBoundingClientRect().top:window.innerHeight;
+}
+/* Cap a frame's height so it never runs under the fixed timeline bar. */
+function fitFrame(f){
+ const top=f.getBoundingClientRect().top;
+ f.style.maxHeight=Math.max(150,safeBottom()-top-12)+"px";
+}
+function positionFrame(f){
+ if(f.dataset.placed){fitFrame(f);return}
+ const tb=toolbar.getBoundingClientRect();
+ const step=26*(frameSeq++%5);
+ let left=window.innerWidth>900?tb.left+step:tb.left;
+ let top=tb.bottom+10+step;
+ const w=f.offsetWidth||340;
+ left=Math.max(4,Math.min(window.innerWidth-w-4,left));
+ top=Math.max(4,Math.min(Math.max(4,safeBottom()-160),top));
+ f.style.left=left+"px";f.style.top=top+"px";
+ f.dataset.placed="1";
+ fitFrame(f);
+}
+function openFrame(name){
+ const f=frameEl(name); if(!f)return;
+ f.classList.remove("hidden");
+ positionFrame(f); bringToFront(f);
+ const b=tbBtn(name); if(b)b.classList.add("on");
+ f.querySelector(".frameBody").scrollTop=0;
  if(name==="search"){const li=document.getElementById("lookupInput");li.focus();runLookup(li.value)}
  if(name==="charts")renderCharts();
- if(name==="data")renderSourceMenu();
+ if(name==="sources")renderSourceMenu();
 }
-document.querySelectorAll(".dockTab").forEach(t=>t.addEventListener("click",()=>showTab(t.dataset.tab)));
-document.getElementById("dockCollapse").addEventListener("click",()=>{
- const c=dock.classList.toggle("collapsed");
- document.getElementById("dockCollapse").textContent=c?"▢":"▁";
+function closeFrame(name){
+ const f=frameEl(name); if(!f)return;
+ f.classList.add("hidden");
+ const b=tbBtn(name); if(b)b.classList.remove("on");
+}
+function toggleFrame(name){
+ const f=frameEl(name); if(!f)return;
+ f.classList.contains("hidden")?openFrame(name):closeFrame(name);
+}
+/* showTab kept as an alias so existing call sites (e.g. look-up navigation) work */
+function showTab(name){openFrame(name==="data"||name==="info"?"sources":name)}
+document.querySelectorAll(".tbBtn").forEach(b=>b.addEventListener("click",()=>toggleFrame(b.dataset.frame)));
+document.querySelectorAll(".frame").forEach(f=>{
+ f.querySelector(".frameClose").addEventListener("click",()=>closeFrame(f.id.replace("frame-","")));
+ f.addEventListener("mousedown",()=>bringToFront(f));
+ f.addEventListener("touchstart",()=>bringToFront(f),{passive:true});
 });
-/* drag the whole dock by its title bar; keep it fully on-screen */
-(function(){
- let dragging=false,sx=0,sy=0,ox=0,oy=0,moved=false;
+/* generic drag: pass the element and its grab handle */
+function dragBy(el,handle,onStart){
+ let dragging=false,sx=0,sy=0,ox=0,oy=0;
  const down=e=>{
-   if(e.target.closest("button"))return;
-   dragging=true;moved=false;
+   if(e.target.closest("button,input,select,a"))return;
+   dragging=true;
    const p=e.touches?e.touches[0]:e;
-   const r=dock.getBoundingClientRect();
-   dock.style.left=r.left+"px";dock.style.top=r.top+"px";dock.style.right="auto";
+   const r=el.getBoundingClientRect();
+   el.style.left=r.left+"px";el.style.top=r.top+"px";el.style.right="auto";
    sx=p.clientX;sy=p.clientY;ox=r.left;oy=r.top;
+   if(onStart)onStart();
    e.preventDefault();
  };
  const move=e=>{
-   if(!dragging)return;moved=true;
+   if(!dragging)return;
    const p=e.touches?e.touches[0]:e;
-   let nx=ox+(p.clientX-sx),ny=oy+(p.clientY-sy);
-   const w=dock.offsetWidth,h=dock.offsetHeight;
-   nx=Math.max(4,Math.min(window.innerWidth-w-4,nx));
-   ny=Math.max(4,Math.min(window.innerHeight-h-4,ny));
-   dock.style.left=nx+"px";dock.style.top=ny+"px";
+   const w=el.offsetWidth,h=el.offsetHeight;
+   const isFrame=el.classList.contains("frame");
+   const maxY=isFrame?Math.max(4,safeBottom()-60):window.innerHeight-h-4;
+   const nx=Math.max(4,Math.min(window.innerWidth-w-4,ox+(p.clientX-sx)));
+   const ny=Math.max(4,Math.min(maxY,oy+(p.clientY-sy)));
+   el.style.left=nx+"px";el.style.top=ny+"px";
+   if(isFrame)fitFrame(el);
    e.preventDefault();
  };
  const up=()=>{dragging=false};
- dockBar.addEventListener("mousedown",down);dockBar.addEventListener("touchstart",down,{passive:false});
+ handle.addEventListener("mousedown",down);handle.addEventListener("touchstart",down,{passive:false});
  window.addEventListener("mousemove",move);window.addEventListener("touchmove",move,{passive:false});
  window.addEventListener("mouseup",up);window.addEventListener("touchend",up);
-})();
-/* keep the dock on-screen if the window resizes */
+}
+dragBy(toolbar,toolbar.querySelector(".tbGrip"));
+/* ── Minimise: tool bar and timeline, to hand the screen back to the globe ── */
+const tbMin=document.getElementById("tbMin");
+tbMin.addEventListener("click",()=>{
+ const m=toolbar.classList.toggle("min");
+ tbMin.textContent=m?"▸":"▾";
+ tbMin.setAttribute("aria-expanded",String(!m));
+ tbMin.setAttribute("aria-label",m?"Expand tool bar":"Minimise tool bar");
+ // keep it on-screen after the width change
+ const r=toolbar.getBoundingClientRect();
+ if(r.right>window.innerWidth-4)toolbar.style.left=Math.max(4,window.innerWidth-toolbar.offsetWidth-4)+"px";
+});
+const timelineEl=document.getElementById("timeline");
+const tlMin=document.getElementById("timelineMin");
+tlMin.addEventListener("click",()=>{
+ const m=timelineEl.classList.toggle("min");
+ tlMin.textContent=m?"▴":"▾";
+ tlMin.setAttribute("aria-expanded",String(!m));
+ tlMin.setAttribute("aria-label",m?"Expand timeline":"Minimise timeline");
+ if(!m)renderHisto();                       // redraw at the restored width
+ document.querySelectorAll(".frame").forEach(f=>{if(!f.classList.contains("hidden"))fitFrame(f)});
+ resize();
+});
+/* ── Data status moved into an info popover to keep the bar clean ── */
+const tlInfoBtn=document.getElementById("timelineInfo");
+const tlInfoPop=document.getElementById("timelineInfoPop");
+function setTlInfoOpen(open){
+ tlInfoPop.classList.toggle("hidden",!open);
+ tlInfoBtn.setAttribute("aria-expanded",String(open));
+ if(open){
+   // summarise what is loaded, so the bar itself needs no running commentary
+   const srcCounts={};
+   attacks.forEach(a=>{const s=sourceLayerName(a);srcCounts[s]=(srcCounts[s]||0)+1});
+   const parts=Object.entries(srcCounts).sort((a,b)=>b[1]-a[1])
+     .map(([s,n])=>`${s.replace(/ Global Dataset.*| leak-site monitoring| Community Database/,"")
+       .replace("VERIS","VCDB").replace("Curated primary-source incidents","Curated")}: ${n.toLocaleString()}`);
+   const lake=LAKE.manifest?` · data lake v${LAKE.manifest.schema}, built ${String(LAKE.manifest.generated).slice(0,10)}`:"";
+   document.getElementById("dataStatusExtra").innerHTML=
+     `<div style="margin-top:5px">${attacks.length.toLocaleString()} incidents loaded — ${parts.join(" · ")}${lake}</div>`;
+ }
+}
+tlInfoBtn.addEventListener("click",()=>setTlInfoOpen(tlInfoPop.classList.contains("hidden")));
+document.getElementById("timelineInfoClose").addEventListener("click",()=>setTlInfoOpen(false));
+document.addEventListener("click",e=>{
+ if(!tlInfoPop.classList.contains("hidden")&&!tlInfoPop.contains(e.target)&&e.target!==tlInfoBtn&&!tlInfoBtn.contains(e.target))setTlInfoOpen(false);
+});
+document.querySelectorAll(".frame").forEach(f=>{
+ dragBy(f,f.querySelector(".frameHead"),()=>{bringToFront(f);f.dataset.placed="1"});
+});
+/* keep everything on-screen when the window resizes */
 window.addEventListener("resize",()=>{
- const r=dock.getBoundingClientRect();
- if(r.right>window.innerWidth-4)dock.style.left=Math.max(4,window.innerWidth-dock.offsetWidth-4)+"px";
- if(r.bottom>window.innerHeight-4)dock.style.top=Math.max(4,window.innerHeight-dock.offsetHeight-4)+"px";
+ [toolbar,...document.querySelectorAll(".frame")].forEach(el=>{
+   if(el.classList&&el.classList.contains("hidden"))return;
+   const r=el.getBoundingClientRect();
+   if(r.right>window.innerWidth-4)el.style.left=Math.max(4,window.innerWidth-el.offsetWidth-4)+"px";
+   if(r.bottom>window.innerHeight-4)el.style.top=Math.max(4,window.innerHeight-el.offsetHeight-4)+"px";
+   if(el.classList&&el.classList.contains("frame"))fitFrame(el);
+ });
 });
 window.addEventListener("resize",resize);resize();
 
