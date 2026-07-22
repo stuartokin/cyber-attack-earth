@@ -165,6 +165,11 @@
     .frameDocked{}
     .frameFloating{position:fixed!important;top:auto;right:auto;box-shadow:0 24px 60px rgba(0,0,0,.6);border-color:#4a6a92}.sourceLinks a{font-size:11px;color:var(--accent);text-decoration:none;border:1px solid #315171;border-radius:999px;padding:4px 7px}.sourceLinks a:hover{background:#102b42}
     .sourceToggle{display:flex;align-items:flex-start;gap:8px;margin:8px 0;color:var(--text)}.sourceToggle input{margin-top:3px}
+    .warningBox{border-left:3px solid var(--orange);background:rgba(255,157,60,.08);padding:9px 11px;border-radius:6px;font-size:11.5px;color:#d7e1ef;line-height:1.55}
+    .attribBox{font-size:11.5px;color:#a8bcd6;line-height:1.55;background:rgba(16,32,57,.35);border:1px solid #223a58;border-radius:9px;padding:9px 11px}
+    .attribBox p{margin:0 0 7px}.attribBox p:last-of-type{margin-bottom:0}
+    .attribBox b{color:#dbe7f5}
+    .tlCredit a,.attribBox a{color:var(--accent)}
     .provenanceList{display:grid;gap:7px}.provenanceItem{border-left:3px solid var(--accent);padding-left:9px}
     /* Phone: dock adapts width, HUD shrinks, timeline stays a fixed bottom bar */
     @media(max-width:720px){
@@ -304,6 +309,22 @@
         <h3>Loaded intelligence enrichment</h3><div id="enrichmentStatus" class="provenanceList"></div>
         <h3>Primary sources</h3><div id="sourceCatalogue"></div>
         <h3>Threat reports &amp; agency research</h3><div id="reportList" class="provenanceList"></div>
+        <h3>Attribution &amp; licences</h3>
+        <div class="attribBox">
+          <p>Built entirely from third-party open data. Sources are credited here and in full in the repository.</p>
+          <p><b>Contains information from:</b> EuRepoC · VERIS Community Database · Ransomware.live · CISA Known Exploited Vulnerabilities · NIST National Vulnerability Database · EPSS (FIRST) · MITRE ATT&amp;CK<sup>&#174;</sup> · ICS Advisory Project · Natural Earth.</p>
+          <p><b>ICS advisory data</b> is provided by the <a href="https://www.icsadvisoryproject.com/" target="_blank" rel="noopener">ICS Advisory Project</a> under the <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">Open Database Licence (ODbL) v1.0</a>. The data pack published with this application is a derived database and is offered under the same licence.</p>
+          <p><b>MITRE ATT&amp;CK<sup>&#174;</sup></b> &#169; The MITRE Corporation, used under the <a href="https://attack.mitre.org/resources/legal-and-branding/terms-of-use/" target="_blank" rel="noopener">ATT&amp;CK Terms of Use</a>; this project is not affiliated with or endorsed by MITRE. <b>EPSS</b> scores are provided by <a href="https://www.first.org/epss/" target="_blank" rel="noopener">FIRST</a>. <b>KEV</b> and <b>NVD</b> are US Government works in the public domain.</p>
+          <p>Threat reports listed above are <b>linked only</b> and remain the copyright of their publishers; no content from them is reproduced here.</p>
+          <div class="sourceLinks" style="margin-top:8px">
+            <a id="attribLink" href="ATTRIBUTION.md" target="_blank" rel="noopener">Full attribution &amp; licences</a>
+            <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL v1.0</a>
+          </div>
+        </div>
+        <h3>Limitations</h3>
+        <div class="warningBox">
+          This map shows <b>documented</b> incidents, not all attacks. Growth over time reflects both a real rise in activity and substantially improved recording &mdash; the two cannot be cleanly separated. Sparse regions indicate sparse <i>reporting</i>, not safety. Attacker origins are usually attribution or ecosystem proxies rather than verified launch locations, and leak-site entries are unverified attacker claims.
+        </div>
         <h3>Methodology</h3><p class="small">Records are normalised to a common incident schema and deduplicated across sources using date, victim country and a suffix-normalised victim-name key. Ransomware.live records are leak-site claims — attacker assertions, placed at country level, with no origin asserted. Unknown attacker locations launch from a neutral ocean anchor. Incident actors are matched against a threat-group directory built from an embedded core plus MITRE ATT&amp;CK intrusion sets and Ransomware.live group profiles, each cited with links.</p>
         <div class="btnrow"><button id="exportVisible" type="button">Export visible CSV</button><button id="copySourceLinks" type="button">Copy source links</button></div>
       </div>
@@ -368,7 +389,8 @@
       <div class="tlPopHead"><b>Data status</b><button id="timelineInfoClose" class="tlIconBtn" type="button" aria-label="Close">×</button></div>
       <div id="dataStatus" class="small" aria-live="polite">Loading research dataset…</div>
       <div id="dataStatusExtra" class="small"></div>
-      <div class="small tlCredit">AI built from primary sources as a personal project · no trackers or analytics</div>
+      <div class="small tlCredit">AI built from primary sources as a personal project &#183; no trackers or analytics<br>
+        Contains information from EuRepoC, VCDB, Ransomware.live, CISA KEV, NVD, EPSS (FIRST), MITRE ATT&amp;CK<sup>&#174;</sup> and the ICS Advisory Project (ODbL v1.0) &mdash; <a id="attribLink2" href="ATTRIBUTION.md" target="_blank" rel="noopener">full attribution</a>.</div>
     </div>
   </section>
 </div>
@@ -1814,6 +1836,18 @@ function dragBy(el,handle,onStart){
  window.addEventListener("mousemove",move);window.addEventListener("touchmove",move,{passive:false});
  window.addEventListener("mouseup",up);window.addEventListener("touchend",up);
 }
+/* ── Attribution link: on GitHub Pages, point at the rendered file on github.com
+   rather than the raw Markdown that Pages would serve as plain text. ── */
+(function(){
+ let url="ATTRIBUTION.md";
+ const m=location.hostname.match(/^([^.]+)\.github\.io$/);
+ if(m){
+   const repo=location.pathname.split("/").filter(Boolean)[0];
+   url=repo?`https://github.com/${m[1]}/${repo}/blob/main/ATTRIBUTION.md`
+          :`https://github.com/${m[1]}/${m[1]}.github.io/blob/main/ATTRIBUTION.md`;
+ }
+ ["attribLink","attribLink2"].forEach(id=>{const a=document.getElementById(id);if(a)a.href=url});
+})();
 dragBy(toolbar,toolbar.querySelector(".tbGrip"));
 /* ── Minimise: tool bar and timeline, to hand the screen back to the globe ── */
 const tbMin=document.getElementById("tbMin");
