@@ -303,6 +303,7 @@
         <h3>Mapped incident layers</h3><div id="sourceLayerControls"></div>
         <h3>Loaded intelligence enrichment</h3><div id="enrichmentStatus" class="provenanceList"></div>
         <h3>Primary sources</h3><div id="sourceCatalogue"></div>
+        <h3>Threat reports &amp; agency research</h3><div id="reportList" class="provenanceList"></div>
         <h3>Methodology</h3><p class="small">Records are normalised to a common incident schema and deduplicated across sources using date, victim country and a suffix-normalised victim-name key. Ransomware.live records are leak-site claims — attacker assertions, placed at country level, with no origin asserted. Unknown attacker locations launch from a neutral ocean anchor. Incident actors are matched against a threat-group directory built from an embedded core plus MITRE ATT&amp;CK intrusion sets and Ransomware.live group profiles, each cited with links.</p>
         <div class="btnrow"><button id="exportVisible" type="button">Export visible CSV</button><button id="copySourceLinks" type="button">Copy source links</button></div>
       </div>
@@ -344,6 +345,7 @@
             <option value="">None</option>
             <option value="kev">KEV additions</option>
             <option value="ics">ICS advisories</option>
+          <option value="cve">CVEs published</option>
           </select>
         </label>
       </span>
@@ -569,7 +571,7 @@ const SOURCE_CATALOGUE=[
 ];
 const enabledSources=new Set(["Curated primary-source incidents","EuRepoC Global Dataset v1.3","VERIS Community Database"]);
 // Curated records use several publisher names in `source`; keep them available as one resilient local layer.
-const RESEARCH_SOURCE_NAMES=new Set(["EuRepoC Global Dataset v1.3","VERIS Community Database","Ransomware.live leak-site monitoring"]);
+const RESEARCH_SOURCE_NAMES=new Set(["EuRepoC Global Dataset v1.3","VERIS Community Database","Ransomware.live leak-site monitoring","CISSM Cyber Events Database"]);
 function sourceLayerName(a){ return RESEARCH_SOURCE_NAMES.has(a.source)?a.source:"Curated primary-source incidents"; }
 let enrichmentCounts={mitre:null,kev:null};
 const severityColor = {Critical:"#ff4d66",High:"#ff9d3c",Medium:"#ffe374",Low:"#4ee6a5"};
@@ -808,7 +810,7 @@ function renderHisto(){
  const ovSel=document.getElementById("histoOverlay");
  const ovKind=ovSel?ovSel.value:"";
  if(ovKind){
-   const series=ovKind==="kev"?kevMonthly():ovKind==="ics"?icsMonthly():null;
+   const series=ovKind==="kev"?kevMonthly():ovKind==="ics"?icsMonthly():ovKind==="cve"?cveMonthly():null;
    if(series){
      const omax=Math.max(1,...series);
      let d="";
@@ -817,7 +819,8 @@ function renderHisto(){
        d+=(i?"L":"M")+ox+","+oy;
      }
      overlay=`<path d="${d}" fill="none" stroke="#ffd24d" stroke-width="1.3" opacity=".9" stroke-dasharray="3 2"/>`;
-     overlayLabel=`<text x="${W-6}" y="19" text-anchor="end" fill="#ffd24d" font-size="8">${ovKind==="kev"?"KEV additions":"ICS advisories"} (relative scale)</text>`;
+     const ovName=ovKind==="kev"?"KEV additions":ovKind==="ics"?"ICS advisories":"CVEs published";
+     overlayLabel=`<text x="${W-6}" y="19" text-anchor="end" fill="#ffd24d" font-size="8">${ovName} (relative scale)</text>`;
    }
  }
  // Year-on-year trend: for each calendar year, take that year's PEAK monthly count, then draw a line
@@ -1211,13 +1214,25 @@ async function loadEnrichmentLayers(){
  if(selectedAttack)showDetail(selectedAttack);
 }
 function renderSourceMenu(){
- const mapped=[
+ // Only list layers that are actually present, so the panel reflects the real load.
+ const known=[
   {name:"Curated primary-source incidents",label:"Curated fallback",desc:"Embedded incidents with direct primary or official references"},
   {name:"EuRepoC Global Dataset v1.3",label:"EuRepoC",desc:"Expert-reviewed political and strategic cyber incidents"},
-  {name:"VERIS Community Database",label:"VCDB",desc:"Publicly disclosed breaches and security incidents"}
+  {name:"VERIS Community Database",label:"VCDB",desc:"Publicly disclosed breaches and security incidents"},
+  {name:"CISSM Cyber Events Database",label:"CISSM (UMD)",desc:"Academically coded public cyber events, 2014→, country-level placement"},
+  {name:"Ransomware.live leak-site monitoring",label:"Ransomware.live",desc:"Leak-site victim claims — attacker assertions, not verified breaches"}
  ];
+ const present=new Set(attacks.map(a=>sourceLayerName(a)));
+ const mapped=known.filter(x=>present.has(x.name)||enabledSources.has(x.name));
  sourceLayerControls.innerHTML=mapped.map(x=>`<label class="sourceToggle"><input type="checkbox" data-source="${x.name}" ${enabledSources.has(x.name)?"checked":""}><span><b>${x.label}</b><br><span class="sourceMeta">${x.desc} • ${attacks.filter(a=>sourceLayerName(a)===x.name).length.toLocaleString()} mapped routes</span></span></label>`).join("");
  sourceLayerControls.querySelectorAll("input").forEach(el=>el.addEventListener("change",()=>{el.checked?enabledSources.add(el.dataset.source):enabledSources.delete(el.dataset.source);markHistoDirty();update()}));
+ const rl=document.getElementById("reportList");
+ if(rl){
+   rl.innerHTML=LAKE.reports.length
+     ? LAKE.reports.map(r=>`<div class="provenanceItem"><b>${r.org}</b> — ${r.title}
+         <div class="sourceMeta">${r.cadence||""}${r.url?` · <a href="${r.url}" target="_blank" rel="noopener">read</a>`:""}</div></div>`).join("")
+     : `<div class="sourceMeta">Curated report citations load from the data lake. These are copyrighted publications — linked, never reproduced.</div>`;
+ }
  if(LAKE.manifest){
    const m=LAKE.manifest;
    const rows=(m.sources||[]).map(s=>{
@@ -1252,6 +1267,49 @@ function mapRwSector(s){
  if(m[t])return m[t];
  if(["Manufacturing","Technology","Healthcare","Education","Energy","Finance","Government","Transport","Retail","Media","Telecoms","Utilities"].includes(t))return t;
  return "Other";
+}
+/* ── CISSM Cyber Events Database rows → mapped attacks ─────────────────────
+   Country-of-impact placement; attacker origin only where CISSM coded one.
+   Access is granted by CISSM on request, so this layer only appears if you
+   have supplied your own export (see build_cyber_data.py). */
+function mapCissmSector(s){
+ const t=normText(s);
+ const m={"Utilities":"Energy","Public":"Government","Government":"Government","Public Administration":"Government",
+   "Financial":"Finance","Finance and Insurance":"Finance","Health":"Healthcare","Health Care":"Healthcare",
+   "Information":"Technology","Professional":"Technology","Educational":"Education","Education":"Education",
+   "Retail Trade":"Retail","Retail":"Retail","Transportation":"Transport","Manufacturing":"Manufacturing",
+   "Mining":"Energy","Telecommunications":"Telecoms","Media":"Media"};
+ if(m[t])return m[t];
+ for(const k in m){if(t&&k.toLowerCase().startsWith(t.toLowerCase().slice(0,6)))return m[k]}
+ if(["Manufacturing","Technology","Healthcare","Education","Energy","Finance","Government","Transport","Retail","Media","Telecoms","Utilities"].includes(t))return t;
+ return "Other";
+}
+function cissmRowToAttacks(r,i){
+ const vc=centroidForCountry(r.country); if(!vc)return [];
+ const oc=r.actor_country?centroidForCountry(r.actor_country):null;
+ const disruptive=/disrupt|destruct/i.test(r.type||"");
+ const sev=disruptive?"High":"Medium";
+ return [{
+  id:`cissm-${r.year}${String(r.month).padStart(2,"0")}-${i}`,
+  year:r.year,month:r.month,
+  name:r.org||"Undisclosed organisation",
+  actor:r.actor||"Unattributed actor",
+  leader:"See CISSM record",
+  originCountry:oc?r.actor_country:"Unknown / unattributed",
+  originCity:oc?`${r.actor_country} (CISSM-coded actor country)`:"Unknown origin",
+  startLat:oc?oc.lat:0,startLng:oc?oc.lng:-30,
+  victimCountry:r.country,victimISO:vc.iso,victimCity:`${r.country} (country-level)`,
+  endLat:vc.lat,endLng:vc.lng,
+  severity:sev,impact:disruptive?72:58,
+  sector:mapCissmSector(r.industry),
+  type:normText(r.type)||"Cyber event",
+  confidence:"Academic coding",
+  summary:(r.desc||"Event recorded in the CISSM Cyber Events Database.")+" Coded by CISSM from open sources; placement is country-level.",
+  attribution:r.actor_country?`CISSM coded the actor country as ${r.actor_country}. This is a coding of public reporting, not a technical attribution.`:"No actor country coded by CISSM.",
+  source:"CISSM Cyber Events Database",
+  sources:[r.url?{name:"Reported source",url:r.url}:null,
+           {name:"CISSM Cyber Events Database",url:"https://cissm.umd.edu/cyber-events-database"}].filter(Boolean)
+ }];
 }
 function rwVictimToAttack(v,fallbackYear,fallbackMonth,i){
  const geo=iso2Geo(v.country); if(!geo)return null;
@@ -1471,7 +1529,7 @@ async function cachedLoad(key,ttlMs,loader){
    (plotted as missiles); vulns, advisories and techniques are reference data
    that drive charts and enrichment but are NOT attacks. Falls back to the
    legacy flat pack, then to remote fetching, so older deployments keep working. */
-const LAKE={manifest:null,kev:[],epss:null,epssMap:null,ics:[],attack:null,reports:[]};
+const LAKE={manifest:null,kev:[],epss:null,epssMap:null,ics:[],attack:null,reports:[],cve:null};
 async function grabJSON(p){try{const r=await fetch(p,{cache:"no-cache"});return r.ok?await r.json():null}catch(e){return null}}
 async function loadLake(){
  const base="cyber_data/";
@@ -1479,7 +1537,7 @@ async function loadLake(){
  if(!man||!man.schema||man.schema<3)return null;
  LAKE.manifest=man;
  const T=man.tables||{};
- const out={eurepoc:null,vcdb:null,rwl:null,rwlLastIdx:-1,lake:true};
+ const out={eurepoc:null,vcdb:null,rwl:null,cissm:null,rwlLastIdx:-1,lake:true};
  // ---- incidents ----
  const inc=(T.incidents&&T.incidents.files)||{};
  const jobs=[];
@@ -1496,6 +1554,10 @@ async function loadLake(){
      }catch(e){console.warn("[lake] vcdb parse failed",e)}
    }));
  }
+ if(inc.cissm)jobs.push(grabJSON(base+inc.cissm).then(rows=>{
+   try{if(Array.isArray(rows)&&rows.length)out.cissm=rows.flatMap(cissmRowToAttacks)}
+   catch(e){console.warn("[lake] cissm parse failed",e)}
+ }));
  if(inc.rwlive)jobs.push(grabJSON(base+inc.rwlive).then(rw=>{
    try{
      if(rw&&typeof rw==="object"&&!Array.isArray(rw)){
@@ -1513,6 +1575,7 @@ async function loadLake(){
  // ---- reference tables (charts + enrichment) ----
  const vf=(T.vulns&&T.vulns.files)||{};
  if(vf.kev)jobs.push(grabJSON(base+vf.kev.file).then(k=>{if(Array.isArray(k))LAKE.kev=k}));
+ if(vf.cve)jobs.push(grabJSON(base+vf.cve.file).then(c=>{if(c&&c.months)LAKE.cve=c}));
  if(vf.epss)jobs.push(grabJSON(base+vf.epss.file).then(e=>{
    if(e&&Array.isArray(e.rows)){
      LAKE.epss=e;LAKE.epssMap=new Map();
@@ -1586,6 +1649,7 @@ async function loadResearchDataset(){
    });
    sources.push(...vcdb);
  }catch(err){console.warn("[data-source] VCDB direct fetch failed — jsdelivr rejects oversized GitHub files; use the data pack (see \u22ee menu)",err);failures.push("VCDB")}
+ if(pack.cissm){sources.push(...pack.cissm);packUsed.push(`CISSM (${pack.cissm.length.toLocaleString()})`)}
  if(pack.rwl){sources.push(...pack.rwl);packUsed.push(`Ransomware.live (${pack.rwl.length.toLocaleString()} claims)`)}
  if(sources.length){
    // Retain the embedded curated layer so the globe never becomes blank when a remote source is partial.
@@ -1841,6 +1905,16 @@ function monthlyCounts(items,getDate){
 }
 function kevMonthly(){return LAKE.kev.length?monthlyCounts(LAKE.kev,k=>k.added):null}
 function icsMonthly(){return LAKE.ics.length?monthlyCounts(LAKE.ics,a=>a.date):null}
+function cveMonthly(){
+ if(!LAKE.cve||!LAKE.cve.months)return null;
+ const arr=new Array(endTimelineIndex+1).fill(0);
+ Object.entries(LAKE.cve.months).forEach(([ym,n])=>{
+   const m=String(ym).match(/^(\d{4})-(\d{2})$/); if(!m)return;
+   const i=idx(+m[1],+m[2]);
+   if(i>=0&&i<=endTimelineIndex)arr[i]=+n||0;
+ });
+ return arr;
+}
 function svgBars(series,opts){
  opts=opts||{};
  const W=opts.w||288,H=opts.h||58,pad=10;
@@ -1903,6 +1977,15 @@ function renderCharts(){
        svgHBars(top,{color:"#4dd8ff"})+
        `<p class="chartNote">${LAKE.ics.length.toLocaleString()} advisories. Sectors are as tagged by the ICS Advisory Project (ODbL v1.0); one advisory can span several.</p>`;
    }
+ }
+ // 3b) CVE publication volume — context, not incidents
+ const cve=cveMonthly();
+ if(cve){
+   const total=Object.values(LAKE.cve.months).reduce((a,b)=>a+(+b||0),0);
+   html+=`<h3>CVEs published / month</h3>
+     <div class="chartBox">${svgBars(cve,{color:"#8f9dff",ticks:yearTicks(),
+       label:(i,n)=>`${mon(fromIdx(i).month)} ${fromIdx(i).year}: ${n.toLocaleString()} published`})}</div>
+     <p class="chartNote">${total.toLocaleString()} CVEs across ${Object.keys(LAKE.cve.months).length} months (NVD, public domain). Published-vulnerability volume is <b>attack surface</b>, not attacks — useful as context against the incident series, not as a like-for-like comparison. Counts shift slightly as records are backdated.</p>`;
  }
  // 4) KEV entries by EPSS band — honest use of a point-in-time snapshot
  if(LAKE.epssMap&&LAKE.kev.length){

@@ -513,6 +513,186 @@ def build_icsadv():
 
 
 # ===========================================================================
+# LAYER 1b - CISSM Cyber Events Database (MANUAL DROP)
+# CISSM does not publish a public bulk download: detailed records are released
+# on request to researchers and public officials (contact Dr Charles Harry,
+# charry@umd.edu). We therefore do NOT scrape it and do NOT use third-party
+# mirrors. If you obtain your own export, drop the CSV in:
+#       manual_sources/cissm.csv
+# and this connector will pick it up automatically. Otherwise it skips cleanly.
+# Cite: Harry, C., & Gallagher, N. (2018). Classifying Cyber Events.
+#       Journal of Information Warfare, 17(3), 17-31.
+# ===========================================================================
+MANUAL_DIR = Path("manual_sources")
+
+
+def norm_header(s):
+    return re.sub(r"[^a-z0-9]+", " ", str(s or "").lower()).strip()
+
+
+def col_finder(header):
+    """Return a function that finds a column by normalised name (exact, then substring)."""
+    normmap = {norm_header(h): h for h in header if h}
+
+    def find(*cands):
+        for c in cands:
+            if c in normmap:
+                return normmap[c]
+        for c in cands:
+            for nk, orig in normmap.items():
+                if c in nk or nk in c:
+                    return orig
+        return None
+    return find
+
+
+@source(id="cissm", table="incidents",
+        title="CISSM Cyber Events Database (manual export)",
+        licence="Access granted by CISSM on request - do not redistribute raw records",
+        cadence="manual", homepage="https://cissm.umd.edu/cyber-events-database")
+def build_cissm():
+    path = MANUAL_DIR / "cissm.csv"
+    if not path.exists():
+        raise RuntimeError(
+            "no manual_sources/cissm.csv - request an export from CISSM "
+            "(charry@umd.edu) and drop the CSV there to enable this layer")
+    rows = list(csv.DictReader(io.StringIO(path.read_text(encoding="utf-8", errors="replace"))))
+    if not rows:
+        raise RuntimeError("cissm.csv contained no rows")
+    header = list(rows[0])
+    print("  [cissm] header: %s" % (header,))
+    find = col_finder(header)
+    c_date = find("event date", "date", "date published", "eventdate")
+    c_actor = find("actor", "threat actor", "actor name")
+    c_actorc = find("actor country", "threat actor country", "country of actor")
+    c_org = find("organization", "target", "victim", "organisation", "entity")
+    c_ind = find("industry", "sector", "industry code")
+    c_country = find("country", "country of impact", "impacted country", "target country")
+    c_type = find("event type", "type", "event subtype", "attack type")
+    c_desc = find("description", "summary", "event description")
+    c_url = find("source url", "url", "source", "link")
+    print("  [cissm] columns -> date=%r actor=%r actor_country=%r org=%r industry=%r country=%r type=%r"
+          % (c_date, c_actor, c_actorc, c_org, c_ind, c_country, c_type))
+    if not (c_date and c_country):
+        raise RuntimeError("could not identify date and country-of-impact columns")
+
+    def v(row, col, limit=160):
+        return (row.get(col) or "").strip()[:limit] if col else ""
+
+    out = []
+    for row in rows:
+        d = v(row, c_date, 24)
+        m = (re.search(r"(20\d{2})[-/](\d{1,2})", d)
+             or re.search(r"(\d{1,2})[-/](\d{1,2})[-/](20\d{2})", d))
+        if not m:
+            continue
+        if len(m.group(1)) == 4:
+            year, month = int(m.group(1)), int(m.group(2))
+        else:
+            year, month = int(m.group(3)), int(m.group(1))
+        if not (START_YEAR <= year <= date.today().year) or not (1 <= month <= 12):
+            continue
+        out.append({
+            "year": year, "month": month,
+            "actor": v(row, c_actor, 80),
+            "actor_country": v(row, c_actorc, 60),
+            "org": v(row, c_org, 120),
+            "industry": v(row, c_ind, 60),
+            "country": v(row, c_country, 60),
+            "type": v(row, c_type, 60),
+            "desc": v(row, c_desc, 400),
+            "url": v(row, c_url, 200),
+        })
+    print("  [cissm] %d rows -> %d usable events" % (len(rows), len(out)))
+    if not out:
+        raise RuntimeError("no usable events parsed")
+    return out
+
+
+# ===========================================================================
+# LAYER 2b - CVE publication volume (context series, NOT incidents)
+# Monthly counts of published CVEs, used as a third overlay alongside incidents
+# and KEV additions: attack surface growing vs attacks growing vs
+# known-exploited growing. Uses NVD's public endpoint with resultsPerPage=1 and
+# reads only totalResults - no records are downloaded or redistributed.
+# No API key required; setting NVD_API_KEY simply raises the rate limit.
+# Historical months are cached in the output file, so only the trailing window
+# is refetched on later runs.
+# ===========================================================================
+NVD_API = "https://services.nvd.nist.gov/rest/json/cves/2.0"
+CVE_REFRESH_MONTHS = 24
+
+
+@source(id="cve", table="vulns", title="CVE publication volume (NVD)",
+        licence="NVD data - US Government work, public domain", cadence="daily",
+        homepage="https://nvd.nist.gov/")
+def build_cve(out_dir=None):
+    key = os.environ.get("NVD_API_KEY", "").strip()
+    headers = dict(UA)
+    if key:
+        headers["apiKey"] = key
+    delay = 0.8 if key else 6.5          # NVD: 50 req/30s with key, 5 req/30s without
+
+    prior = {}
+    cache = (out_dir or Path("cyber_data")) / "vulns" / "cve.json"
+    if cache.exists():
+        try:
+            prior = json.loads(cache.read_text(encoding="utf-8")).get("months", {})
+        except Exception:                                  # noqa: BLE001
+            prior = {}
+    today = date.today()
+    now_idx = today.year * 12 + today.month
+    months = []
+    y, m = START_YEAR, 1
+    while y * 12 + m <= now_idx:
+        months.append((y, m))
+        m += 1
+        if m == 13:
+            y, m = y + 1, 1
+
+    counts, fetched, reused = dict(prior), 0, 0
+    for (y, m) in months:
+        keyname = "%d-%02d" % (y, m)
+        recent = (now_idx - (y * 12 + m)) < CVE_REFRESH_MONTHS
+        if keyname in counts and not recent:
+            reused += 1
+            continue
+        last_day = 28
+        for d in (31, 30, 29, 28):
+            try:
+                date(y, m, d); last_day = d; break
+            except ValueError:
+                continue
+        params = {
+            "pubStartDate": "%04d-%02d-01T00:00:00.000" % (y, m),
+            "pubEndDate": "%04d-%02d-%02dT23:59:59.999" % (y, m, last_day),
+            "resultsPerPage": 1,
+        }
+        try:
+            r = requests.get(NVD_API, params=params, headers=headers, timeout=90)
+            if r.status_code in (403, 429):
+                print("  [cve] throttled at %s; backing off 30s" % keyname)
+                time.sleep(30)
+                r = requests.get(NVD_API, params=params, headers=headers, timeout=90)
+            r.raise_for_status()
+            counts[keyname] = int(r.json().get("totalResults", 0))
+            fetched += 1
+            if fetched % 24 == 0:
+                print("  [cve] %s: %d published (%d fetched, %d cached)"
+                      % (keyname, counts[keyname], fetched, reused))
+            time.sleep(delay)
+        except Exception as exc:                            # noqa: BLE001
+            print("  [warn] cve %s failed (%s)" % (keyname, exc))
+            time.sleep(3)
+    if not counts:
+        raise RuntimeError("no CVE counts retrieved")
+    print("  [cve] %d months total (%d fetched this run, %d from cache)"
+          % (len(counts), fetched, reused))
+    return {"months": counts, "note": "Monthly count of CVEs published, from NVD. "
+                                      "Counts shift slightly over time as records are backdated."}
+
+
+# ===========================================================================
 # LAYER 5 - vendor threat reports: CURATED CITATIONS ONLY.
 # These are copyrighted PDFs with no APIs. We record where to read them and what
 # they are - we do not scrape or reproduce their content. Edit this list by hand.
@@ -536,6 +716,18 @@ VENDOR_REPORTS = [
      "url": "https://www.ncsc.gov.uk/"},
     {"org": "Dragos", "title": "OT/ICS Cybersecurity Year in Review", "cadence": "annual",
      "url": "https://www.dragos.com/ot-cybersecurity-year-in-review/"},
+    {"org": "NCSC (UK)", "title": "OT and industrial control system guidance", "cadence": "continuous",
+     "url": "https://www.ncsc.gov.uk/collection/operational-technology"},
+    {"org": "ENISA", "title": "ENISA Threat Landscape", "cadence": "annual",
+     "url": "https://www.enisa.europa.eu/topics/cyber-threats/threats-and-trends"},
+    {"org": "CISA", "title": "ICS advisories and OT alerts", "cadence": "continuous",
+     "url": "https://www.cisa.gov/news-events/cybersecurity-advisories"},
+    {"org": "WEF", "title": "Global Cybersecurity Outlook", "cadence": "annual",
+     "url": "https://www.weforum.org/publications/"},
+    {"org": "Verizon", "title": "Data Breach Investigations Report (DBIR)", "cadence": "annual",
+     "url": "https://www.verizon.com/business/resources/reports/dbir/"},
+    {"org": "CISSM (UMD)", "title": "Cyber Events Database", "cadence": "continuous",
+     "url": "https://cissm.umd.edu/cyber-events-database"},
 ]
 
 
@@ -577,7 +769,9 @@ def main():
         print("[build] %s -> %s" % (src.id, src.table))
         t0 = time.time()
         try:
-            data = src.fn()
+            import inspect
+            data = (src.fn(out_dir=out_dir)
+                    if "out_dir" in inspect.signature(src.fn).parameters else src.fn())
             results[src.id] = data
             entries.append({"id": src.id, "title": src.title, "table": src.table,
                             "licence": src.licence, "homepage": src.homepage,
@@ -614,6 +808,10 @@ def main():
         write_json(out_dir / "incidents" / "rwlive.json", results["rwlive"])
         inc_files["rwlive"] = "incidents/rwlive.json"
         inc_counts["rwlive"] = sum(len(v) for v in results["rwlive"].values())
+    if "cissm" in results:
+        write_json(out_dir / "incidents" / "cissm.json", results["cissm"])
+        inc_files["cissm"] = "incidents/cissm.json"
+        inc_counts["cissm"] = len(results["cissm"])
     if inc_files:
         tables["incidents"] = {"files": inc_files, "counts": inc_counts,
                                "total": sum(inc_counts.values())}
@@ -627,6 +825,10 @@ def main():
         write_json(out_dir / "vulns" / "epss.json", results["epss"])
         vulns["epss"] = {"file": "vulns/epss.json",
                          "rows": len(results["epss"]["rows"]), "min_score": EPSS_MIN}
+    if "cve" in results:
+        write_json(out_dir / "vulns" / "cve.json", results["cve"])
+        vulns["cve"] = {"file": "vulns/cve.json",
+                        "months": len(results["cve"]["months"])}
     if vulns:
         tables["vulns"] = {"files": vulns}
 
