@@ -146,6 +146,18 @@
     .histoHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:3px}
     .chartBox{background:#0a1626;border:1px solid #1e3350;border-radius:9px;padding:6px 4px 2px;margin:5px 0}
     .chartNote{font-size:10.5px;color:#7f95b4;margin:3px 0 12px;line-height:1.5}
+    .chartFrame{width:420px}
+    .chartHost{min-height:60px}
+    .chartScope{margin:8px 0 0;padding-top:7px;border-top:1px solid #1e3350;opacity:.85}
+    .chartPicks{display:grid;gap:6px;margin:6px 0 4px}
+    .chartPick{display:grid;grid-template-columns:1fr auto;gap:2px 10px;text-align:left;
+      background:rgba(10,22,38,.75);border:1px solid #1e3350;border-radius:9px;padding:8px 10px;width:100%}
+    .chartPick:hover:not(:disabled){border-color:#2c4666;background:rgba(20,38,63,.8)}
+    .chartPick.on{border-color:var(--accent)}
+    .chartPick:disabled{opacity:.45}
+    .chartPickT{font-size:12px;color:#dbe7f5;font-weight:600}
+    .chartPickB{grid-column:1;font-size:10.5px;color:#7f95b4;line-height:1.45}
+    .chartPickS{grid-row:1;grid-column:2;font-size:10.5px;color:var(--accent);white-space:nowrap}
     #chartsBody h3{font-size:12.5px;margin:14px 0 4px;color:#dbe7f5}
     .hbars{display:flex;flex-direction:column;gap:3px;margin:5px 0}
     .hbar{position:relative;background:#0a1626;border:1px solid #1e3350;border-radius:6px;padding:4px 8px;font-size:11px;display:flex;justify-content:space-between;gap:8px;overflow:hidden}
@@ -892,8 +904,9 @@ function update(){
  renderHisto();
  renderEscalation();
  updateSignificant(data);
+ refreshOpenCharts();
  const cf=document.getElementById("frame-charts");
- if(cf&&!cf.classList.contains("hidden"))renderCharts();
+ if(cf&&!cf.classList.contains("hidden"))renderChartsMenu();
 }
 let sigLocked=false; // user clicked a specific incident
 function updateSignificant(data){
@@ -1995,7 +2008,7 @@ function openFrame(name){
  const b=tbBtn(name); if(b)b.classList.add("on");
  f.querySelector(".frameBody").scrollTop=0;
  if(name==="search"){const li=document.getElementById("lookupInput");li.focus();runLookup(li.value)}
- if(name==="charts")renderCharts();
+ if(name==="charts")renderChartsMenu();
  if(name==="sources")renderSourceMenu();
 }
 function closeFrame(name){
@@ -2010,13 +2023,21 @@ function toggleFrame(name){
 /* showTab kept as an alias so existing call sites (e.g. look-up navigation) work */
 function showTab(name){openFrame(name==="data"||name==="info"?"sources":name)}
 document.querySelectorAll(".tbBtn").forEach(b=>b.addEventListener("click",()=>toggleFrame(b.dataset.frame)));
-document.querySelectorAll(".frame").forEach(f=>{
- f.querySelector(".frameClose").addEventListener("click",()=>closeFrame(f.id.replace("frame-","")));
+/* One place that wires up a frame, so frames created at run time (the individual
+   chart windows) behave exactly like the built-in ones. */
+function registerFrame(f){
+ if(f.dataset.wired)return;
+ f.dataset.wired="1";
+ const name=f.id.replace("frame-","");
+ const cl=f.querySelector(".frameClose");
+ if(cl)cl.addEventListener("click",()=>{closeFrame(name);if(name.startsWith("chart-"))renderChartsMenu()});
  const mx=f.querySelector(".frameMax");
  if(mx)mx.addEventListener("click",()=>toggleMaximise(f));
  f.addEventListener("mousedown",()=>bringToFront(f));
  f.addEventListener("touchstart",()=>bringToFront(f),{passive:true});
-});
+ dragBy(f,f.querySelector(".frameHead"),()=>{bringToFront(f);f.dataset.placed="1"});
+}
+document.querySelectorAll(".frame").forEach(registerFrame);
 /* Maximise: fill most of the screen for reading long text or studying a chart. */
 function toggleMaximise(f){
  const on=f.classList.toggle("maxed");
@@ -2031,7 +2052,8 @@ function toggleMaximise(f){
    f.style.left=f.dataset.prevLeft||"";f.style.top=f.dataset.prevTop||"";
    fitFrame(f);
  }
- if(!f.classList.contains("hidden")&&f.id==="frame-charts")renderCharts();
+ if(f.id.startsWith("frame-chart-"))renderChartFrame(f.id.replace("frame-chart-",""));
+ else if(!f.classList.contains("hidden")&&f.id==="frame-charts")renderChartsMenu();
 }
 /* generic drag: pass the element and its grab handle */
 function dragBy(el,handle,onStart,onMove){
@@ -2121,11 +2143,11 @@ document.getElementById("timelineInfoClose").addEventListener("click",()=>setTlI
 document.addEventListener("click",e=>{
  if(!tlInfoPop.classList.contains("hidden")&&!tlInfoPop.contains(e.target)&&e.target!==tlInfoBtn&&!tlInfoBtn.contains(e.target))setTlInfoOpen(false);
 });
-document.querySelectorAll(".frame").forEach(f=>{
- dragBy(f,f.querySelector(".frameHead"),()=>{bringToFront(f);f.dataset.placed="1"});
-});
+
 /* keep everything on-screen when the window resizes */
 window.addEventListener("resize",()=>{
+ clearTimeout(window.__chartResizeTimer);
+ window.__chartResizeTimer=setTimeout(refreshOpenCharts,180);
  [toolbar,...document.querySelectorAll(".frame")].forEach(el=>{
    if(el.classList&&el.classList.contains("hidden"))return;
    const r=el.getBoundingClientRect();
@@ -2137,7 +2159,7 @@ window.addEventListener("resize",()=>{
 window.addEventListener("resize",resize);resize();
 
 renderSourceMenu();
-document.getElementById("histoOverlay").addEventListener("change",()=>{renderHisto();renderCharts()});
+document.getElementById("histoOverlay").addEventListener("change",()=>{renderHisto();refreshOpenCharts()});
 /* ── Regions: quick-add whole continents to the country selection ───────── */
 const REGIONS={
  "Europe":["United Kingdom","France","Germany","Italy","Spain","Portugal","Netherlands","Belgium","Switzerland","Austria","Ireland","Sweden","Norway","Denmark","Finland","Iceland","Poland","Czechia","Czech Republic","Slovakia","Hungary","Romania","Bulgaria","Greece","Croatia","Slovenia","Serbia","Albania","Ukraine","Moldova","Estonia","Latvia","Lithuania","Russia","Belarus","Luxembourg","Malta","Cyprus","North Macedonia","Bosnia and Herzegovina","Montenegro","Kosovo"],
@@ -2297,94 +2319,197 @@ function svgHBars(pairs,opts){
 function yearTicks(){
  const t=[];for(let y=2000;y<=2025;y+=5)t.push({i:idx(y,1),label:y});return t;
 }
-function renderCharts(){
- const el=document.getElementById("chartsBody"); if(!el)return;
- if(histoDirty||!histoCounts.length)computeHistoCounts();
- let html="";
- // 1) incidents per month (respects filters — same series as the timeline)
- html+=`<h3 style="margin-top:4px">Documented incidents / month</h3>
-   <div class="chartBox">${svgBars(histoCounts,{color:"#ff6b78",ticks:yearTicks(),
-     label:(i,n)=>`${mon(fromIdx(i).month)} ${fromIdx(i).year}: ${n}`})}</div>
-   <p class="chartNote">${histoCounts.reduce((a,b)=>a+b,0).toLocaleString()} incidents match your current filters. The green line is a 12-month average, which smooths out monthly spikes so you can see whether this kind of attack is genuinely growing.</p>`;
- // 1b) Who is being hit, and from where — both from the current filter
- const vis=filtered();
- const tally=(arr,key)=>{const t={};arr.forEach(a=>{const k=a[key];if(k)t[k]=(t[k]||0)+1});
-   return Object.entries(t).sort((x,y)=>y[1]-x[1])};
- const vTop=tally(vis,"victimCountry").slice(0,8);
- if(vTop.length){
-   html+=`<h3>Most-targeted countries (visible)</h3>`+svgHBars(vTop,{color:"#ff6b78"})+
-     `<p class="chartNote">Counts the attacks currently shown on the map. Countries with strong disclosure rules appear more often — this measures <b>reporting</b> as much as risk.</p>`;
- }
- const oTop=tally(vis.filter(a=>!isUnattributed(a)),"originCountry").slice(0,8);
- if(oTop.length){
-   html+=`<h3>Most-named origin countries (visible)</h3>`+svgHBars(oTop,{color:"#4dd8ff"})+
-     `<p class="chartNote">Where an origin has been publicly named. These are attribution or ecosystem proxies, not verified launch locations, and unattributed attacks are left out of this chart.</p>`;
- }
- const secTop=tally(vis,"sector").slice(0,8);
- if(secTop.length){
-   html+=`<h3>Sectors hit (visible)</h3>`+svgHBars(secTop,{color:"#c58cff"})+
-     `<p class="chartNote">Which parts of the economy the visible attacks landed on.</p>`;
- }
- const sevOrder=["Critical","High","Medium","Low"];
- const sevTally=sevOrder.map(s=>[s,vis.filter(a=>a.severity===s).length]).filter(x=>x[1]);
- if(sevTally.length>1){
-   html+=`<h3>Severity mix (visible)</h3>`+svgHBars(sevTally,{color:"#ff9d3c"})+
-     `<p class="chartNote">Severity comes from the impact recorded in each source, so it compares well within a source but only roughly across sources.</p>`;
- }
- // 2) KEV additions per month
- const kev=kevMonthly();
- if(kev){
-   const last12=kev.slice(Math.max(0,timelineIndex-11),timelineIndex+1).reduce((a,b)=>a+b,0);
-   html+=`<h3>KEV additions / month</h3>
-     <div class="chartBox">${svgBars(kev,{color:"#ffd24d",ticks:yearTicks(),
-       label:(i,n)=>`${mon(fromIdx(i).month)} ${fromIdx(i).year}: ${n} added`})}</div>
-     <p class="chartNote">A "known exploited vulnerability" is a software flaw attackers have been seen actually using. ${LAKE.kev.length.toLocaleString()} are catalogued in total; ${last12} were added in the 12 months to ${mon(month)} ${year}. Source: CISA KEV (public domain).</p>`;
- }
- // 3) ICS advisories per year + top sectors
- if(LAKE.ics.length){
-   const byYear={};LAKE.ics.forEach(a=>{if(a.year)byYear[a.year]=(byYear[a.year]||0)+1});
-   const yrs=Object.keys(byYear).map(Number).sort((a,b)=>a-b);
-   html+=`<h3>CISA ICS advisories / year</h3>`+
-     svgHBars(yrs.slice(-10).map(y=>[String(y),byYear[y]]),{color:"#4ee6a5"});
-   const sec={};
-   LAKE.ics.forEach(a=>String(a.sectors||"").split(/[;,]/).forEach(s=>{
-     s=s.trim();if(s&&s.length<44)sec[s]=(sec[s]||0)+1;
-   }));
-   const top=Object.entries(sec).sort((a,b)=>b[1]-a[1]).slice(0,8);
-   if(top.length){
-     html+=`<h3>ICS advisories by critical-infrastructure sector</h3>`+
-       svgHBars(top,{color:"#4dd8ff"})+
-       `<p class="chartNote">${LAKE.ics.length.toLocaleString()} advisories. Sectors are as tagged by the ICS Advisory Project (ODbL v1.0); one advisory can span several.</p>`;
-   }
- }
- // 3b) CVE publication volume — context, not incidents
- const cve=cveMonthly();
- if(cve){
-   const total=Object.values(LAKE.cve.months).reduce((a,b)=>a+(+b||0),0);
-   html+=`<h3>CVEs published / month</h3>
-     <div class="chartBox">${svgBars(cve,{color:"#8f9dff",ticks:yearTicks(),
-       label:(i,n)=>`${mon(fromIdx(i).month)} ${fromIdx(i).year}: ${n.toLocaleString()} published`})}</div>
-     <p class="chartNote">${total.toLocaleString()} CVEs across ${Object.keys(LAKE.cve.months).length} months (NVD, public domain). Published-vulnerability volume is <b>attack surface</b>, not attacks — useful as context against the incident series, not as a like-for-like comparison. Counts shift slightly as records are backdated.</p>`;
- }
- // 4) KEV entries by EPSS band — honest use of a point-in-time snapshot
- if(LAKE.epssMap&&LAKE.kev.length){
-   const bands={"≥0.90":0,"0.50–0.89":0,"0.10–0.49":0,"<0.10 or unscored":0};
-   LAKE.kev.forEach(k=>{
-     const e=LAKE.epssMap.get(k.cve);
-     if(!e)bands["<0.10 or unscored"]++;
-     else if(e.epss>=.9)bands["≥0.90"]++;
-     else if(e.epss>=.5)bands["0.50–0.89"]++;
-     else bands["0.10–0.49"]++;
-   });
-   html+=`<h3>KEV entries by EPSS exploit probability</h3>`+
-     svgHBars(Object.entries(bands),{color:"#ff9d3c"})+
-     `<p class="chartNote">Current EPSS snapshot (scores ≥${LAKE.epss.min_score} retained), not a time series — EPSS is recalculated daily. Source: FIRST.</p>`;
- }
- if(!LAKE.manifest){
-   html+=`<p class="chartNote" style="margin-top:12px">Only the incident chart is available — the reference tables (KEV, EPSS, ICS advisories) come from the hosted data lake. Run <b>build_cyber_data.py</b> and deploy <code>cyber_data/</code> to enable the rest.</p>`;
- }
- el.innerHTML=html;
+/* ── Charts ────────────────────────────────────────────────────────────────
+   Each chart is a definition, not a block of a single long page. The Charts
+   button opens a small gallery; picking a chart opens it in its own movable
+   frame, so several can sit side by side and each can be maximised on its own. */
+function chartWidthFor(host){
+ const w=(host&&host.clientWidth)||300;
+ return Math.max(220,Math.round(w-6));
 }
+function visTally(arr,key){
+ const t={};arr.forEach(a=>{const k=a[key];if(k)t[k]=(t[k]||0)+1});
+ return Object.entries(t).sort((x,y)=>y[1]-x[1]);
+}
+const CHART_DEFS=[
+ {id:"incidents",title:"Documented incidents / month",group:"filtered",
+  blurb:"How many attacks per month match your filters.",
+  ok:()=>true,
+  build:W=>{
+    if(histoDirty||!histoCounts.length)computeHistoCounts();
+    const total=histoCounts.reduce((a,b)=>a+b,0);
+    return `<div class="chartBox">${svgBars(histoCounts,{w:W,h:120,color:"#ff6b78",ticks:yearTicks(),
+      label:(i,n)=>`${mon(fromIdx(i).month)} ${fromIdx(i).year}: ${n}`})}</div>
+      <p class="chartNote">${total.toLocaleString()} incidents match your current filters. Each bar is one month.</p>`;
+  }},
+ {id:"targets",title:"Most-targeted countries",group:"filtered",
+  blurb:"Where the visible attacks landed.",
+  ok:()=>filtered().length>0,
+  build:W=>{
+    const top=visTally(filtered(),"victimCountry").slice(0,14);
+    if(!top.length)return `<p class="chartNote">Nothing visible with the current filters.</p>`;
+    return svgHBars(top,{color:"#ff6b78"})+
+      `<p class="chartNote">Counts the attacks currently shown on the map. Countries with strong disclosure rules appear more often &mdash; this measures <b>reporting</b> as much as risk.</p>`;
+  }},
+ {id:"origins",title:"Most-named origin countries",group:"filtered",
+  blurb:"Where attacks were publicly attributed from.",
+  ok:()=>filtered().some(a=>!isUnattributed(a)),
+  build:W=>{
+    const top=visTally(filtered().filter(a=>!isUnattributed(a)),"originCountry").slice(0,14);
+    if(!top.length)return `<p class="chartNote">No attributed origins in the current selection.</p>`;
+    return svgHBars(top,{color:"#4dd8ff"})+
+      `<p class="chartNote">Only where an origin has been publicly named. These are attribution or ecosystem proxies, not verified launch locations. Attacks with no known origin are left out.</p>`;
+  }},
+ {id:"sectors",title:"Sectors hit",group:"filtered",
+  blurb:"Which parts of the economy were affected.",
+  ok:()=>filtered().length>0,
+  build:W=>{
+    const top=visTally(filtered(),"sector").slice(0,14);
+    if(!top.length)return `<p class="chartNote">Nothing visible with the current filters.</p>`;
+    return svgHBars(top,{color:"#c58cff"})+
+      `<p class="chartNote">Which parts of the economy the visible attacks landed on.</p>`;
+  }},
+ {id:"severity",title:"Severity mix",group:"filtered",
+  blurb:"How damaging the visible attacks were.",
+  ok:()=>filtered().length>0,
+  build:W=>{
+    const vis=filtered();
+    const rows=["Critical","High","Medium","Low"].map(s=>[s,vis.filter(a=>a.severity===s).length]).filter(x=>x[1]);
+    if(!rows.length)return `<p class="chartNote">Nothing visible with the current filters.</p>`;
+    return svgHBars(rows,{color:"#ff9d3c"})+
+      `<p class="chartNote">Severity comes from the impact recorded in each source, so it compares well within a source but only roughly across sources. Medium and Low are switched off by default in Controls.</p>`;
+  }},
+ {id:"kev",title:"Known-exploited vulnerabilities added / month",group:"reference",
+  blurb:"Flaws attackers were seen using, over time.",
+  ok:()=>!!kevMonthly(),
+  build:W=>{
+    const kev=kevMonthly(); if(!kev)return "";
+    const last12=kev.slice(Math.max(0,timelineIndex-11),timelineIndex+1).reduce((a,b)=>a+b,0);
+    return `<div class="chartBox">${svgBars(kev,{w:W,h:120,color:"#ffd24d",ticks:yearTicks(),
+      label:(i,n)=>`${mon(fromIdx(i).month)} ${fromIdx(i).year}: ${n} added`})}</div>
+      <p class="chartNote">A "known exploited vulnerability" is a software flaw attackers have been seen actually using. ${LAKE.kev.length.toLocaleString()} are catalogued in total; ${last12} were added in the 12 months to ${mon(month)} ${year}. Source: CISA KEV (public domain).</p>`;
+  }},
+ {id:"icsyear",title:"Industrial control advisories / year",group:"reference",
+  blurb:"CISA ICS advisories published each year.",
+  ok:()=>LAKE.ics.length>0,
+  build:W=>{
+    if(!LAKE.ics.length)return "";
+    const byYear={};LAKE.ics.forEach(a=>{if(a.year)byYear[a.year]=(byYear[a.year]||0)+1});
+    const yrs=Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+    return svgHBars(yrs.slice(-16).map(y=>[String(y),byYear[y]]),{color:"#4ee6a5"})+
+      `<p class="chartNote">${LAKE.ics.length.toLocaleString()} advisories about vulnerabilities in industrial control equipment. Source: ICS Advisory Project (ODbL v1.0), from CISA advisories.</p>`;
+  }},
+ {id:"icssector",title:"Industrial control advisories by sector",group:"reference",
+  blurb:"Which critical-infrastructure sectors are affected.",
+  ok:()=>LAKE.ics.length>0,
+  build:W=>{
+    if(!LAKE.ics.length)return "";
+    const sec={};
+    LAKE.ics.forEach(a=>String(a.sectors||"").split(/[;,]/).forEach(s=>{
+      s=s.trim();if(s&&s.length<44)sec[s]=(sec[s]||0)+1;
+    }));
+    const top=Object.entries(sec).sort((a,b)=>b[1]-a[1]).slice(0,14);
+    if(!top.length)return `<p class="chartNote">No sector tags in the advisory data.</p>`;
+    return svgHBars(top,{color:"#4dd8ff"})+
+      `<p class="chartNote">Sectors are as tagged by the ICS Advisory Project; one advisory can span several, so the totals add up to more than the number of advisories.</p>`;
+  }},
+ {id:"cve",title:"Vulnerabilities published / month",group:"reference",
+  blurb:"Overall attack surface, for context.",
+  ok:()=>!!cveMonthly(),
+  build:W=>{
+    const cve=cveMonthly(); if(!cve)return "";
+    const total=Object.values(LAKE.cve.months).reduce((a,b)=>a+(+b||0),0);
+    return `<div class="chartBox">${svgBars(cve,{w:W,h:120,color:"#8f9dff",ticks:yearTicks(),
+      label:(i,n)=>`${mon(fromIdx(i).month)} ${fromIdx(i).year}: ${n.toLocaleString()} published`})}</div>
+      <p class="chartNote">${total.toLocaleString()} vulnerabilities across ${Object.keys(LAKE.cve.months).length} months (NVD, public domain). This is <b>attack surface</b>, not attacks &mdash; useful as context beside the incident chart, not a like-for-like comparison. History fills in over successive nightly builds.</p>`;
+  }},
+ {id:"epss",title:"Known-exploited flaws by predicted exploitation",group:"reference",
+  blurb:"How likely each catalogued flaw is to be exploited.",
+  ok:()=>!!(LAKE.epssMap&&LAKE.kev.length),
+  build:W=>{
+    if(!(LAKE.epssMap&&LAKE.kev.length))return "";
+    const bands={"90% or higher":0,"50\u201389%":0,"10\u201349%":0,"Under 10% or unscored":0};
+    LAKE.kev.forEach(k=>{
+      const e=LAKE.epssMap.get(k.cve);
+      if(!e)bands["Under 10% or unscored"]++;
+      else if(e.epss>=.9)bands["90% or higher"]++;
+      else if(e.epss>=.5)bands["50\u201389%"]++;
+      else bands["10\u201349%"]++;
+    });
+    return svgHBars(Object.entries(bands),{color:"#ff9d3c"})+
+      `<p class="chartNote">EPSS estimates the chance a flaw will be exploited in the next 30 days. This is today's snapshot, not a history &mdash; the scores are recalculated daily. Source: FIRST.</p>`;
+  }}
+];
+function chartDef(id){return CHART_DEFS.find(d=>d.id===id)}
+function chartFrame(id){return document.getElementById("frame-chart-"+id)}
+function renderChartFrame(id){
+ const def=chartDef(id), f=chartFrame(id); if(!def||!f)return;
+ const host=f.querySelector(".chartHost"); if(!host)return;
+ let out="";
+ try{ out=def.build(chartWidthFor(host))||"" }
+ catch(e){ console.warn("chart "+id+" failed",e); out='<p class="chartNote">This chart could not be drawn.</p>' }
+ host.innerHTML=out||'<p class="chartNote">No data available for this chart yet.</p>';
+}
+function refreshOpenCharts(){
+ CHART_DEFS.forEach(d=>{
+   const f=chartFrame(d.id);
+   if(f&&!f.classList.contains("hidden"))renderChartFrame(d.id);
+ });
+}
+function openChartFrame(id){
+ const def=chartDef(id); if(!def)return;
+ let f=chartFrame(id);
+ if(!f){
+   f=document.createElement("section");
+   f.className="frame hidden chartFrame";
+   f.id="frame-chart-"+id;
+   f.setAttribute("aria-label",def.title);
+   f.innerHTML=`<div class="frameHead"><h2>${def.title}</h2><span class="frameBtns">
+     <button class="frameMax" type="button" aria-label="Maximise ${def.title}" title="Maximise / restore">&#9713;</button>
+     <button class="frameClose" type="button" aria-label="Close ${def.title}">&#215;</button></span></div>
+     <div class="frameBody"><div class="chartHost"></div>
+     <p class="chartNote chartScope">${def.group==="filtered"?"Follows the filters set in Controls.":"Background data \u2014 not affected by your filters."}</p></div>`;
+   document.getElementById("frames").appendChild(f);
+   registerFrame(f);
+ }
+ openFrame("chart-"+id);
+ renderChartFrame(id);
+ renderChartsMenu();
+}
+function renderChartsMenu(){
+ const el=document.getElementById("chartsBody"); if(!el)return;
+ const row=d=>{
+   const open=chartFrame(d.id)&&!chartFrame(d.id).classList.contains("hidden");
+   const avail=(()=>{try{return d.ok()}catch(e){return false}})();
+   return `<button class="chartPick${open?" on":""}" data-chart="${d.id}" type="button" ${avail?"":"disabled"}>
+     <span class="chartPickT">${d.title}</span>
+     <span class="chartPickB">${avail?d.blurb:"Needs data from the hosted data lake"}</span>
+     <span class="chartPickS">${open?"open":"open \u2192"}</span></button>`;
+ };
+ el.innerHTML=`
+   <p class="small" style="margin-top:0">Pick a chart to open it in its own window. Open as many as you like, drag them where you want, and use &#9713; on any of them to fill the screen.</p>
+   <h3 style="margin-top:10px">Follows your filters</h3>
+   <div class="chartPicks">${CHART_DEFS.filter(d=>d.group==="filtered").map(row).join("")}</div>
+   <h3>Background data</h3>
+   <div class="chartPicks">${CHART_DEFS.filter(d=>d.group==="reference").map(row).join("")}</div>
+   <div class="btnrow" style="margin-top:10px">
+     <button id="chartsCloseAll" type="button">Close all charts</button>
+   </div>
+   ${LAKE.manifest?"":'<p class="chartNote" style="margin-top:10px">Only the incident charts are available &mdash; the background data comes from the hosted data lake.</p>'}`;
+ el.querySelectorAll(".chartPick").forEach(b=>b.addEventListener("click",()=>{
+   const id=b.dataset.chart;
+   const f=chartFrame(id);
+   if(f&&!f.classList.contains("hidden")){closeFrame("chart-"+id);renderChartsMenu()}
+   else openChartFrame(id);
+ }));
+ const ca=document.getElementById("chartsCloseAll");
+ if(ca)ca.addEventListener("click",()=>{
+   CHART_DEFS.forEach(d=>{const f=chartFrame(d.id);if(f)f.classList.add("hidden")});
+   renderChartsMenu();
+ });
+}
+/* Kept so older call sites keep working. */
+function renderCharts(){renderChartsMenu();refreshOpenCharts()}
 
 /* ── Look-up & navigate: find a specific attack or group, jump there, show it ── */
 const lookupInput=document.getElementById("lookupInput");

@@ -571,7 +571,9 @@ def col_finder(header):
 # fails the connector falls back to a manual export at manual_sources/cissm.csv
 # and tells you exactly what it saw. Optional overrides if the paths move:
 #       CISSM_LOGIN_URL, CISSM_DOWNLOAD_URL
-CISSM_BASE = "https://cybereventsdatabase.org"
+CISSM_BASES = ["https://www.cybereventsdatabase.org", "https://cybereventsdatabase.org"]
+CISSM_DIAG = ""          # short summary, surfaced in manifest.json so it can be read
+                         # without opening the Actions log
 CISSM_LOGIN_CANDIDATES = ["/api/login", "/api/auth/login", "/api/v1/login", "/login",
                           "/auth/login", "/users/sign_in", "/api/token", "/api/session"]
 CISSM_DOWNLOAD_CANDIDATES = ["/api/events/download?format=csv", "/api/events/download",
@@ -603,12 +605,16 @@ def _cissm_fetch_remote():
           % (("seen (%d chars, ...%s)" % (len(user), user[-12:])) if user
              else "NOT visible to this step",
              ("seen (%d chars)" % len(pw)) if pw else "NOT visible to this step"))
+    global CISSM_DIAG
     if not (user and pw):
+        CISSM_DIAG = ("credentials NOT visible to this workflow step - the secrets "
+                      "exist but the workflow is not passing them through env:")
         return None
+    CISSM_DIAG = "credentials seen"
     s = requests.Session()
     s.headers.update(UA)
     login_urls = ([os.environ["CISSM_LOGIN_URL"]] if os.environ.get("CISSM_LOGIN_URL")
-                  else [CISSM_BASE + p for p in CISSM_LOGIN_CANDIDATES])
+                  else [b + p for b in CISSM_BASES for p in CISSM_LOGIN_CANDIDATES])
     logged_in = False
     for url in login_urls:
         for payload_key in ("json", "data"):
@@ -628,12 +634,15 @@ def _cissm_fetch_remote():
         if logged_in:
             break
     if not logged_in:
+        CISSM_DIAG = ("credentials seen but none of %d login paths worked - the portal "
+                      "login flow differs; see the [cissm] log lines"
+                      % len(login_urls))
         print("  [cissm] could not authenticate - the portal's login flow may differ "
               "from the paths tried. Set CISSM_LOGIN_URL/CISSM_DOWNLOAD_URL, or use "
               "the manual export route.")
         return None
     dl_urls = ([os.environ["CISSM_DOWNLOAD_URL"]] if os.environ.get("CISSM_DOWNLOAD_URL")
-               else [CISSM_BASE + p for p in CISSM_DOWNLOAD_CANDIDATES])
+               else [b + p for b in CISSM_BASES for p in CISSM_DOWNLOAD_CANDIDATES])
     for url in dl_urls:
         try:
             r = s.get(url, timeout=300)
@@ -655,6 +664,7 @@ def _cissm_fetch_remote():
             print("  [cissm] %s returned %s but no usable rows" % (url, ctype or "unknown type"))
         except Exception as exc:                              # noqa: BLE001
             print("  [cissm] download %s failed: %s" % (url, str(exc)[:90]))
+    CISSM_DIAG = "authenticated, but no download endpoint matched - set CISSM_DOWNLOAD_URL"
     print("  [cissm] authenticated but no download endpoint matched")
     return None
 
@@ -669,9 +679,9 @@ def build_cissm():
         path = MANUAL_DIR / "cissm.csv"
         if not path.exists():
             raise RuntimeError(
-                "no portal download and no manual_sources/cissm.csv. Either set the "
-                "CISSM_USER/CISSM_PASS secrets, or export the CSV from "
-                "cybereventsdatabase.org and commit it to manual_sources/cissm.csv")
+                "%s | no manual_sources/cissm.csv either. Fix the workflow env: block, "
+                "or export the CSV from cybereventsdatabase.org and commit it to "
+                "manual_sources/cissm.csv" % (CISSM_DIAG or "portal download unavailable"))
         rows = list(csv.DictReader(io.StringIO(
             path.read_text(encoding="utf-8", errors="replace"))))
         print("  [cissm] using manual export (%d rows)" % len(rows))
@@ -886,11 +896,16 @@ def build_reports():
 # Runner
 # ===========================================================================
 def count_rows(data):
+    """Row count for the manifest. Handles the several shapes connectors return."""
     if isinstance(data, dict):
         if "rows" in data and isinstance(data["rows"], list):
             return len(data["rows"])
+        if isinstance(data.get("months"), dict):        # CVE volume series
+            return len(data["months"])
+        if isinstance(data.get("techniques"), list):    # ATT&CK bundle
+            return len(data["techniques"]) + len(data.get("groups", []))
         if data and all(isinstance(v, list) for v in data.values()):
-            return sum(len(v) for v in data.values())
+            return sum(len(v) for v in data.values())   # month -> list (rwlive)
         return len(data)
     return len(data)
 
@@ -926,7 +941,7 @@ def main():
             print("[error] %s failed: %s - previous output left in place" % (src.id, exc))
             entries.append({"id": src.id, "title": src.title, "table": src.table,
                             "licence": src.licence, "homepage": src.homepage,
-                            "status": "failed: %s" % str(exc)[:120], "rows": 0})
+                            "status": "failed: %s" % str(exc)[:300], "rows": 0})
 
     tables = {}
 
