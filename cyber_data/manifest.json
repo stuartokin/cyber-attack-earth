@@ -1,6 +1,8 @@
 {
  "schema": 3,
- "generated": "2026-07-23T06:55:01+00:00",
+ "builder": "3.5.0",
+ "builder_date": "2026-07-23",
+ "generated": "2026-07-23T17:54:03+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -115,14 +117,16 @@
       "rows": 2
      }
     },
-    "rwlive": "incidents/rwlive.json"
+    "rwlive": "incidents/rwlive.json",
+    "cissm": "incidents/cissm.json"
    },
    "counts": {
     "eurepoc": 4296,
     "vcdb": 10362,
-    "rwlive": 21298
+    "rwlive": 21299,
+    "cissm": 17169
    },
-   "total": 35956
+   "total": 53126
   },
   "vulns": {
    "files": {
@@ -132,12 +136,12 @@
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17182,
+     "rows": 17183,
      "min_score": 0.1
     },
     "cve": {
      "file": "vulns/cve.json",
-     "months": 123
+     "months": 139
     }
    }
   },
@@ -176,8 +180,9 @@
    "homepage": "https://eurepoc.eu/",
    "cadence": "on release",
    "status": "ok",
+   "expected": 4300,
    "rows": 4296,
-   "seconds": 2.0
+   "seconds": 3.1
   },
   {
    "id": "vcdb",
@@ -187,8 +192,9 @@
    "homepage": "https://verisframework.org/vcdb.html",
    "cadence": "weekly",
    "status": "ok",
+   "expected": 10400,
    "rows": 10362,
-   "seconds": 5.4
+   "seconds": 4.7
   },
   {
    "id": "rwlive",
@@ -198,8 +204,9 @@
    "homepage": "https://www.ransomware.live/about",
    "cadence": "daily",
    "status": "ok",
-   "rows": 21298,
-   "seconds": 173.1
+   "expected": 21000,
+   "rows": 21299,
+   "seconds": 159.7
   },
   {
    "id": "kev",
@@ -209,8 +216,9 @@
    "homepage": "https://www.cisa.gov/known-exploited-vulnerabilities-catalog",
    "cadence": "daily",
    "status": "ok",
+   "expected": 1650,
    "rows": 1653,
-   "seconds": 0.1
+   "seconds": 0.2
   },
   {
    "id": "epss",
@@ -220,8 +228,9 @@
    "homepage": "https://www.first.org/epss/",
    "cadence": "daily",
    "status": "ok",
-   "rows": 17182,
-   "seconds": 0.9
+   "expected": 17000,
+   "rows": 17183,
+   "seconds": 1.0
   },
   {
    "id": "attack",
@@ -231,8 +240,9 @@
    "homepage": "https://attack.mitre.org/",
    "cadence": "on release",
    "status": "ok",
+   "expected": 870,
    "rows": 871,
-   "seconds": 0.5
+   "seconds": 0.6
   },
   {
    "id": "icsadv",
@@ -242,8 +252,9 @@
    "homepage": "https://www.icsadvisoryproject.com/",
    "cadence": "weekly",
    "status": "ok",
+   "expected": 3800,
    "rows": 3895,
-   "seconds": 0.4
+   "seconds": 0.8
   },
   {
    "id": "cissm",
@@ -251,8 +262,11 @@
    "table": "incidents",
    "licence": "Access granted by CISSM on request - do not redistribute raw records",
    "homepage": "https://cybereventsdatabase.org",
-   "status": "failed: credentials seen but none of 16 login paths worked - the portal login flow differs; see the [cissm] log lines | no manual_sources/cissm.csv either. Fix the workflow env: block, or export the CSV from cybereventsdatabase.org and commit it to manual_sources/cissm.csv",
-   "rows": 0
+   "cadence": "manual export",
+   "status": "ok",
+   "expected": 17169,
+   "rows": 17169,
+   "seconds": 0.2
   },
   {
    "id": "cve",
@@ -262,8 +276,9 @@
    "homepage": "https://nvd.nist.gov/",
    "cadence": "daily",
    "status": "ok",
-   "rows": 123,
-   "seconds": 264.5
+   "expected": 320,
+   "rows": 139,
+   "seconds": 272.4
   },
   {
    "id": "reports",
@@ -273,6 +288,7 @@
    "homepage": "",
    "cadence": "manual",
    "status": "ok",
+   "expected": 15,
    "rows": 15,
    "seconds": 0.0
   }
