@@ -241,6 +241,13 @@
     .frameFloating{position:fixed!important;top:auto;right:auto;box-shadow:0 24px 60px rgba(0,0,0,.6);border-color:#4a6a92}.sourceLinks a{font-size:11px;color:var(--accent);text-decoration:none;border:1px solid #315171;border-radius:999px;padding:4px 7px}.sourceLinks a:hover{background:#102b42}
     .sourceToggle{display:flex;align-items:flex-start;gap:8px;margin:8px 0;color:var(--text)}.sourceToggle input{margin-top:3px}
     .warningBox{border-left:3px solid var(--orange);background:rgba(255,157,60,.08);padding:9px 11px;border-radius:6px;font-size:11.5px;color:#d7e1ef;line-height:1.55}
+    #frame-caveats{width:430px}
+    #frame-caveats .frameBody p{font-size:12px;line-height:1.6;color:#c9d8ec;margin:0 0 9px}
+    #frame-caveats .frameBody b{color:#fff}
+    #frame-caveats h3{font-size:13px;margin:14px 0 7px;color:#dbe7f5}
+    #frame-caveats a{color:var(--accent)}
+    .caveatList{margin:0 0 9px;padding-left:18px;display:grid;gap:7px}
+    .caveatList li{font-size:12px;line-height:1.55;color:#c9d8ec}
     .attribBox{font-size:11.5px;color:#a8bcd6;line-height:1.55;background:rgba(16,32,57,.35);border:1px solid #223a58;border-radius:9px;padding:9px 11px}
     .attribBox p{margin:0 0 7px}.attribBox p:last-of-type{margin-bottom:0}
     .attribBox b{color:#dbe7f5}
@@ -288,6 +295,7 @@
     <button class="tbBtn" data-frame="details" type="button" title="Details — visible counts, rankings and the significant incident" aria-label="Details"><span class="tbIco">▤</span><span class="tbLabel">Details</span></button>
     <button class="tbBtn" data-frame="search" type="button" title="Search — look up an attack or threat group and jump to it" aria-label="Search"><span class="tbIco">🔍</span><span class="tbLabel">Search</span></button>
     <button class="tbBtn" data-frame="charts" type="button" title="Charts — incident, KEV, ICS advisory and EPSS charts" aria-label="Charts"><span class="tbIco">📊</span><span class="tbLabel">Charts</span></button>
+    <button class="tbBtn" data-frame="caveats" type="button" title="Reading the data — what these severity figures can and cannot show" aria-label="Reading the data"><span class="tbIco">⚠</span><span class="tbLabel">Caveats</span></button>
     <button class="tbBtn" data-frame="sources" type="button" title="Sources & info — data layers, methodology, licences and about" aria-label="Sources and info"><span class="tbIco">ⓘ</span><span class="tbLabel">Sources</span></button>
   </div>
   <div id="frames">
@@ -351,11 +359,11 @@
         <details class="ctlSec" data-sec="severity">
           <summary>Severity <span class="secBadge" id="badgeSeverity"></span></summary>
           <div class="ctlBody">
-        <p class="small" style="margin:0 0 6px">How much damage each source recorded. Medium and Low start switched off because there are so many of them &mdash; tick them to see everything.</p>
+        <p class="small" style="margin:0 0 6px">How much damage each source recorded. Low starts switched off because there are so many of them &mdash; tick it to see everything. On a slower device the map may offer to drop Medium too.</p>
         <div class="checks">
           <label title="Sustained disruption to an essential service, or damage at national scale."><input class="severity" type="checkbox" value="Critical" checked> Critical</label>
           <label title="Serious operational or financial harm to a major organisation."><input class="severity" type="checkbox" value="High" checked> High</label>
-          <label title="Meaningful breach or outage, contained to one organisation."><input class="severity" type="checkbox" value="Medium"> Medium</label>
+          <label title="Meaningful breach or outage, contained to one organisation."><input class="severity" type="checkbox" value="Medium" checked> Medium</label>
           <label title="Limited or largely nuisance impact, or very little detail recorded."><input class="severity" type="checkbox" value="Low"> Low</label>
         </div>
           </div>
@@ -445,6 +453,28 @@
         <div class="frameBody">
         <p class="small" style="margin-top:0">These charts follow whatever you have chosen in <b>Controls</b> — change a filter and they redraw. The reference charts lower down (known-exploited vulnerabilities, industrial control advisories, published vulnerabilities) describe the wider landscape and are <i>not</i> affected by your filters.</p>
         <div id="chartsBody"></div>
+        </div>
+      </section>
+
+      <section class="frame hidden" id="frame-caveats" aria-label="Reading the data">
+        <div class="frameHead"><h2>Reading the data</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Reading the data" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Reading the data">&#215;</button></span></div>
+        <div class="frameBody">
+          <h3 style="margin-top:0">Severity is shaped by who has done the coding</h3>
+          <p>In this dataset, <b>Critical</b> severity can only originate from EuRepoC or a small hand-curated layer. The VERIS Community Database caps at High, and ransomware leak-site claims are coded Medium unless the victim was widely reported.</p>
+          <p>EuRepoC's <b>fully expert-reviewed</b> release covers incidents up to <b>31 December 2024</b>. Anything after that date comes from their live TableView working data, which EuRepoC state is <b>not fully expert-reviewed</b> &mdash; and most of those records are still marked as being coded rather than finished. Recent months are also dominated by ransomware leak-site claims.</p>
+          <p><b>So any apparent change in Critical and High severity after 2024 reflects coding lag, coding status and source composition. It should not be read as a change in real-world severity.</b></p>
+          <p>The <a href="#" data-open-chart="coverage">Where the data comes from, by year</a> chart shows this composition directly, and every incident card states which layer and coding status it came from.</p>
+
+          <h3>Six other things worth knowing</h3>
+          <ul class="caveatList">
+            <li><b>These are documented incidents, not all attacks.</b> The overwhelming majority are never publicly disclosed or catalogued.</li>
+            <li><b>Growth partly reflects better recording.</b> Disclosure regimes, breach notification laws and dataset coverage all expanded over this period. Some of the rise is real; some is improved measurement. The two cannot be cleanly separated.</li>
+            <li><b>Coverage is uneven by geography.</b> Countries with mandatory disclosure and active research communities appear far more often. A sparse region means sparse <i>reporting</i>, not safety.</li>
+            <li><b>Attacker origins are usually proxies.</b> Where a country is shown as an origin it generally reflects public attribution, an indictment, sanctions or an ecosystem association &mdash; not a verified launch location.</li>
+            <li><b>Leak-site claims are unverified.</b> They are the attacker's own account, and some claimed victims dispute them.</li>
+            <li><b>Vulnerability counts are context, not attacks.</b> The CVE and KEV series measure attack surface and known exploitation, not incidents.</li>
+          </ul>
+          <p class="small" style="margin-bottom:0">Built as a personal project. Nothing here represents the views of any employer or organisation.</p>
         </div>
       </section>
 
@@ -2145,18 +2175,26 @@ async function loadRansomwareLive(progressCb,stopIdx){
    default to High+Critical severity and a tighter missile cap so playback stays smooth — and say so,
    with a one-tap revert. Never overrides choices the user has already made. ── */
 const IS_MOBILE=(matchMedia("(pointer:coarse)").matches&&matchMedia("(max-width:1050px)").matches);
-if(IS_MOBILE)window.__perfCap=450;
+/* "Less powerful" is not the same as "a phone" - an older laptop struggles too. Take
+   the processor count and reported memory into account where the browser offers them. */
+const LOW_POWER=(()=>{
+ try{
+   const cores=navigator.hardwareConcurrency||0, mem=navigator.deviceMemory||0;
+   return IS_MOBILE||(cores>0&&cores<=4)||(mem>0&&mem<=4);
+ }catch(e){ return IS_MOBILE }
+})();
+if(LOW_POWER)window.__perfCap=IS_MOBILE?450:700;
 let userTouchedFilters=false, mobilePerfApplied=false;
 document.querySelectorAll(".severity,.sector").forEach(x=>x.addEventListener("change",()=>{userTouchedFilters=true}));
 function maybeMobilePerfDefaults(){
- if(!IS_MOBILE||mobilePerfApplied||userTouchedFilters||attacks.length<8000)return;
+ if(!LOW_POWER||mobilePerfApplied||userTouchedFilters||attacks.length<8000)return;
  mobilePerfApplied=true;
  document.querySelectorAll(".severity").forEach(x=>{x.checked=(x.value==="Critical"||x.value==="High")});
  if(densityMode)densityMode.value="performance";
  markHistoDirty(); update();
  const t=document.createElement("div");
  t.style.cssText="position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:70;max-width:min(480px,calc(100% - 24px));background:rgba(5,12,25,.97);border:1px solid #34506f;border-radius:12px;padding:10px 13px;font-size:12px;line-height:1.5;color:#dbe7f5;box-shadow:0 10px 34px rgba(0,0,0,.45)";
- t.innerHTML='<b>Performance mode for this device</b> — with the full dataset loaded, this screen now shows <b>High & Critical</b> severity with a tighter missile cap so playback stays smooth. Counts and the histogram reflect this filter. <button id="perfShowAll" style="margin-top:7px">Show everything anyway</button> <button id="perfDismiss" style="margin-top:7px">OK</button>';
+ t.innerHTML='<b>Lighter settings for this device</b> — the full dataset is loaded, so <b>Medium</b> severity has been switched off and the missile cap tightened to keep playback smooth. Critical and High are still shown, and the counts and histogram reflect that filter. Turn Medium back on in Controls whenever you like. <button id="perfShowAll" style="margin-top:7px">Show everything anyway</button> <button id="perfDismiss" style="margin-top:7px">OK</button>';
  document.getElementById("stage").appendChild(t);
  t.querySelector("#perfDismiss").addEventListener("click",()=>t.remove());
  t.querySelector("#perfShowAll").addEventListener("click",()=>{
@@ -2876,7 +2914,7 @@ document.getElementById("resetDefaults").addEventListener("click",()=>{
  selectedCountries.clear();
  sectorOptOut.clear();typeOptOut.clear();
  document.querySelectorAll(".sector").forEach(x=>x.checked=true);
- document.querySelectorAll(".severity").forEach(x=>{x.checked=(x.value==="Critical"||x.value==="High")});
+ document.querySelectorAll(".severity").forEach(x=>{x.checked=(x.value!=="Low")});
  document.getElementById("showUnattributed").checked=true;
  document.getElementById("showExercise").checked=false;
  document.getElementById("skipEmpty").checked=true;
@@ -2961,6 +2999,10 @@ escToggle.addEventListener("click",()=>{
  escToggle.setAttribute("aria-expanded",String(open));
  escToggle.classList.toggle("on",open);
 });
+document.querySelectorAll("[data-open-chart]").forEach(a=>a.addEventListener("click",e=>{
+ e.preventDefault();
+ openChartFrame(a.getAttribute("data-open-chart"));
+}));
 document.getElementById("countrySearch").addEventListener("input",renderCountryList);
 document.getElementById("countryMode").addEventListener("change",()=>{renderCountrySelected();markHistoDirty();update()});
 document.getElementById("countryNone").addEventListener("click",()=>{selectedCountries.clear();renderCountryList();renderCountrySelected();markHistoDirty();update()});
