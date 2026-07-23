@@ -137,6 +137,17 @@
     .sigHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
     .sigPause{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:0}.sigPause input{margin:0}
     .sectorHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
+    .ctlSec{border:1px solid #1e3350;border-radius:9px;margin-bottom:7px;background:rgba(10,22,38,.45)}
+    .ctlSec>summary{cursor:pointer;list-style:none;padding:9px 11px;font-size:13px;font-weight:600;
+      color:#dbe7f5;display:flex;align-items:center;gap:8px;user-select:none}
+    .ctlSec>summary::-webkit-details-marker{display:none}
+    .ctlSec>summary::before{content:"\25b8";color:#5f7a9c;font-size:11px;transition:transform .15s}
+    .ctlSec[open]>summary::before{transform:rotate(90deg)}
+    .ctlSec[open]>summary{border-bottom:1px solid #1e3350}
+    .ctlSec>summary:hover{color:#fff}
+    .secBadge{margin-left:auto;font-size:10.5px;font-weight:400;color:#7f95b4;white-space:nowrap}
+    .ctlBody{padding:10px 11px 12px}
+    .ctlBody>h2:first-child{margin-top:0}
     .countryChecks{max-height:190px;overflow:auto;border:1px solid #1e3350;border-radius:8px;padding:6px;margin-top:6px}
     .countryChecks label{display:flex;gap:7px;align-items:center;font-size:12px;padding:2px 0}
     .countryChecks .cnt{margin-left:auto;color:#7f95b4;font-size:10.5px;font-variant-numeric:tabular-nums}
@@ -163,6 +174,9 @@
     .lgVal{color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
     .lgMove{min-width:2.6em;text-align:right;font-size:10px;font-variant-numeric:tabular-nums}
     .lgMove.up{color:#4ee6a5}.lgMove.down{color:#ff6b78}.lgMove.new{color:var(--accent)}
+    .leagueToggle{width:100%;margin-top:6px;background:rgba(10,22,38,.75);border:1px solid #2c4666;
+      border-radius:8px;padding:7px;font-size:11.5px;color:var(--accent)}
+    .leagueToggle:hover{background:rgba(20,38,63,.85)}
     .chartPicks{display:grid;gap:6px;margin:6px 0 4px}
     .chartPick{display:grid;grid-template-columns:1fr auto;gap:2px 10px;text-align:left;
       background:rgba(10,22,38,.75);border:1px solid #1e3350;border-radius:9px;padding:8px 10px;width:100%}
@@ -253,7 +267,11 @@
       <section class="frame hidden" id="frame-controls" aria-label="Controls">
         <div class="frameHead"><h2>Controls</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Controls" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Controls">&#215;</button></span></div>
         <div class="frameBody">
-        <h2 style="margin-top:0">Display</h2>
+        <div class="btnrow" style="margin:0 0 10px"><button id="resetDefaults" class="primary" type="button" style="width:100%">&#8635; Reset everything to defaults</button></div>
+
+        <details class="ctlSec" data-sec="display" open>
+          <summary>Display <span class="secBadge" id="badgeDisplay"></span></summary>
+          <div class="ctlBody">
         <p class="small" style="margin:0 0 8px">Each missile is one publicly documented attack, flying from where it was attributed to where it landed.</p>
         <div class="btnrow" style="margin-bottom:10px">
           <button id="sphereBtn" class="primary">Sphere</button>
@@ -297,25 +315,45 @@
         <label class="form-check" style="display:flex;gap:8px;align-items:center">
           <input id="skipEmpty" type="checkbox" checked /> Skip months with no attacks when playing
         </label>
-        <div class="btnrow" style="margin-top:10px"><button id="resetDefaults" type="button">Reset everything to defaults</button></div>
+          </div>
+        </details>
 
-        <h2>Severity</h2>
+        <details class="ctlSec" data-sec="severity">
+          <summary>Severity <span class="secBadge" id="badgeSeverity"></span></summary>
+          <div class="ctlBody">
         <p class="small" style="margin:0 0 6px">How much damage each source recorded. Medium and Low start switched off because there are so many of them &mdash; tick them to see everything.</p>
         <div class="checks">
-          <label><input class="severity" type="checkbox" value="Critical" checked> Critical</label>
-          <label><input class="severity" type="checkbox" value="High" checked> High</label>
-          <label><input class="severity" type="checkbox" value="Medium"> Medium</label>
-          <label><input class="severity" type="checkbox" value="Low"> Low</label>
+          <label title="Sustained disruption to an essential service, or damage at national scale."><input class="severity" type="checkbox" value="Critical" checked> Critical</label>
+          <label title="Serious operational or financial harm to a major organisation."><input class="severity" type="checkbox" value="High" checked> High</label>
+          <label title="Meaningful breach or outage, contained to one organisation."><input class="severity" type="checkbox" value="Medium"> Medium</label>
+          <label title="Limited or largely nuisance impact, or very little detail recorded."><input class="severity" type="checkbox" value="Low"> Low</label>
         </div>
+          </div>
+        </details>
 
-        <div class="sectorHead"><h2 style="margin:0">Sector</h2><span class="miniLinks"><button id="sectorAll" type="button">Select all</button><button id="sectorNone" type="button">Clear all</button></span></div>
+        <details class="ctlSec" data-sec="sector">
+          <summary>Sector <span class="secBadge" id="badgeSector"></span></summary>
+          <div class="ctlBody">
+        <div class="miniLinks" style="margin-bottom:4px"><button id="sectorAll" type="button">Select all</button><button id="sectorNone" type="button">Clear all</button><button id="sectorCNI" type="button" title="Energy, water, transport, health, government, telecoms, finance and manufacturing">Critical infrastructure only</button></div>
+        <p class="small" style="margin:2px 0 6px">Hold or hover a sector to see what it covers.</p>
         <div id="sectorChecks" class="checks"></div>
+          </div>
+        </details>
 
-        <h2>Attack type</h2>
-        <select id="typeFilter"><option value="">All attack types</option></select>
+        <details class="ctlSec" data-sec="type">
+          <summary>Attack type <span class="secBadge" id="badgeType"></span></summary>
+          <div class="ctlBody">
+        <div class="miniLinks" style="margin-bottom:4px"><button id="typeAll" type="button">Select all</button><button id="typeNone" type="button">Clear all</button></div>
+        <p class="small" style="margin:2px 0 6px">Hold or hover a type to see what it means.</p>
+        <div id="typeChecks" class="checks"></div>
+          </div>
+        </details>
 
-        <div class="sectorHead"><h2 style="margin:0">Countries</h2><span class="miniLinks"><button id="countryNone" type="button">Clear</button></span></div>
-        <div class="miniLinks" style="flex-wrap:wrap;margin:4px 0 2px">
+        <details class="ctlSec" data-sec="countries">
+          <summary>Countries <span class="secBadge" id="badgeCountry"></span></summary>
+          <div class="ctlBody">
+        <div class="miniLinks" style="flex-wrap:wrap;margin:0 0 4px">
+          <button id="countryNone" type="button">Clear</button>
           <button class="regionBtn" data-region="Europe" type="button">+ Europe</button>
           <button class="regionBtn" data-region="Asia" type="button">+ Asia</button>
           <button class="regionBtn" data-region="Middle East" type="button">+ Middle East</button>
@@ -331,9 +369,11 @@
           <option value="victim">Attacks on them (as victim)</option>
           <option value="origin">Attacks from them (as origin)</option>
         </select>
-        <input id="countrySearch" type="text" placeholder="Find a country…" autocomplete="off" style="margin-top:7px" />
+        <input id="countrySearch" type="text" placeholder="Find a country\u2026" autocomplete="off" style="margin-top:7px" />
         <div id="countryChecks" class="checks countryChecks"></div>
         <div id="countrySelected" class="small" style="margin-top:5px"></div>
+          </div>
+        </details>
         </div>
       </section>
 
@@ -687,8 +727,9 @@ const SOURCE_CATALOGUE=[
 ];
 /* Every mapped layer is on by default. This previously listed only three names, so
    Ransomware.live and CISSM data loaded but was silently filtered out of the map. */
-const enabledSources=new Set(["Curated primary-source incidents","EuRepoC Global Dataset v1.3",
-  "VERIS Community Database","Ransomware.live leak-site monitoring","CISSM Cyber Events Database"]);
+const DEFAULT_SOURCE_LAYERS=["Curated primary-source incidents","EuRepoC Global Dataset v1.3",
+  "VERIS Community Database","Ransomware.live leak-site monitoring","CISSM Cyber Events Database"];
+const enabledSources=new Set(DEFAULT_SOURCE_LAYERS);
 // Curated records use several publisher names in `source`; keep them available as one resilient local layer.
 const RESEARCH_SOURCE_NAMES=new Set(["EuRepoC Global Dataset v1.3","VERIS Community Database","Ransomware.live leak-site monitoring","CISSM Cyber Events Database"]);
 function sourceLayerName(a){ return RESEARCH_SOURCE_NAMES.has(a.source)?a.source:"Curated primary-source incidents"; }
@@ -758,7 +799,73 @@ const resetBtn=document.getElementById("resetBtn");
 const sphereBtn=document.getElementById("sphereBtn");
 const flatBtn=document.getElementById("flatBtn");
 const viewMode=document.getElementById("viewMode");
-const typeFilter=document.getElementById("typeFilter");
+const typeChecks=document.getElementById("typeChecks");
+/* Plain-English help for the sector and attack-type filters. Several sectors are
+   all "critical infrastructure", which is not obvious from the label alone. */
+const CNI_SECTORS=["Energy","Utilities","Water","Transport","Healthcare","Government",
+                   "Telecoms","Finance","Manufacturing","Defence","Nuclear","Chemicals"];
+const SECTOR_HELP={
+ "Energy":"Electricity, gas and oil \u2014 generation, networks and supply. Critical infrastructure.",
+ "Utilities":"Water, waste and other essential utilities. Critical infrastructure.",
+ "Water":"Water treatment and supply, including wastewater. Critical infrastructure.",
+ "Transport":"Rail, aviation, shipping, ports and logistics. Critical infrastructure.",
+ "Healthcare":"Hospitals, clinics, medical devices and health data. Critical infrastructure.",
+ "Government":"Central and local government, public administration and agencies. Critical infrastructure.",
+ "Defence":"Armed forces, defence industry and military suppliers. Critical infrastructure.",
+ "Telecoms":"Fixed and mobile networks, internet service providers. Critical infrastructure.",
+ "Finance":"Banks, insurers, payment systems and markets. Critical infrastructure.",
+ "Manufacturing":"Industrial production, including plant control systems. Often critical infrastructure.",
+ "Nuclear":"Nuclear generation, fuel and waste handling. Critical infrastructure.",
+ "Chemicals":"Chemical production and storage. Critical infrastructure.",
+ "Technology":"Software, cloud, hardware and IT service providers \u2014 often the route into others.",
+ "Education":"Schools, colleges, universities and research institutions.",
+ "Retail":"Shops, e-commerce and consumer services.",
+ "Media":"Broadcasters, publishers and news organisations.",
+ "Legal":"Law firms and legal services.",
+ "Nonprofit":"Charities, NGOs and civil-society organisations.",
+ "Other":"Sectors that did not map cleanly to the groups above.",
+ "Unknown":"No sector recorded in the source data."
+};
+const TYPE_HELP=[
+ [/ransomware|extortion/i,"Files encrypted or stolen, with a payment demanded. Leak-site entries are the attacker's own claim."],
+ [/espionage|spying|intelligence/i,"Covert access to steal information rather than cause damage \u2014 usually state-linked."],
+ [/disrupt|destruct|wiper|sabotage/i,"Intended to stop something working or destroy data, not to steal it."],
+ [/hacktivis|defac/i,"Politically or ideologically motivated, often defacement or noisy but shallow disruption."],
+ [/ddos|denial of service/i,"Flooding a service with traffic so legitimate users cannot reach it."],
+ [/supply chain|third.?party/i,"Compromise reached the victim through a supplier, vendor or software update."],
+ [/phish|social/i,"People were tricked into giving access or credentials."],
+ [/malware|trojan|backdoor/i,"Malicious software installed on the victim's systems."],
+ [/exploit|vulnerab/i,"A software flaw was used to gain access."],
+ [/insider|misuse/i,"Someone with legitimate access misused it."],
+ [/data breach|exposure|leak/i,"Information was exposed or taken, whether deliberately or by mistake."],
+ [/fraud|financial/i,"Theft or manipulation for direct financial gain."],
+ [/exercise|test|simulat/i,"A drill or test, not a real attack. Off by default."],
+ [/unknown|other|uncategor/i,"The source did not record a specific attack type."]
+];
+function typeHelp(t){
+ const s=String(t||"");
+ for(const [re,txt] of TYPE_HELP)if(re.test(s))return txt;
+ return "Attack type as recorded by the source dataset.";
+}
+function sectorHelp(s){
+ return SECTOR_HELP[s]||(CNI_SECTORS.includes(s)
+   ? "Critical infrastructure sector."
+   : "Sector as normalised from the source dataset.");
+}
+/* Users opt individual types OUT. Anything new that appears later (the type list
+   grows as more sources load) therefore arrives switched ON, rather than being
+   silently excluded because it did not exist when the list was last built. */
+const typeOptOut=new Set(), sectorOptOut=new Set();
+function checkedTypes(){
+ const boxes=document.querySelectorAll(".atype");
+ if(!boxes.length)return null;                 // list not built yet: do not filter
+ return [...boxes].filter(x=>x.checked).map(x=>x.value);
+}
+function checkedSectors(){
+ const boxes=document.querySelectorAll(".sector");
+ if(!boxes.length)return null;
+ return [...boxes].filter(x=>x.checked).map(x=>x.value);
+}
 const sectorChecks=document.getElementById("sectorChecks");
 const yearLabel=document.getElementById("yearLabel");
 const yearBig=document.getElementById("yearBig");
@@ -809,13 +916,22 @@ async function initFlatMap(){
 }
 function refreshFilterOptions(){
  const priorSectors=new Set(checked("sector"));
- const priorType=typeFilter.value;
+
  const sectors=[...new Set(attacks.map(a=>a.sector).filter(Boolean))].sort();
  const types=[...new Set(attacks.map(a=>a.type).filter(Boolean))].sort();
- sectorChecks.innerHTML=sectors.map(s=>`<label><input class="sector" type="checkbox" value="${s}" ${priorSectors.size===0||priorSectors.has(s)?"checked":""}> ${s}</label>`).join("");
- typeFilter.innerHTML='<option value="">All attack types</option>'+types.map(t=>`<option>${t}</option>`).join("");
- if(types.includes(priorType)) typeFilter.value=priorType;
- sectorChecks.querySelectorAll("input").forEach(x=>x.addEventListener("change",()=>{markHistoDirty();update()}));
+ sectorChecks.innerHTML=sectors.map(s=>`<label title="${sectorHelp(s).replace(/"/g,"&quot;")}"><input class="sector" type="checkbox" value="${s}" ${sectorOptOut.has(s)?"":"checked"}> ${s}</label>`).join("");
+ typeChecks.innerHTML=types.map(t=>{
+   const on=!typeOptOut.has(t);
+   return `<label title="${typeHelp(t).replace(/"/g,"&quot;")}"><input class="atype" type="checkbox" value="${String(t).replace(/"/g,"&quot;")}" ${on?"checked":""}> ${t}</label>`;
+ }).join("");
+ typeChecks.querySelectorAll("input").forEach(x=>x.addEventListener("change",()=>{
+   x.checked?typeOptOut.delete(x.value):typeOptOut.add(x.value);
+   markHistoDirty();update();updateBadges();
+ }));
+ sectorChecks.querySelectorAll("input").forEach(x=>x.addEventListener("change",()=>{
+   x.checked?sectorOptOut.delete(x.value):sectorOptOut.add(x.value);
+   markHistoDirty();update();updateBadges();
+ }));
  renderCountryList();renderCountrySelected();
 }
 refreshFilterOptions();
@@ -878,7 +994,7 @@ function renderCountrySelected(){
    window: "timeline" is what the map shows right now; "period" is everything in the
    selected year range, used by charts set to show the finished result. */
 function passesFilters(a,when){
- const sev=checked("severity"), sec=checked("sector"), type=typeFilter.value;
+ const sev=checked("severity"), sec=checkedSectors(), types=checkedTypes();
  const cumulative=document.getElementById("cumulative").checked;
  const showUnattr=document.getElementById("showUnattributed").checked;
  const showEx=document.getElementById("showExercise").checked;
@@ -888,7 +1004,7 @@ function passesFilters(a,when){
    ? (i>=viewStartIdx&&i<=Math.min(viewEndIdx,endTimelineIndex))
    : (cumulative?i<=timelineIndex:i===timelineIndex);
  return enabledSources.has(sourceLayerName(a))&&inTime&&sev.includes(a.severity)&&
-   sec.includes(a.sector)&&(!type||a.type===type)&&
+   (sec===null||sec.includes(a.sector))&&(types===null||types.includes(a.type))&&
    (showUnattr||!isUnattributed(a))&&(showEx||!isExercise(a))&&countryPass(a)&&
    (!q||Object.values(a).join(" ").toLowerCase().includes(q));
 }
@@ -951,6 +1067,7 @@ function update(){
  renderEscalation();
  updateSignificant(data);
  refreshOpenCharts();
+ if(typeof updateBadges==="function")updateBadges();
  const cf=document.getElementById("frame-charts");
  if(cf&&!cf.classList.contains("hidden"))renderChartsMenu();
 }
@@ -985,11 +1102,11 @@ const histoEl=document.getElementById("histo");
 const escMeta=document.getElementById("escMeta");
 let histoCounts=[],histoPrefix=[],histoDirty=true;
 function histoFiltered(){
- const sev=checked("severity"),sec=checked("sector"),type=typeFilter.value;
+ const sev=checked("severity"),sec=checkedSectors(),types=checkedTypes();
  const q=search.value.trim().toLowerCase();
  const showUnattr=document.getElementById("showUnattributed").checked;
  const showEx=document.getElementById("showExercise").checked;
- return attacks.filter(a=>enabledSources.has(sourceLayerName(a))&&sev.includes(a.severity)&&sec.includes(a.sector)&&(!type||a.type===type)&&(showUnattr||!isUnattributed(a))&&(showEx||!isExercise(a))&&countryPass(a)&&(!q||Object.values(a).join(" ").toLowerCase().includes(q)));
+ return attacks.filter(a=>enabledSources.has(sourceLayerName(a))&&sev.includes(a.severity)&&(sec===null||sec.includes(a.sector))&&(types===null||types.includes(a.type))&&(showUnattr||!isUnattributed(a))&&(showEx||!isExercise(a))&&countryPass(a)&&(!q||Object.values(a).join(" ").toLowerCase().includes(q)));
 }
 function computeHistoCounts(){
  histoCounts=new Array(endTimelineIndex+1).fill(0);
@@ -1187,14 +1304,14 @@ function victimCountryKey(a){
 function heatSourceData(){
  // Same filters as the map (including the country picker), accumulating from the start
  // of the visible window up to the current month — so countries redden as attacks land.
- const sev=checked("severity"), sec=checked("sector"), type=typeFilter.value;
+ const sev=checked("severity"), sec=checkedSectors(), types=checkedTypes();
  const q=document.getElementById("search").value.trim().toLowerCase();
  const showUnattr=document.getElementById("showUnattributed").checked;
  const showEx=document.getElementById("showExercise").checked;
  return attacks.filter(a=>{
    const i=idx(a.year,a.month);
    return enabledSources.has(sourceLayerName(a)) && i>=viewStartIdx && i<=timelineIndex
-     && sev.includes(a.severity) && sec.includes(a.sector) && (!type||a.type===type)
+     && sev.includes(a.severity) && (sec===null||sec.includes(a.sector)) && (types===null||types.includes(a.type))
      && (showUnattr||!isUnattributed(a)) && (showEx||!isExercise(a)) && countryPass(a)
      && (!q||Object.values(a).join(" ").toLowerCase().includes(q));
  });
@@ -1501,6 +1618,9 @@ function incidentKey(a){
  return `${a.year}-${a.month}-${a.victimISO||a.victimCountry}-${n}`;
 }
 function mergeAndDedupe(rows){
+ // Canonicalise country names before matching, so "US" and "United States" are one country.
+ arguments.length&&Array.from(arguments).forEach(x=>{if(Array.isArray(x))normaliseAttackCountries(x)});
+
  const map=new Map();
  for(const a of rows){
    const key=incidentKey(a), prior=map.get(key);
@@ -1584,6 +1704,83 @@ function exportVisibleCsv(){
 /* ── Country centroids for country-level victim placement (ISO2 → name, ISO numeric, lat, lng) ── */
 const ISO2_GEO={US:["United States","840",39.8,-98.6],GB:["United Kingdom","826",54.6,-2.6],CA:["Canada","124",56.1,-106.3],MX:["Mexico","484",23.6,-102.5],BR:["Brazil","076",-10.8,-52.9],AR:["Argentina","032",-35.4,-65.2],CL:["Chile","152",-33.5,-70.9],CO:["Colombia","170",4.6,-74.1],PE:["Peru","604",-9.2,-75.0],EC:["Ecuador","218",-1.8,-78.2],VE:["Venezuela","862",6.4,-66.6],UY:["Uruguay","858",-32.5,-55.8],PY:["Paraguay","600",-23.4,-58.4],BO:["Bolivia","068",-16.3,-63.6],CR:["Costa Rica","188",9.7,-83.8],PA:["Panama","591",8.5,-80.8],GT:["Guatemala","320",15.8,-90.2],DO:["Dominican Republic","214",18.7,-70.2],DE:["Germany","276",51.2,10.4],FR:["France","250",46.2,2.2],IT:["Italy","380",42.8,12.5],ES:["Spain","724",40.5,-3.7],PT:["Portugal","620",39.6,-8.0],NL:["Netherlands","528",52.1,5.3],BE:["Belgium","056",50.6,4.7],CH:["Switzerland","756",46.8,8.2],AT:["Austria","040",47.6,14.1],IE:["Ireland","372",53.4,-8.2],SE:["Sweden","752",62.2,17.6],NO:["Norway","578",64.6,12.7],DK:["Denmark","208",56.0,10.0],FI:["Finland","246",64.5,26.3],IS:["Iceland","352",64.9,-19.0],PL:["Poland","616",52.1,19.4],CZ:["Czechia","203",49.8,15.3],SK:["Slovakia","703",48.7,19.7],HU:["Hungary","348",47.2,19.4],RO:["Romania","642",45.9,25.0],BG:["Bulgaria","100",42.8,25.2],GR:["Greece","300",39.1,22.9],HR:["Croatia","191",45.1,15.2],SI:["Slovenia","705",46.1,14.8],RS:["Serbia","688",44.2,20.8],AL:["Albania","008",41.1,20.1],UA:["Ukraine","804",49.0,31.4],MD:["Moldova","498",47.2,28.5],EE:["Estonia","233",58.7,25.5],LV:["Latvia","428",56.9,24.9],LT:["Lithuania","440",55.3,23.9],RU:["Russia","643",61.5,99.5],TR:["Türkiye","792",39.1,35.4],CY:["Cyprus","196",35.0,33.2],MT:["Malta","470",35.9,14.4],LU:["Luxembourg","442",49.8,6.1],IL:["Israel","376",31.4,35.0],SA:["Saudi Arabia","682",24.1,44.5],AE:["United Arab Emirates","784",23.9,54.3],QA:["Qatar","634",25.3,51.2],KW:["Kuwait","414",29.3,47.6],BH:["Bahrain","048",26.0,50.5],OM:["Oman","512",20.6,56.1],JO:["Jordan","400",31.3,36.8],LB:["Lebanon","422",33.9,35.9],IQ:["Iraq","368",33.0,43.7],IR:["Iran","364",32.6,54.3],EG:["Egypt","818",26.6,29.8],MA:["Morocco","504",31.9,-6.3],TN:["Tunisia","788",34.1,9.6],DZ:["Algeria","012",28.2,2.6],LY:["Libya","434",27.0,17.3],ZA:["South Africa","710",-29.0,25.1],NG:["Nigeria","566",9.6,8.1],KE:["Kenya","404",0.6,37.8],GH:["Ghana","288",7.9,-1.2],ET:["Ethiopia","231",8.6,39.6],TZ:["Tanzania","834",-6.3,34.8],UG:["Uganda","800",1.3,32.4],SN:["Senegal","686",14.4,-14.5],CI:["Côte d'Ivoire","384",7.6,-5.6],CM:["Cameroon","120",5.7,12.7],ZM:["Zambia","894",-13.5,27.8],ZW:["Zimbabwe","716",-19.0,29.9],BW:["Botswana","072",-22.2,23.8],NA:["Namibia","516",-22.1,17.2],MZ:["Mozambique","508",-17.3,35.5],AO:["Angola","024",-12.3,17.5],RW:["Rwanda","646",-2.0,29.9],MU:["Mauritius","480",-20.2,57.6],LR:["Liberia","430",6.5,-9.4],CN:["China","156",35.9,104.2],JP:["Japan","392",36.6,138.2],KR:["South Korea","410",36.4,127.9],KP:["North Korea","408",40.3,127.2],IN:["India","356",22.9,79.6],PK:["Pakistan","586",29.9,69.4],BD:["Bangladesh","050",23.7,90.4],LK:["Sri Lanka","144",7.6,80.7],NP:["Nepal","524",28.3,84.1],TH:["Thailand","764",15.1,101.0],VN:["Vietnam","704",16.6,106.3],MY:["Malaysia","458",3.8,109.7],SG:["Singapore","702",1.35,103.8],ID:["Indonesia","360",-2.2,117.3],PH:["Philippines","608",12.9,122.9],MM:["Myanmar","104",21.2,96.5],KH:["Cambodia","116",12.7,104.9],TW:["Taiwan","158",23.7,121.0],HK:["Hong Kong","344",22.3,114.2],MN:["Mongolia","496",46.8,103.1],KZ:["Kazakhstan","398",48.2,66.9],UZ:["Uzbekistan","860",41.8,63.1],GE:["Georgia","268",42.2,43.5],AM:["Armenia","051",40.3,45.0],AZ:["Azerbaijan","031",40.3,47.5],AU:["Australia","036",-25.7,134.5],NZ:["New Zealand","554",-41.8,172.8],FJ:["Fiji","242",-17.8,178.0],PG:["Papua New Guinea","598",-6.5,145.3]};
 function iso2Geo(cc){const g=ISO2_GEO[String(cc||"").toUpperCase()];return g?{name:g[0],num:g[1],lat:g[2],lng:g[3]}:null}
+/* Sources disagree on how to name a country: VCDB codes them ("US", "RU"),
+   others spell them out, and several use older or alternative forms. Everything is
+   funnelled through one canonical name so a country appears once in the filters,
+   once in the league tables, and accumulates a single heat value. */
+const COUNTRY_ALIASES={
+ "USA":"United States","U.S.":"United States","U.S.A.":"United States","US":"United States",
+ "UNITED STATES OF AMERICA":"United States","AMERICA":"United States",
+ "UK":"United Kingdom","GREAT BRITAIN":"United Kingdom","BRITAIN":"United Kingdom",
+ "ENGLAND":"United Kingdom","SCOTLAND":"United Kingdom","WALES":"United Kingdom",
+ "NORTHERN IRELAND":"United Kingdom",
+ "RUSSIAN FEDERATION":"Russia","USSR":"Russia","SOVIET UNION":"Russia",
+ "KOREA, REPUBLIC OF":"South Korea","REPUBLIC OF KOREA":"South Korea","KOREA SOUTH":"South Korea",
+ "KOREA, DEMOCRATIC PEOPLE'S REPUBLIC OF":"North Korea","DPRK":"North Korea","KOREA NORTH":"North Korea",
+ "IRAN, ISLAMIC REPUBLIC OF":"Iran","ISLAMIC REPUBLIC OF IRAN":"Iran",
+ "SYRIAN ARAB REPUBLIC":"Syria","VIET NAM":"Vietnam","CZECH REPUBLIC":"Czechia",
+ "T\u00dcRKIYE":"Turkey","TURKIYE":"Turkey",
+ "PEOPLE'S REPUBLIC OF CHINA":"China","PRC":"China","MAINLAND CHINA":"China",
+ "HONG KONG SAR":"Hong Kong","MACAO":"Macau",
+ "TAIWAN, PROVINCE OF CHINA":"Taiwan","CHINESE TAIPEI":"Taiwan",
+ "REPUBLIC OF IRELAND":"Ireland","EIRE":"Ireland",
+ "HOLLAND":"Netherlands","THE NETHERLANDS":"Netherlands",
+ "UAE":"United Arab Emirates","U.A.E.":"United Arab Emirates",
+ "BOLIVIA, PLURINATIONAL STATE OF":"Bolivia","VENEZUELA, BOLIVARIAN REPUBLIC OF":"Venezuela",
+ "TANZANIA, UNITED REPUBLIC OF":"Tanzania","MOLDOVA, REPUBLIC OF":"Moldova",
+ "CONGO, THE DEMOCRATIC REPUBLIC OF THE":"Democratic Republic of the Congo",
+ "COTE D'IVOIRE":"C\u00f4te d'Ivoire","IVORY COAST":"C\u00f4te d'Ivoire",
+ "LAO PEOPLE'S DEMOCRATIC REPUBLIC":"Laos","BRUNEI DARUSSALAM":"Brunei",
+ "MYANMAR (BURMA)":"Myanmar","BURMA":"Myanmar",
+ "PALESTINE, STATE OF":"Palestine","PALESTINIAN TERRITORIES":"Palestine",
+ "MACEDONIA":"North Macedonia","SWAZILAND":"Eswatini","CAPE VERDE":"Cabo Verde",
+ "WORLDWIDE":"Multiple countries","GLOBAL":"Multiple countries","MULTIPLE":"Multiple countries",
+ "N/A":"","NONE":"","UNKNOWN":"Unknown / unattributed"
+};
+const _canonCache=new Map();
+function canonicalCountry(x){
+ const raw=String(x==null?"":x).trim();
+ if(!raw)return "";
+ if(_canonCache.has(raw))return _canonCache.get(raw);
+ let out=raw;
+ const up=raw.toUpperCase();
+ if(/^unknown|unattributed/i.test(raw))out="Unknown / unattributed";
+ else if(COUNTRY_ALIASES[up]!==undefined)out=COUNTRY_ALIASES[up];
+ else if(/^[A-Za-z]{2}$/.test(raw)){                 // ISO-3166 alpha-2 such as "US"
+   const g=ISO2_GEO[up];
+   out=g?g[0]:raw.toUpperCase();
+ }else{
+   // tolerate spelling/case drift against the known name list
+   const hit=canonNames().get(up.replace(/[^A-Z]/g,""));
+   if(hit)out=hit;
+ }
+ _canonCache.set(raw,out);
+ return out;
+}
+let _canonNames=null;
+function canonNames(){
+ if(_canonNames)return _canonNames;
+ _canonNames=new Map();
+ Object.keys(ISO2_GEO).forEach(k=>{
+   const n=ISO2_GEO[k][0];
+   _canonNames.set(String(n).toUpperCase().replace(/[^A-Z]/g,""),n);
+ });
+ return _canonNames;
+}
+/* Applied once to every attack, whatever source it came from. */
+function normaliseAttackCountries(list){
+ (list||[]).forEach(a=>{
+   if(!a)return;
+   const v=canonicalCountry(a.victimCountry);
+   if(v)a.victimCountry=v;
+   const o=canonicalCountry(a.originCountry);
+   if(o)a.originCountry=o;
+   if(a.victimCity&&/^[A-Z]{2} \(country-level\)$/.test(a.victimCity))
+     a.victimCity=`${a.victimCountry} (country-level)`;
+ });
+ return list;
+}
+normaliseAttackCountries(attacks);   // the embedded curated layer, now that helpers exist
 
 /* ── Ransomware.live live layer: leak-site victim claims for recent months ── */
 const RWLIVE_API="https://api.ransomware.live/v2";
@@ -2052,7 +2249,8 @@ launchSeq.addEventListener("click",()=>{
  play();
 });
 resetBtn.addEventListener("click",()=>{
- search.value=""; typeFilter.value=""; cumulative.checked=true; viewMode.value="attacks";
+ search.value=""; typeOptOut.clear(); sectorOptOut.clear();
+ document.querySelectorAll(".atype").forEach(x=>x.checked=true); cumulative.checked=true; viewMode.value="attacks";
  selectedCountries.clear();renderCountryList();renderCountrySelected();
  document.querySelectorAll(".severity,.sector").forEach(x=>x.checked=true);document.getElementById("showUnattributed").checked=true;document.getElementById("showExercise").checked=false;document.getElementById("sigPause").checked=false;sigLocked=false;significantShown=null;impactLabel.classList.add("hidden");attackDrawer.classList.add("hidden");selectedAttack=null;markHistoDirty();setTimeline(defaultTimelineIndex);
 });
@@ -2290,7 +2488,13 @@ function buildRangePickers(){
    s.insertAdjacentHTML("beforeend",`<option value="${y}">${y}</option>`);
    e.insertAdjacentHTML("beforeend",`<option value="${y}">${y}</option>`);
  }
- s.value=String(startYear); e.value=String(lastYear);
+ // Open on the same window the timeline starts in, so the chart is legible from
+ // the first frame rather than showing 26 hair-thin years.
+ s.value=String(fromIdx(defaultTimelineIndex).year);
+ e.value=String(lastYear);
+ viewStartIdx=Math.max(0,idx(+s.value,1));
+ viewEndIdx=idx(+e.value,12);
+ yearSlider.min=String(viewStartIdx); yearSlider.max=String(playEnd());
  const apply=()=>{
    let a=+s.value,b=+e.value;
    if(a>b){ if(this===s)b=a; else a=b; s.value=String(a); e.value=String(b); }
@@ -2325,6 +2529,7 @@ document.getElementById("skipEmpty").addEventListener("change",()=>{markHistoDir
 document.getElementById("resetDefaults").addEventListener("click",()=>{
  pausePlayback();
  selectedCountries.clear();
+ sectorOptOut.clear();typeOptOut.clear();
  document.querySelectorAll(".sector").forEach(x=>x.checked=true);
  document.querySelectorAll(".severity").forEach(x=>{x.checked=(x.value==="Critical"||x.value==="High")});
  document.getElementById("showUnattributed").checked=true;
@@ -2335,25 +2540,71 @@ document.getElementById("resetDefaults").addEventListener("click",()=>{
  document.getElementById("cities").checked=true;
  document.getElementById("showTrend").checked=true;
  document.getElementById("sigPause").checked=false;
- typeFilter.value=""; viewMode.value="attacks"; speed.value="3000";
- densityMode.value=(window.__perfCap&&window.__perfCap<900)?"performance":"full";
+ document.querySelectorAll(".atype").forEach(x=>x.checked=true); viewMode.value="attacks"; speed.value="3000";
+ densityMode.value="full";      // matches the markup default, i.e. genuine first-load state
  document.getElementById("histoOverlay").value="";
  document.getElementById("countryMode").value="between";
  document.getElementById("countrySearch").value="";
  document.getElementById("search").value="";
  const s=document.getElementById("rangeStart"), e=document.getElementById("rangeEnd");
- s.value=String(startYear); e.value=String(fromIdx(endTimelineIndex).year);
- viewStartIdx=0; viewEndIdx=idx(fromIdx(endTimelineIndex).year,12);
- yearSlider.min="0"; yearSlider.max=String(playEnd());
+ s.value=String(fromIdx(defaultTimelineIndex).year);
+ e.value=String(fromIdx(endTimelineIndex).year);
+ viewStartIdx=Math.max(0,idx(+s.value,1));
+ viewEndIdx=idx(+e.value,12);
+ yearSlider.min=String(viewStartIdx); yearSlider.max=String(playEnd());
+ // everything else that first load sets
+ mapMode="sphere"; setMapMode&&setMapMode("sphere");
+ Object.keys(CHART_MODE).forEach(k=>delete CHART_MODE[k]);
+ Object.keys(CHART_LAST_RANK).forEach(k=>delete CHART_LAST_RANK[k]);
+ Object.keys(CHART_TOPONLY).forEach(k=>delete CHART_TOPONLY[k]);
+ enabledSources.clear();
+ DEFAULT_SOURCE_LAYERS.forEach(n=>enabledSources.add(n));
+ document.querySelectorAll("#sourceLayerControls input").forEach(i=>{i.checked=true});
+ document.querySelectorAll(".ctlSec").forEach(d=>{d.open=(d.dataset.sec==="display")});
+ document.getElementById("histoOverlay").value="";
+ refreshOpenCharts();
  sigLocked=false; significantShown=null;
  renderCountryList(); renderCountrySelected(); markHistoDirty();
  setTimeline(defaultTimelineIndex);
 });
+document.getElementById("typeAll").addEventListener("click",()=>{typeOptOut.clear();document.querySelectorAll(".atype").forEach(x=>x.checked=true);markHistoDirty();update();updateBadges()});
+document.getElementById("typeNone").addEventListener("click",()=>{document.querySelectorAll(".atype").forEach(x=>{x.checked=false;typeOptOut.add(x.value)});markHistoDirty();update();updateBadges()});
+document.getElementById("sectorCNI").addEventListener("click",()=>{
+ document.querySelectorAll(".sector").forEach(x=>{
+   x.checked=CNI_SECTORS.includes(x.value);
+   x.checked?sectorOptOut.delete(x.value):sectorOptOut.add(x.value);
+ });
+ markHistoDirty();update();updateBadges();
+});
+/* Section headers carry a short state summary, so a collapsed section still tells
+   you whether it is filtering anything. */
+function updateBadges(){
+ const b=(id,txt)=>{const el=document.getElementById(id);if(el)el.textContent=txt};
+ const nSev=document.querySelectorAll(".severity:checked").length,
+       tSev=document.querySelectorAll(".severity").length;
+ b("badgeSeverity",nSev===tSev?"all":`${nSev} of ${tSev}`);
+ const nSec=document.querySelectorAll(".sector:checked").length,
+       tSec=document.querySelectorAll(".sector").length;
+ b("badgeSector",!tSec?"":nSec===tSec?"all":`${nSec} of ${tSec}`);
+ const nTy=document.querySelectorAll(".atype:checked").length,
+       tTy=document.querySelectorAll(".atype").length;
+ b("badgeType",!tTy?"":nTy===tTy?"all":`${nTy} of ${tTy}`);
+ b("badgeCountry",selectedCountries.size?`${selectedCountries.size} picked`:"worldwide");
+ const bits=[];
+ if(!document.getElementById("cumulative").checked)bits.push("single month");
+ if(!document.getElementById("heatToggle").checked)bits.push("no shading");
+ if(document.getElementById("showExercise").checked)bits.push("exercises on");
+ if(!document.getElementById("showUnattributed").checked)bits.push("attributed only");
+ b("badgeDisplay",bits.length?bits.join(" \u00b7 "):(mapMode==="flat"?"flat map":"globe"));
+}
+document.querySelectorAll("#frame-controls input,#frame-controls select").forEach(el=>{
+ el.addEventListener("change",()=>setTimeout(updateBadges,0));
+});
 document.getElementById("countrySearch").addEventListener("input",renderCountryList);
 document.getElementById("countryMode").addEventListener("change",()=>{renderCountrySelected();markHistoDirty();update()});
 document.getElementById("countryNone").addEventListener("click",()=>{selectedCountries.clear();renderCountryList();renderCountrySelected();markHistoDirty();update()});
-document.getElementById("sectorAll").addEventListener("click",()=>{document.querySelectorAll(".sector").forEach(x=>x.checked=true);markHistoDirty();update()});
-document.getElementById("sectorNone").addEventListener("click",()=>{document.querySelectorAll(".sector").forEach(x=>x.checked=false);markHistoDirty();update()});
+document.getElementById("sectorAll").addEventListener("click",()=>{sectorOptOut.clear();document.querySelectorAll(".sector").forEach(x=>x.checked=true);markHistoDirty();update();updateBadges()});
+document.getElementById("sectorNone").addEventListener("click",()=>{document.querySelectorAll(".sector").forEach(x=>{x.checked=false;sectorOptOut.add(x.value)});markHistoDirty();update();updateBadges()});
 document.getElementById("showUnattributed").addEventListener("change",()=>{markHistoDirty();update()});
 document.getElementById("showExercise").addEventListener("change",()=>{markHistoDirty();update()});
 let sigPauseWasPlaying=false;
@@ -2440,6 +2691,8 @@ function visTally(arr,key){
    selected years and then stays put. */
 const CHART_MODE={};                 // chartId -> "live" | "period"
 const CHART_LAST_RANK={};            // chartId -> {name: rank}
+const CHART_TOPONLY={};              // chartId -> true when collapsed to the top ten
+function topOnly(id){return CHART_TOPONLY[id]!==false}   // collapsed by default
 function chartMode(id){return CHART_MODE[id]||"live"}
 function setChartMode(id,mode){
  CHART_MODE[id]=mode;
@@ -2469,7 +2722,9 @@ function leagueTable(id,key,opts){
  const prev=CHART_LAST_RANK[id]||null;
  const now={};
  rows.forEach(([name],i)=>{now[name]=i+1});
- const body=rows.map(([name,n],i)=>{
+ const collapsed=topOnly(id)&&rows.length>10;
+ const shown=collapsed?rows.slice(0,10):rows;
+ const body=shown.map(([name,n],i)=>{
    const rank=i+1;
    let move="",cls="flat";
    if(mode==="live"&&prev&&prev[name]){
@@ -2487,10 +2742,17 @@ function leagueTable(id,key,opts){
  }).join("");
  if(mode==="live")CHART_LAST_RANK[id]=now;
  const total=rows.reduce((a,b)=>a+b[1],0);
+ const rest=rows.length-shown.length;
+ const toggle=rows.length>10
+   ? `<button class="leagueToggle" type="button" data-for="${id}">${collapsed
+       ? `Show all ${rows.length.toLocaleString()} \u25be`
+       : `Show top ten only \u25b4`}</button>`
+   : "";
  return modeSwitch(id)+
-   `<p class="chartNote" style="margin:6px 0 4px">${scope} ${rows.length.toLocaleString()} entries, ${total.toLocaleString()} attacks.</p>
+   `<p class="chartNote" style="margin:6px 0 4px">${scope} ${rows.length.toLocaleString()} entries, ${total.toLocaleString()} attacks.${collapsed&&rest>0?` Showing the top ten.`:""}</p>
     <div class="league">${body}</div>
-    ${opts.note?`<p class="chartNote">${opts.note}</p>`:""}`;
+    ${toggle}
+    ${opts.note?`<p class="chartNote" style="margin-top:8px">${opts.note}</p>`:""}`;
 }
 const CHART_DEFS=[
  {id:"incidents",title:"Documented incidents / month",group:"filtered",
@@ -2603,6 +2865,11 @@ function renderChartFrame(id){
    const target=b.closest(".modeSwitch").dataset.for;
    setChartMode(target,b.dataset.mode);
  }));
+ host.querySelectorAll(".leagueToggle").forEach(b=>b.addEventListener("click",()=>{
+   const target=b.dataset.for;
+   CHART_TOPONLY[target]=!topOnly(target);
+   renderChartFrame(target);
+ }));
 }
 function refreshOpenCharts(){
  CHART_DEFS.forEach(d=>{
@@ -2698,7 +2965,9 @@ function lookupScopeLine(){
 }
 function runLookup(raw){
  const q=String(raw||"").trim().toLowerCase();
- lookupGroupBox.classList.add("hidden");lookupGroupBox.innerHTML="";
+ // Closing as well as clearing: leaving the window open with no content was the
+ // stray "Threat group" frame.
+ lookupGroupBox.innerHTML="";closeFrame("group");
  if(q.length<2){lookupResults.innerHTML=lookupScopeLine()+'<p class="small">Type at least two characters. Try an attack name (“NotPetya”), a group (“Lazarus”), or a country.</p>';return}
  const groups=distinctGroups(q);
  const incidents=attacks.filter(a=>{
@@ -2733,7 +3002,10 @@ function ensureVisibleFor(a){
  // Show just this incident's month. Turning cumulative ON here used to render every
  // attack since 2000 at once, which froze the browser on large datasets.
  document.getElementById("cumulative").checked=false;
- if(typeFilter.value&&typeFilter.value!==a.type)typeFilter.value="";
+ const tb=[...document.querySelectorAll(".atype")].find(x=>x.value===a.type);
+ if(tb&&!tb.checked){tb.checked=true;typeOptOut.delete(a.type)}
+ const sb=[...document.querySelectorAll(".sector")].find(x=>x.value===a.sector);
+ if(sb&&!sb.checked){sb.checked=true;sectorOptOut.delete(a.sector)}
  markHistoDirty();
 }
 function navigateToIncident(id){
