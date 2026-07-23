@@ -460,7 +460,7 @@ window.__LITE=/[?&]lite=1/.test(location.search);
  document.body.appendChild(overlay);
  function diagText(){
   const ds=document.getElementById("dataStatus");
-  return ["=== Cyber Attack Earth v17 diagnostics ===",
+  return ["=== Cyber Attack Earth v32 diagnostics ===",
    "UA: "+navigator.userAgent,
    "Screen: "+screen.width+"x"+screen.height+" dpr "+devicePixelRatio,
    "URL: "+location.href,
@@ -1104,10 +1104,15 @@ function showDetail(a){
  if(mapMode==="sphere"){
    impactLabel.style.left="52%"; impactLabel.style.top="46%";
    globe.pointOfView({lat:a.endLat,lng:a.endLng,altitude:1.15},900);
- } else {
+ } else if(typeof flatProjection==="function"){
+   // Guarded: the flat map may not have finished building (slow or blocked CDN).
    const p=flatProjection([a.endLng,a.endLat]);
-   impactLabel.style.left=`${Math.min(78,Math.max(8,p[0]/10))}%`;
-   impactLabel.style.top=`${Math.min(78,Math.max(10,p[1]/5.2))}%`;
+   if(p){
+     impactLabel.style.left=`${Math.min(78,Math.max(8,p[0]/10))}%`;
+     impactLabel.style.top=`${Math.min(78,Math.max(10,p[1]/5.2))}%`;
+   }
+ } else {
+   impactLabel.style.left="50%"; impactLabel.style.top="45%";
  }
 }
 
@@ -1143,22 +1148,28 @@ function applySphereHeat(){
  window.globe.polygonCapColor(f=>{if(!heatToggle||!heatToggle.checked)return "rgba(16,33,59,.72)";const id=String(f.id??f.properties?.iso_n3??"").padStart(3,"0"),n=counts[id]||0;if(!n)return "rgba(16,33,59,.72)";const c=d3.color(heatColor(n,max));return c?`rgba(${c.r},${c.g},${c.b},.88)`:"rgba(16,33,59,.72)"}).polygonSideColor(()=>"rgba(8,18,34,.20)").polygonStrokeColor(()=>"rgba(110,160,210,.22)");
 }
 function renderFlat(data){
- if(!flatZoomLayer) return;
+ // Guard both globals: if the flat map has not finished building, drawing into it
+ // throws and takes the whole update cycle down with it.
+ if(!flatZoomLayer||typeof flatProjection!=="function") return;
  const hits=heatCounts(); const mx=Math.max(1,...Object.values(hits));
  flatZoomLayer.selectAll(".country").style("fill",d=>heatColor(hits[String(d.id).padStart(3,"0")]||0,mx));
  flatZoomLayer.selectAll(".flat-attack-layer").remove();
  const layer=flatZoomLayer.append("g").attr("class","flat-attack-layer");
- // Label the neutral ocean anchor used for attacks with no known origin.
- if(mode==="attacks"&&data.some(isUnattributed)){
-   const anc=flatProjection([-30,0]);
-   const g=layer.append("g").attr("class","flat-unknown-anchor");
-   g.append("circle").attr("cx",anc[0]).attr("cy",anc[1]).attr("r",5)
-     .attr("fill","none").attr("stroke","#ff9d3c").attr("stroke-width",1.4).attr("opacity",.9);
-   g.append("text").attr("x",anc[0]).attr("y",anc[1]-9).attr("text-anchor","middle")
-     .attr("fill","#ff9d3c").attr("font-size",9).attr("font-weight",700)
-     .text("Unknown / unattributed origin");
- }
  const mode=viewMode.value;
+ // Label the neutral ocean anchor used for attacks with no known origin, so it does
+ // not read as "an attack from the middle of the Atlantic".
+ const flatUnattr=(mode==="attacks")?data.filter(isUnattributed).length:0;
+ if(flatUnattr){
+   const anc=flatProjection([-30,0]);
+   if(anc){
+     const g=layer.append("g").attr("class","flat-unknown-anchor");
+     g.append("circle").attr("cx",anc[0]).attr("cy",anc[1]).attr("r",5)
+       .attr("fill","none").attr("stroke","#ff9d3c").attr("stroke-width",1.4).attr("opacity",.9);
+     g.append("text").attr("x",anc[0]).attr("y",anc[1]-9).attr("text-anchor","middle")
+       .attr("fill","#ff9d3c").attr("font-size",9).attr("font-weight",700)
+       .text("Unknown / unattributed origin \u00b7 "+flatUnattr.toLocaleString());
+   }
+ }
  if(mode==="attacks"){
    const flightMs=Math.min(850,Math.max(160,(+speed.value||1000)*0.82));
    const paths=layer.selectAll("path.flat-arc").data(data).join("path")

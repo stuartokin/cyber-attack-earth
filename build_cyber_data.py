@@ -408,108 +408,117 @@ ICSAP_DIR = "ICS-CERT_ADV"
         licence="Open Database Licence (ODbL) v1.0 - attribution + share-alike",
         cadence="weekly", homepage="https://www.icsadvisoryproject.com/")
 def build_icsadv():
-    # The consolidated CSV filename is versioned, so enumerate and take the newest.
+    """Pull the full ICS advisory archive.
+
+    The repository publishes several CSVs: usually a consolidated/master file plus
+    per-year or per-release files. Taking only the newest filename gave a single
+    year (~400 rows) instead of the whole history, so this now prefers a master
+    file if one exists and otherwise merges every CSV, de-duplicating by advisory ID.
+    """
     listing = get_json("https://api.github.com/repos/%s/contents/%s"
                        % (ICSAP_REPO, ICSAP_DIR), timeout=60)
-    csvs = sorted([f for f in listing if f["name"].lower().endswith(".csv")],
-                  key=lambda f: f["name"])
+    csvs = [f for f in listing if f["name"].lower().endswith(".csv")]
     if not csvs:
         raise RuntimeError("no CSV found in ICS Advisory Project repo")
-    newest = csvs[-1]
-    print("  [icsadv] using %s" % newest["name"])
-    text = get(newest["download_url"], timeout=180).content.decode("utf-8", "replace")
-    rdr = csv.DictReader(io.StringIO(text))
-    header = rdr.fieldnames or []
-    print("  [icsadv] header: %s" % (header,))
+    print("  [icsadv] %d CSV files in %s" % (len(csvs), ICSAP_DIR))
 
-    def norm(s):
-        return re.sub(r"[^a-z0-9]+", " ", str(s or "").lower()).strip()
+    # A consolidated file, if the project publishes one, is a single cheap fetch.
+    master = [f for f in csvs
+              if re.search(r"master|consolidat|all[_-]?ics|full|combined", f["name"], re.I)]
+    if master:
+        chosen = sorted(master, key=lambda f: f["name"])[-1:]
+        print("  [icsadv] using consolidated file: %s" % chosen[0]["name"])
+    else:
+        chosen = sorted(csvs, key=lambda f: f["name"])[:60]
+        print("  [icsadv] no consolidated file - merging %d CSVs" % len(chosen))
 
-    normmap = {norm(h): h for h in header if h}
+    def parse_one(text, label):
+        rdr = csv.DictReader(io.StringIO(text))
+        header = rdr.fieldnames or []
+        rows = list(rdr)
+        if not rows:
+            return []
+        find = col_finder(header)
+        col_id = find("ics cert number", "ics cert no", "advisory id",
+                      "advisory number", "id")
+        if not col_id:
+            pat = re.compile(r"^ICS(MA)?A?-\d{2}-\d{3}", re.I)
+            for h in header:
+                hits = sum(1 for r in rows[:60] if pat.match(str(r.get(h) or "").strip()))
+                if hits >= 15:
+                    col_id = h
+                    break
+        if not col_id:
+            print("  [icsadv] %s: could not find an advisory-ID column; header=%s"
+                  % (label, header[:8]))
+            return []
+        col_date = find("original release date", "release date", "date published", "date")
+        col_vendor = find("vendor")
+        col_product = find("product")
+        col_sector = find("critical infrastructure sectors",
+                          "critical infrastructure sector", "ci sector", "sector")
+        col_cve = find("cve", "cves")
+        col_cvss = find("cvss v4 base", "cvss v3 base", "cvss v4", "cvss v3", "cvss")
 
-    def find_col(*cands):
-        """Match a column by normalised name, exact first then substring."""
-        for c in cands:
-            if c in normmap:
-                return normmap[c]
-        for c in cands:
-            for nk, orig in normmap.items():
-                if c in nk or nk in c:
-                    return orig
-        return None
+        def val(row, col, limit=120):
+            return (row.get(col) or "").strip()[:limit] if col else ""
 
-    rows = list(rdr)
-    if not rows:
-        raise RuntimeError("CSV contained no data rows")
+        out = []
+        for row in rows:
+            adv = val(row, col_id, 24)
+            if not adv:
+                continue
+            rel = val(row, col_date, 24)
+            ym = re.search(r"(20\d{2})", rel) or re.search(r"ICS\w*-(\d{2})-", adv)
+            year = None
+            if ym:
+                g = ym.group(1)
+                year = int(g) if len(g) == 4 else 2000 + int(g)
+            iso = ""
+            m1 = re.match(r"(20\d{2})[-/](\d{1,2})[-/](\d{1,2})", rel)
+            m2 = re.match(r"(\d{1,2})[-/](\d{1,2})[-/](20\d{2})", rel)
+            if m1:
+                iso = "%s-%02d-%02d" % (m1.group(1), int(m1.group(2)), int(m1.group(3)))
+            elif m2:
+                iso = "%s-%02d-%02d" % (m2.group(3), int(m2.group(1)), int(m2.group(2)))
+            out.append({
+                "id": adv,
+                "title": val(row, col_product) or val(row, col_vendor),
+                "vendor": val(row, col_vendor, 60),
+                "date": iso or rel[:10],
+                "year": year,
+                "sectors": val(row, col_sector, 160),
+                "cves": val(row, col_cve, 120),
+                "cvss": val(row, col_cvss, 8),
+            })
+        return out
 
-    col_id = find_col("ics cert number", "ics cert no", "advisory id", "advisory number", "id")
-    # Fallback: identify the ID column by its values (ICSA-24-123-01 / ICSMA-…)
-    if not col_id:
-        pat = re.compile(r"^ICS(MA)?A?-\d{2}-\d{3}", re.I)
-        for h in header:
-            hits = sum(1 for r in rows[:60] if pat.match(str(r.get(h) or "").strip()))
-            if hits >= 20:
-                col_id = h
-                print("  [icsadv] ID column detected by value pattern: %r" % h)
-                break
-    if not col_id:
-        print("  [icsadv] sample row: %s" % (rows[0],))
-        raise RuntimeError("could not identify the advisory-ID column (see header/sample above)")
-
-    col_date = find_col("original release date", "release date", "date published", "date")
-    col_vendor = find_col("vendor")
-    col_product = find_col("product")
-    col_sector = find_col("critical infrastructure sectors", "critical infrastructure sector",
-                          "ci sector", "sector")
-    col_cve = find_col("cve", "cves")
-    col_cvss = find_col("cvss v4 base", "cvss v3 base", "cvss v4", "cvss v3", "cvss")
-    print("  [icsadv] columns -> id=%r date=%r vendor=%r product=%r sector=%r cve=%r cvss=%r"
-          % (col_id, col_date, col_vendor, col_product, col_sector, col_cve, col_cvss))
-
-    def val(row, col, limit=120):
-        if not col:
-            return ""
-        return (row.get(col) or "").strip()[:limit]
-
-    out = []
-    for row in rows:
-        adv = val(row, col_id, 24)
-        if not adv:
+    merged, seen, files_used = [], set(), 0
+    for f in chosen:
+        try:
+            text = get(f["download_url"], timeout=180).content.decode("utf-8", "replace")
+        except Exception as exc:                              # noqa: BLE001
+            print("  [icsadv] skip %s (%s)" % (f["name"], str(exc)[:60]))
             continue
-        rel = val(row, col_date, 24)
-        ym = re.search(r"(20\d{2})", rel) or re.search(r"ICS\w*-(\d{2})-", adv)
-        year = None
-        if ym:
-            g = ym.group(1)
-            year = int(g) if len(g) == 4 else 2000 + int(g)
-        # normalise the date to YYYY-MM-DD where possible so charts can bucket it
-        iso = ""
-        m1 = re.match(r"(20\d{2})[-/](\d{1,2})[-/](\d{1,2})", rel)
-        m2 = re.match(r"(\d{1,2})[-/](\d{1,2})[-/](20\d{2})", rel)
-        if m1:
-            iso = "%s-%02d-%02d" % (m1.group(1), int(m1.group(2)), int(m1.group(3)))
-        elif m2:
-            iso = "%s-%02d-%02d" % (m2.group(3), int(m2.group(1)), int(m2.group(2)))
-        out.append({
-            "id": adv,
-            "title": val(row, col_product) or val(row, col_vendor),
-            "vendor": val(row, col_vendor, 60),
-            "date": iso or rel[:10],
-            "year": year,
-            "sectors": val(row, col_sector, 160),
-            "cves": val(row, col_cve, 120),
-            "cvss": val(row, col_cvss, 8),
-        })
-    seen, dedup = set(), []
-    for a in out:
-        if a["id"] in seen:
-            continue
-        seen.add(a["id"])
-        dedup.append(a)
-    print("  [icsadv] %d product rows -> %d distinct advisories" % (len(out), len(dedup)))
-    if not dedup:
+        rows = parse_one(text, f["name"])
+        added = 0
+        for a in rows:
+            if a["id"] in seen:
+                continue
+            seen.add(a["id"])
+            merged.append(a)
+            added += 1
+        files_used += 1
+        if added:
+            print("  [icsadv] %s: %d rows, %d new (running total %d)"
+                  % (f["name"], len(rows), added, len(merged)))
+    years = sorted({a["year"] for a in merged if a["year"]})
+    print("  [icsadv] %d files read -> %d distinct advisories, %s-%s"
+          % (files_used, len(merged),
+             years[0] if years else "?", years[-1] if years else "?"))
+    if not merged:
         raise RuntimeError("zero advisories parsed")
-    return dedup
+    return merged
 
 
 # ===========================================================================
@@ -563,9 +572,12 @@ def col_finder(header):
 # and tells you exactly what it saw. Optional overrides if the paths move:
 #       CISSM_LOGIN_URL, CISSM_DOWNLOAD_URL
 CISSM_BASE = "https://cybereventsdatabase.org"
-CISSM_LOGIN_CANDIDATES = ["/api/login", "/login", "/api/auth/login", "/users/sign_in"]
-CISSM_DOWNLOAD_CANDIDATES = ["/api/events/download?format=csv", "/api/events.csv",
-                             "/download/csv", "/api/events?format=json", "/api/events"]
+CISSM_LOGIN_CANDIDATES = ["/api/login", "/api/auth/login", "/api/v1/login", "/login",
+                          "/auth/login", "/users/sign_in", "/api/token", "/api/session"]
+CISSM_DOWNLOAD_CANDIDATES = ["/api/events/download?format=csv", "/api/events/download",
+                             "/api/events.csv", "/api/v1/events?format=csv",
+                             "/download/csv", "/download", "/api/events?format=json",
+                             "/api/events", "/api/v1/events", "/data/export.csv"]
 
 
 def _cissm_rows_from_json(payload):
@@ -581,8 +593,17 @@ def _cissm_fetch_remote():
     """Log in and download. Returns list-of-dicts, or None if the portal path fails."""
     user = os.environ.get("CISSM_USER", "").strip()
     pw = os.environ.get("CISSM_PASS", "")
+    # Be explicit about what reached the process. Setting a repository secret is NOT
+    # enough on its own: the workflow step must also map it into the environment with
+    #   env:
+    #     CISSM_USER: ${{ secrets.CISSM_USER }}
+    #     CISSM_PASS: ${{ secrets.CISSM_PASS }}
+    # If you see "not visible to this step" below, that mapping is what is missing.
+    print("  [cissm] CISSM_USER %s | CISSM_PASS %s"
+          % (("seen (%d chars, ...%s)" % (len(user), user[-12:])) if user
+             else "NOT visible to this step",
+             ("seen (%d chars)" % len(pw)) if pw else "NOT visible to this step"))
     if not (user and pw):
-        print("  [cissm] CISSM_USER / CISSM_PASS not set - skipping portal download")
         return None
     s = requests.Session()
     s.headers.update(UA)
@@ -599,7 +620,9 @@ def _cissm_fetch_remote():
                     print("  [cissm] authenticated via %s (%s)" % (url, payload_key))
                     logged_in = True
                     break
-                print("  [cissm] login attempt %s (%s) -> HTTP %d" % (url, payload_key, r.status_code))
+                print("  [cissm] login %s (%s) -> HTTP %d %s"
+                      % (url, payload_key, r.status_code,
+                         (r.text or "")[:90].replace("\n", " ")))
             except Exception as exc:                          # noqa: BLE001
                 print("  [cissm] login attempt %s failed: %s" % (url, str(exc)[:90]))
         if logged_in:
