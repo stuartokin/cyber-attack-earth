@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.6.1 (2026-07-23) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.6.2 (2026-07-23) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.6.2  CVE per-run fetch cap lifts automatically when NVD_API_KEY is set, so the
+        whole history completes in one run instead of five nights.
  3.6.1  TableView export slimmed to the static release's columns and the EuRepoC
         coding status ("Open" / "Coding finished") carried through to the app.
  3.6.0  EuRepoC TableView manual export supported as a provisional layer covering
@@ -91,7 +93,7 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.6.1"
+BUILDER_VERSION = "3.6.2"
 BUILDER_DATE = "2026-07-23"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
@@ -983,7 +985,13 @@ def build_cissm():
 # ===========================================================================
 NVD_API = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 CVE_REFRESH_MONTHS = 24        # trailing months re-checked every run
-CVE_MAX_FETCH_PER_RUN = 40     # bound the work: history fills in over several runs
+# Without a key NVD allows about 5 requests per 30 seconds, so the backfill has to be
+# spread over several nightly runs. A free NVD_API_KEY raises that to roughly 50 per
+# 30 seconds, which is fast enough to finish the whole history in one run - so the
+# per-run cap lifts automatically when a key is present. Without that, adding the key
+# would speed each request up but still stop after 40 months, which defeats the point.
+CVE_MAX_FETCH_PER_RUN_NOKEY = 40
+CVE_MAX_FETCH_PER_RUN_KEYED = 400
 CVE_MAX_SECONDS = 420          # hard stop, so one slow source cannot stall the build
 
 
@@ -996,6 +1004,9 @@ def build_cve(out_dir=None):
     if key:
         headers["apiKey"] = key
     delay = 0.8 if key else 6.5          # NVD: 50 req/30s with key, 5 req/30s without
+    cap = CVE_MAX_FETCH_PER_RUN_KEYED if key else CVE_MAX_FETCH_PER_RUN_NOKEY
+    print("  [cve] %s (delay %.1fs, up to %d months this run)"
+          % ("API key in use" if key else "no API key - slow mode", delay, cap))
 
     prior = {}
     cache = (out_dir or Path("cyber_data")) / "vulns" / "cve.json"
@@ -1025,9 +1036,10 @@ def build_cve(out_dir=None):
         if keyname in counts and not recent:
             reused += 1
             continue
-        if fetched >= CVE_MAX_FETCH_PER_RUN:
+        if fetched >= cap:
             print("  [cve] per-run fetch cap (%d) reached; remaining history will fill "
-                  "in on later runs" % CVE_MAX_FETCH_PER_RUN)
+                  "in on later runs%s" % (cap,
+                  "" if key else ". Add a free NVD_API_KEY secret to finish in one run"))
             break
         if time.time() - t_start > CVE_MAX_SECONDS:
             print("  [cve] time budget (%ds) reached; stopping this run cleanly"
