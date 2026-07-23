@@ -1,6 +1,6 @@
 {
  "schema": 3,
- "generated": "2026-07-22T23:28:00+00:00",
+ "generated": "2026-07-23T00:03:37+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -137,7 +137,7 @@
     },
     "cve": {
      "file": "vulns/cve.json",
-     "months": 56
+     "months": 75
     }
    }
   },
@@ -177,7 +177,7 @@
    "cadence": "on release",
    "status": "ok",
    "rows": 4296,
-   "seconds": 2.4
+   "seconds": 2.2
   },
   {
    "id": "vcdb",
@@ -188,7 +188,7 @@
    "cadence": "weekly",
    "status": "ok",
    "rows": 10362,
-   "seconds": 5.6
+   "seconds": 5.9
   },
   {
    "id": "rwlive",
@@ -199,7 +199,7 @@
    "cadence": "daily",
    "status": "ok",
    "rows": 21298,
-   "seconds": 156.3
+   "seconds": 169.1
   },
   {
    "id": "kev",
@@ -210,7 +210,7 @@
    "cadence": "daily",
    "status": "ok",
    "rows": 1653,
-   "seconds": 0.3
+   "seconds": 0.1
   },
   {
    "id": "epss",
@@ -221,7 +221,7 @@
    "cadence": "daily",
    "status": "ok",
    "rows": 17182,
-   "seconds": 1.1
+   "seconds": 1.0
   },
   {
    "id": "attack",
@@ -232,7 +232,7 @@
    "cadence": "on release",
    "status": "ok",
    "rows": 871,
-   "seconds": 0.6
+   "seconds": 3.1
   },
   {
    "id": "icsadv",
@@ -243,7 +243,7 @@
    "cadence": "weekly",
    "status": "ok",
    "rows": 394,
-   "seconds": 0.5
+   "seconds": 0.4
   },
   {
    "id": "cissm",
@@ -263,7 +263,7 @@
    "cadence": "daily",
    "status": "ok",
    "rows": 2,
-   "seconds": 267.1
+   "seconds": 303.3
   },
   {
    "id": "reports",
