@@ -241,6 +241,34 @@
     .frameFloating{position:fixed!important;top:auto;right:auto;box-shadow:0 24px 60px rgba(0,0,0,.6);border-color:#4a6a92}.sourceLinks a{font-size:11px;color:var(--accent);text-decoration:none;border:1px solid #315171;border-radius:999px;padding:4px 7px}.sourceLinks a:hover{background:#102b42}
     .sourceToggle{display:flex;align-items:flex-start;gap:8px;margin:8px 0;color:var(--text)}.sourceToggle input{margin-top:3px}
     .warningBox{border-left:3px solid var(--orange);background:rgba(255,157,60,.08);padding:9px 11px;border-radius:6px;font-size:11.5px;color:#d7e1ef;line-height:1.55}
+    #frame-bench{width:440px}
+    .benchSummary{font-size:11.5px;color:#dbe7f5;background:rgba(16,32,57,.5);border:1px solid #223a58;
+      border-radius:9px;padding:8px 10px;margin:8px 0 10px;line-height:1.5}
+    .benchCard{border:1px solid #1e3350;border-left-width:3px;border-radius:9px;padding:9px 11px;
+      margin-bottom:8px;background:rgba(10,22,38,.6)}
+    .benchCard.agrees{border-left-color:#4ee6a5}
+    .benchCard.diverges{border-left-color:var(--orange)}
+    .benchCard.context{border-left-color:#4dd8ff}
+    .benchCard.nodata{border-left-color:#4a5f7d}
+    .benchHead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+    .benchOrg{font-size:12.5px;font-weight:700;color:#fff}
+    .benchTag{font-size:10px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;color:#7f95b4}
+    .benchCard.agrees .benchTag{color:#4ee6a5}
+    .benchCard.diverges .benchTag{color:var(--orange)}
+    .benchPub{font-size:10.5px;color:#7f95b4;margin-bottom:5px}
+    .benchClaim{font-size:12px;line-height:1.55;color:#c9d8ec;margin:0 0 6px}
+    .benchOurs{font-size:11.5px;line-height:1.5;color:#a8bcd6;margin:0 0 6px;
+      padding-left:9px;border-left:2px solid #223a58}
+    .benchMethod summary{cursor:pointer;font-size:10.5px;color:var(--accent);list-style:none}
+    .benchMethod summary::-webkit-details-marker{display:none}
+    .benchMethod>div{font-size:10.5px;color:#7f95b4;line-height:1.55;margin-top:5px}
+    .benchMini{margin-top:9px;border:1px solid #223a58;border-left:3px solid #4dd8ff;border-radius:8px;
+      padding:8px 10px;background:rgba(10,22,38,.55);font-size:11px;color:#a8bcd6;line-height:1.5}
+    .benchMini.agrees{border-left-color:#4ee6a5}
+    .benchMini.diverges{border-left-color:var(--orange)}
+    .benchMiniClaim{color:#c9d8ec;margin-top:4px}
+    .benchMiniOurs{margin-top:4px}
+    .benchMore{margin-top:6px;font-size:10.5px;padding:5px 8px}
     #frame-caveats{width:430px}
     #frame-caveats .frameBody p{font-size:12px;line-height:1.6;color:#c9d8ec;margin:0 0 9px}
     #frame-caveats .frameBody b{color:#fff}
@@ -295,6 +323,7 @@
     <button class="tbBtn" data-frame="details" type="button" title="Details — visible counts, rankings and the significant incident" aria-label="Details"><span class="tbIco">▤</span><span class="tbLabel">Details</span></button>
     <button class="tbBtn" data-frame="search" type="button" title="Search — look up an attack or threat group and jump to it" aria-label="Search"><span class="tbIco">🔍</span><span class="tbLabel">Search</span></button>
     <button class="tbBtn" data-frame="charts" type="button" title="Charts — incident, KEV, ICS advisory and EPSS charts" aria-label="Charts"><span class="tbIco">📊</span><span class="tbLabel">Charts</span></button>
+    <button class="tbBtn" data-frame="bench" type="button" title="Compare against published findings from ENISA, Verizon and Dragos" aria-label="Compare"><span class="tbIco">⚖</span><span class="tbLabel">Compare</span></button>
     <button class="tbBtn" data-frame="caveats" type="button" title="Reading the data — what these severity figures can and cannot show" aria-label="Reading the data"><span class="tbIco">⚠</span><span class="tbLabel">Caveats</span></button>
     <button class="tbBtn" data-frame="sources" type="button" title="Sources & info — data layers, methodology, licences and about" aria-label="Sources and info"><span class="tbIco">ⓘ</span><span class="tbLabel">Sources</span></button>
   </div>
@@ -423,6 +452,7 @@
           <div class="stat"><strong id="impactTotal">0</strong><span>impact score</span></div>
         </div>
         <p id="capNote" class="small" style="color:var(--orange)"></p>
+        <div id="benchContext"></div>
         <h2>Regional coverage</h2>
         <div id="regionCoverage" class="stats" style="grid-template-columns:1fr 1fr"></div>
         <p id="coverageNote" class="small">How the attacks currently on screen are spread around the world.</p>
@@ -454,6 +484,11 @@
         <p class="small" style="margin-top:0">These charts follow whatever you have chosen in <b>Controls</b> — change a filter and they redraw. The reference charts lower down (known-exploited vulnerabilities, industrial control advisories, published vulnerabilities) describe the wider landscape and are <i>not</i> affected by your filters.</p>
         <div id="chartsBody"></div>
         </div>
+      </section>
+
+      <section class="frame hidden" id="frame-bench" aria-label="Compare with published findings">
+        <div class="frameHead"><h2>Compare with published findings</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Compare" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Compare">&#215;</button></span></div>
+        <div class="frameBody"><div id="benchBody"></div></div>
       </section>
 
       <section class="frame hidden" id="frame-caveats" aria-label="Reading the data">
@@ -695,6 +730,123 @@ let attacks = [
 // Oceania, Asia, Middle East) so the embedded dataset is representative even without remote loads.
 // Origins marked "(proxy)" reflect public attribution, ecosystem or member-nationality proxies — not
 // verified launch locations. Sources are stable overview pages; verify links before publication.
+/* ── Published findings, for comparison ───────────────────────────────────
+   Independent analyses of the same problem space, recorded so this tool can be
+   checked against them rather than read in isolation.
+
+   These reports do NOT measure the same thing this map does. Each carries its
+   population, collection method and known biases, because a percentage from
+   incident-response telemetry and a percentage from public disclosure share a
+   label and nothing else. What survives the comparison is RANK and DIRECTION,
+   not magnitude - so those are the only things tested automatically.
+
+   Claims are short factual statements in our own words, with a link to the
+   original. Nothing is reproduced from the reports themselves.
+
+   Findings that CONTRADICT this tool are included deliberately. A comparison
+   panel that only confirms its own output is advocacy, not analysis. */
+const BENCHMARKS=[
+ {
+  id:"enisa25-sector",
+  org:"ENISA", pub:"Threat Landscape 2025", year:2025,
+  url:"https://www.enisa.europa.eu/publications",
+  period:"July 2024 to June 2025",
+  population:"4,875 incidents affecting or relevant to the EU",
+  method:"Open-source reporting, curated by ENISA analysts",
+  bias:"EU-focused. Hacktivist DDoS is heavily represented and inflates volume relative to impact.",
+  claim:"Public administration was the most affected sector at roughly 38% of recorded incidents, with transport second at about 7.5%.",
+  test:{kind:"rank", field:"sector", subject:"Government", within:3, from:"2024-07", to:"2025-06"}
+ },
+ {
+  id:"enisa25-hacktivism",
+  org:"ENISA", pub:"Threat Landscape 2025", year:2025,
+  url:"https://www.enisa.europa.eu/publications",
+  period:"July 2024 to June 2025",
+  population:"4,875 EU-relevant incidents",
+  method:"Open-source reporting, curated by ENISA analysts",
+  bias:"Counts incidents, not impact. ENISA note these campaigns are mostly low-consequence.",
+  claim:"Hacktivist activity made up almost 80% of recorded incidents, driven mainly by low-level denial-of-service operations.",
+  test:{kind:"note"}
+ },
+ {
+  id:"enisa25-lag",
+  org:"ENISA", pub:"Threat Landscape 2025", year:2025,
+  url:"https://www.enisa.europa.eu/publications",
+  period:"July 2024 to June 2025",
+  population:"Methodology note",
+  method:"ENISA's own statement on their dataset",
+  bias:"None - this is a caveat, not a measurement.",
+  claim:"Ransomware and denial-of-service are visible quickly because operators claim them, whereas cyberespionage is typically documented anywhere from six months to more than four years later.",
+  test:{kind:"note"}
+ },
+ {
+  id:"dbir25-ransomware",
+  org:"Verizon", pub:"Data Breach Investigations Report 2025", year:2025,
+  url:"https://www.verizon.com/business/resources/reports/dbir/",
+  period:"Calendar year to publication, April 2025",
+  population:"22,052 incidents and 12,195 confirmed breaches across 139 countries",
+  method:"Contributor telemetry and casework, coded to the VERIS schema",
+  bias:"Reflects what contributing organisations detected and reported. Small and medium businesses are heavily represented.",
+  claim:"Ransomware featured in 44% of confirmed breaches, up from 32% the previous year, and 88% of those breaches affected small and medium businesses.",
+  test:{kind:"direction", field:"type", match:/ransom|extortion/i, from:"2023-01", to:"2024-12", against:{from:"2024-01", to:"2025-12"}, expect:"up"}
+ },
+ {
+  id:"dbir25-thirdparty",
+  org:"Verizon", pub:"Data Breach Investigations Report 2025", year:2025,
+  url:"https://www.verizon.com/business/resources/reports/dbir/",
+  period:"Calendar year to publication, April 2025",
+  population:"12,195 confirmed breaches",
+  method:"Contributor telemetry and casework, VERIS-coded",
+  bias:"Third-party involvement is only visible where the contributor could establish it.",
+  claim:"Breaches involving a third party doubled to 30%, and exploitation of a vulnerability was the way in for about one breach in five.",
+  test:{kind:"note"}
+ },
+ {
+  id:"dragos26-ransomware",
+  org:"Dragos", pub:"OT/ICS Cybersecurity Report 2026 (covering 2025)", year:2026,
+  url:"https://www.dragos.com/ot-cybersecurity-year-in-review/",
+  period:"Calendar year 2025",
+  population:"Around 3,300 industrial organisations affected by ransomware",
+  method:"Dragos platform telemetry, incident response and adversary research",
+  bias:"Industrial and OT focus; reflects Dragos's client base and visibility.",
+  claim:"119 ransomware groups affected industrial organisations, up from 80 the year before, with manufacturing accounting for more than two thirds of victims.",
+  test:{kind:"rank", field:"sector", subject:"Manufacturing", within:3, from:"2025-01", to:"2025-12"}
+ },
+ {
+  id:"dragos26-mischaracterised",
+  org:"Dragos", pub:"OT/ICS Cybersecurity Report 2026 (covering 2025)", year:2026,
+  url:"https://www.dragos.com/ot-cybersecurity-year-in-review/",
+  period:"Calendar year 2025",
+  population:"OT incident response engagements",
+  method:"Dragos incident response casework",
+  bias:"Based on cases where Dragos was engaged, so not a population estimate.",
+  claim:"Dragos report that OT incidents are persistently mischaracterised as affecting IT only, and put average ransomware dwell time in OT environments at 42 days.",
+  test:{kind:"note"}
+ },
+ {
+  id:"dragos26-energy",
+  org:"Dragos", pub:"OT/ICS Cybersecurity Report 2026 (covering 2025)", year:2026,
+  url:"https://www.dragos.com/ot-cybersecurity-year-in-review/",
+  period:"December 2025",
+  population:"Single tracked campaign",
+  method:"Adversary research",
+  bias:"A named campaign, not a statistical claim.",
+  claim:"A threat group tracked as ELECTRUM targeted Polish energy infrastructure, described as the first major coordinated attack against distributed energy resources such as wind and solar at scale.",
+  test:{kind:"note"}
+ },
+ {
+  id:"dragos26-advisories",
+  org:"Dragos", pub:"OT/ICS Cybersecurity Report 2026 (covering 2025)", year:2026,
+  url:"https://www.dragos.com/ot-cybersecurity-year-in-review/",
+  period:"Calendar year 2025",
+  population:"ICS-CERT and NVD vulnerability records",
+  method:"Dragos vulnerability analysis",
+  bias:"Reflects Dragos's own severity model.",
+  claim:"A quarter of ICS-CERT and NVD vulnerabilities carried incorrect severity scores, and about a quarter of advisories offered no patch or mitigation.",
+  test:{kind:"note"}
+ }
+];
+
 const CURATED_EXPANSION=[
 {id:900,exercise:true,year:2025,month:11,name:"NCSC-led national grid cyber exercise (tabletop)",actor:"Simulated adversary (exercise)",leader:"Exercise control cell",originCountry:"Unknown / unattributed",originCity:"Exercise injection",startLat:0,startLng:-30,victimCountry:"United Kingdom",victimISO:"826",victimCity:"London",endLat:51.51,endLng:-0.13,severity:"High",impact:70,sector:"Energy",type:"Exercise / tabletop simulation",confidence:"Exercise",summary:"A simulated multi-vector attack on grid operations run as a preparedness exercise. Not a real incident — included only when 'exercise' filter is enabled.",attribution:"Exercise scenario, not a real event.",source:"Exercise (synthetic)",sourceUrl:""},
 {id:901,exercise:true,year:2024,month:5,name:"Cross-sector ransomware simulation (red-team drill)",actor:"Red team (exercise)",leader:"Exercise control cell",originCountry:"Unknown / unattributed",originCity:"Exercise injection",startLat:0,startLng:-30,victimCountry:"United Kingdom",victimISO:"826",victimCity:"Manchester",endLat:53.48,endLng:-2.24,severity:"Medium",impact:58,sector:"Government",type:"Exercise / red-team drill",confidence:"Exercise",summary:"A simulated ransomware scenario used for decision-authority testing. Not a real incident.",attribution:"Exercise scenario, not a real event.",source:"Exercise (synthetic)",sourceUrl:""},
@@ -1194,6 +1346,7 @@ function update(){
  renderEscalation();
  updateSignificant(data);
  refreshOpenCharts();
+ if(typeof renderContextualBenchmarks==="function")renderContextualBenchmarks();
  if(typeof updateBadges==="function")updateBadges();
  const cf=document.getElementById("frame-charts");
  if(cf&&!cf.classList.contains("hidden"))renderChartsMenu();
@@ -2617,6 +2770,11 @@ function positionFrame(f){
 }
 function openFrame(name){
  const f=frameEl(name); if(!f)return;
+ // Fill the frame BEFORE the empty-body guard runs, or a panel whose content is
+ // generated on demand can never open.
+ if(name==="charts")renderChartsMenu();
+ if(name==="bench")renderBenchmarks();
+ if(name==="sources")renderSourceMenu();
  // Guard against blank windows: content must exist before the frame is shown.
  // Stray empty frames during look-up came from opening before rendering.
  const body=f.querySelector(".frameBody");
@@ -2629,8 +2787,6 @@ function openFrame(name){
  const b=tbBtn(name); if(b)b.classList.add("on");
  f.querySelector(".frameBody").scrollTop=0;
  if(name==="search"){const li=document.getElementById("lookupInput");li.focus();runLookup(li.value)}
- if(name==="charts")renderChartsMenu();
- if(name==="sources")renderSourceMenu();
 }
 function closeFrame(name){
  const f=frameEl(name); if(!f)return;
@@ -3075,6 +3231,127 @@ function svgHBars(pairs,opts){
 function yearTicks(){
  const t=[];for(let y=2000;y<=2025;y+=5)t.push({i:idx(y,1),label:y});return t;
 }
+/* ── Comparing this tool against published findings ────────────────────────
+   Only rank and direction are tested. Magnitudes are deliberately NOT compared:
+   a share of "confirmed breaches in contributor telemetry" and a share of
+   "publicly documented incidents" are different quantities that happen to share
+   a percent sign, and putting them side by side would manufacture disagreement
+   that does not exist. */
+function monthIdxFrom(s){
+ const m=String(s||"").match(/^(\d{4})-(\d{2})$/);
+ return m?idx(+m[1],+m[2]):null;
+}
+function benchWindow(from,to){
+ const a=monthIdxFrom(from), b=monthIdxFrom(to);
+ return {a:(a==null?0:Math.max(0,a)), b:(b==null?endTimelineIndex:Math.min(endTimelineIndex,b))};
+}
+/* Everything in the lake within a window, ignoring the timeline position and the
+   user's filters - a comparison must be against the whole record, not the view. */
+function benchAttacks(from,to){
+ const w=benchWindow(from,to);
+ return attacks.filter(a=>{
+   const i=(a._i!==undefined)?a._i:(a._i=idx(a.year,a.month));
+   return i>=w.a&&i<=w.b;
+ });
+}
+function benchRank(field,subject,from,to){
+ const set=benchAttacks(from,to);
+ if(!set.length)return null;
+ const t={};
+ set.forEach(a=>{const k=a[field];if(k)t[k]=(t[k]||0)+1});
+ const rows=Object.entries(t).sort((x,y)=>y[1]-x[1]);
+ const at=rows.findIndex(r=>r[0]===subject);
+ return {rank:at<0?null:at+1, total:rows.length, count:at<0?0:rows[at][1],
+         top:rows.slice(0,3).map(r=>r[0]), n:set.length};
+}
+function benchDirection(field,match,from,to,against){
+ const count=(f,t)=>benchAttacks(f,t).filter(a=>match.test(String(a[field]||""))).length;
+ const before=count(from,to), after=count(against.from,against.to);
+ const dir=after>before*1.05?"up":after<before*0.95?"down":"flat";
+ return {before,after,dir};
+}
+function evaluateBenchmark(b){
+ const t=b.test||{kind:"note"};
+ try{
+   if(t.kind==="rank"){
+     const r=benchRank(t.field,t.subject,t.from,t.to);
+     if(!r||!r.n)return {verdict:"nodata",text:"No incidents in this window to compare against."};
+     if(r.rank==null)
+       return {verdict:"diverges",
+         text:`In this dataset <b>${t.subject}</b> does not appear in the ${t.field} table for that period at all. Top three here: ${r.top.join(", ")}.`};
+     const ok=r.rank<=t.within;
+     return {verdict:ok?"agrees":"diverges",
+       text:`In this dataset <b>${t.subject}</b> ranks <b>#${r.rank}</b> of ${r.total} by ${t.field} over the same window (${r.count.toLocaleString()} of ${r.n.toLocaleString()} incidents). Top three here: ${r.top.join(", ")}.`};
+   }
+   if(t.kind==="direction"){
+     const d=benchDirection(t.field,t.match,t.from,t.to,t.against);
+     if(!d.before&&!d.after)return {verdict:"nodata",text:"No matching incidents in either window."};
+     const ok=(d.dir===t.expect);
+     const word=d.dir==="up"?"rose":d.dir==="down"?"fell":"was flat";
+     return {verdict:ok?"agrees":"diverges",
+       text:`In this dataset the matching count ${word} across the two windows (${d.before.toLocaleString()} then ${d.after.toLocaleString()}). The report expects it to have gone <b>${t.expect}</b>.`};
+   }
+ }catch(e){ return {verdict:"nodata",text:"Could not evaluate this comparison."} }
+ return {verdict:"context",text:"Recorded for context. This claim is not something this dataset can test."};
+}
+const BENCH_LABEL={agrees:"Agrees on rank",diverges:"Diverges",context:"Context only",nodata:"Not testable here"};
+function renderBenchmarks(){
+ const el=document.getElementById("benchBody");
+ if(!el)return;
+ let agree=0,diverge=0;
+ const cards=BENCHMARKS.map(b=>{
+   const v=evaluateBenchmark(b);
+   if(v.verdict==="agrees")agree++;
+   if(v.verdict==="diverges")diverge++;
+   const label=(b.test&&b.test.kind==="direction"&&v.verdict==="agrees")?"Agrees on direction":BENCH_LABEL[v.verdict];
+   return `<div class="benchCard ${v.verdict}">
+     <div class="benchHead"><span class="benchOrg">${b.org}</span><span class="benchTag">${label}</span></div>
+     <div class="benchPub">${b.pub}</div>
+     <p class="benchClaim">${b.claim}</p>
+     <p class="benchOurs">${v.text}</p>
+     <details class="benchMethod"><summary>How they measured it</summary>
+       <div><b>Population:</b> ${b.population}<br><b>Method:</b> ${b.method}<br>
+       <b>Period:</b> ${b.period}<br><b>Known bias:</b> ${b.bias}</div>
+     </details>
+     <div class="sourceLinks"><a href="${b.url}" target="_blank" rel="noopener">Read the original</a></div>
+   </div>`;
+ }).join("");
+ el.innerHTML=`
+   <p class="small" style="margin-top:0">Independent analyses of the same problem space, so this map can be checked rather than taken on trust. <b>Only rank and direction are compared.</b> Shares and percentages are not, because these reports count different populations by different methods &mdash; a percentage here and a percentage there are not the same quantity.</p>
+   <div class="benchSummary">${agree} of the testable findings agree with this dataset, ${diverge} diverge. Divergence is usually a difference of method, not a mistake &mdash; the panel below says which.</div>
+   ${cards}
+   <p class="chartNote" style="margin-top:10px">Findings that contradict this tool are included on purpose. Claims are stated in our own words with a link to the original; nothing is reproduced from the reports.</p>`;
+}
+/* Contextual: the findings that bear on whatever is currently filtered. */
+function relevantBenchmarks(){
+ const secs=new Set([...document.querySelectorAll(".sector:checked")].map(x=>x.value));
+ const allSecs=document.querySelectorAll(".sector").length;
+ const narrowed=secs.size&&secs.size<allSecs;
+ const out=[];
+ BENCHMARKS.forEach(b=>{
+   const t=b.test||{};
+   if(t.kind==="rank"&&t.field==="sector"&&narrowed&&secs.has(t.subject))out.push(b);
+   else if(narrowed&&secs.has("Energy")&&/energy|electr|wind|solar/i.test(b.claim))out.push(b);
+ });
+ return out.slice(0,2);
+}
+function renderContextualBenchmarks(){
+ const host=document.getElementById("benchContext");
+ if(!host)return;
+ const rel=relevantBenchmarks();
+ if(!rel.length){host.innerHTML="";return}
+ host.innerHTML=rel.map(b=>{
+   const v=evaluateBenchmark(b);
+   return `<div class="benchMini ${v.verdict}">
+     <b>${b.org}</b> &middot; ${b.pub}
+     <div class="benchMiniClaim">${b.claim}</div>
+     <div class="benchMiniOurs">${v.text}</div>
+     <button class="benchMore" type="button">Compare all published findings</button>
+   </div>`;
+ }).join("");
+ host.querySelectorAll(".benchMore").forEach(x=>x.addEventListener("click",()=>openFrame("bench")));
+}
+
 /* ── Charts ────────────────────────────────────────────────────────────────
    Each chart is a definition, not a block of a single long page. The Charts
    button opens a small gallery; picking a chart opens it in its own movable
