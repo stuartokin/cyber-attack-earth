@@ -1,20 +1,23 @@
 # .github/workflows/update-cyber-data.yml
+#
 # Nightly refresh of the Cyber Attack Earth data lake.
 #
-# SECRETS — set these under Settings > Secrets and variables > Actions.
+# This version prints what it actually did at every stage, so a run that reports
+# "success" but leaves the data unchanged is immediately obvious rather than silent.
+#
+# SECRETS (Settings > Secrets and variables > Actions). All optional:
+#   CISSM_API_KEY   API key from the portal, if you are granted one
+#   NVD_API_KEY     free key from nvd.nist.gov, speeds up the CVE backfill
 # Never put credentials in this file or in build_cyber_data.py: this repo is public.
-#   CISSM_USER    your cybereventsdatabase.org email      (optional)
-#   CISSM_PASS    your cybereventsdatabase.org password   (optional)
-#   NVD_API_KEY   free key from nvd.nist.gov              (optional, speeds up CVE backfill)
 name: Update cyber data pack
 
 on:
   schedule:
-    - cron: "20 3 * * *"   # 03:20 UTC nightly
-  workflow_dispatch: {}     # manual "Run workflow" button
+    - cron: "20 3 * * *"     # 03:20 UTC nightly
+  workflow_dispatch: {}       # manual "Run workflow" button
 
 permissions:
-  contents: write
+  contents: write             # required for the commit step to push
 
 jobs:
   refresh:
@@ -26,17 +29,43 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Show what we are about to run
+        run: |
+          echo "Repository: $GITHUB_REPOSITORY   branch: $GITHUB_REF_NAME"
+          echo "build_cyber_data.py last modified: $(git log -1 --format=%ci -- build_cyber_data.py 2>/dev/null || echo 'not tracked')"
+          echo "--- manifest BEFORE this run ---"
+          if [ -f cyber_data/manifest.json ]; then
+            python3 -c "import json;m=json.load(open('cyber_data/manifest.json'));print('generated:',m.get('generated'));print('has expected field:', any('expected' in s for s in m.get('sources',[])))"
+          else
+            echo "no manifest yet"
+          fi
+
       - name: Build data pack
         env:
-          CISSM_USER: ${{ secrets.CISSM_USER }}
-          CISSM_PASS: ${{ secrets.CISSM_PASS }}
+          CISSM_API_KEY: ${{ secrets.CISSM_API_KEY }}
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
         run: |
           pip install requests
           python3 build_cyber_data.py cyber_data
 
-      - name: Commit if changed
+      - name: Show what changed
+        run: |
+          echo "--- manifest AFTER this run ---"
+          python3 -c "import json;m=json.load(open('cyber_data/manifest.json'));print('generated:',m.get('generated'));[print(' ',s['id'],s['status'][:60],s.get('rows'),'/ expected',s.get('expected')) for s in m.get('sources',[])]"
+          echo "--- files git considers changed ---"
+          git status --porcelain cyber_data | head -40
+          echo "(total changed files: $(git status --porcelain cyber_data | wc -l))"
+
+      - name: Commit and push
         run: |
           git config user.name "data-pack-bot"
           git config user.email "actions@users.noreply.github.com"
           git add cyber_data
+          if git diff --cached --quiet; then
+            echo "::warning::Nothing staged - the data pack is byte-identical to the committed version."
+            echo "If you expected changes, check that build_cyber_data.py in the repo is the version you uploaded."
+          else
+            git commit -m "Refresh cyber data pack ($(date -u +%F))"
+            git push
+            echo "Pushed commit $(git rev-parse --short HEAD)"
+          fi
