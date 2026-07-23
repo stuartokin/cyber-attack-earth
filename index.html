@@ -250,6 +250,9 @@
     .benchCard.diverges{border-left-color:var(--orange)}
     .benchCard.context{border-left-color:#4dd8ff}
     .benchCard.nodata{border-left-color:#4a5f7d}
+    .benchCard.validity{background:rgba(16,32,57,.72)}
+    .benchCheck{font-size:9.5px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;
+      color:#0a1626;background:var(--accent);border-radius:4px;padding:1px 5px;vertical-align:middle}
     .benchHead{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
     .benchOrg{font-size:12.5px;font-weight:700;color:#fff}
     .benchTag{font-size:10px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap;color:#7f95b4}
@@ -269,11 +272,11 @@
     .benchMiniClaim{color:#c9d8ec;margin-top:4px}
     .benchMiniOurs{margin-top:4px}
     .benchMore{margin-top:6px;font-size:10.5px;padding:5px 8px}
-    #frame-caveats{width:430px}
-    #frame-caveats .frameBody p{font-size:12px;line-height:1.6;color:#c9d8ec;margin:0 0 9px}
-    #frame-caveats .frameBody b{color:#fff}
-    #frame-caveats h3{font-size:13px;margin:14px 0 7px;color:#dbe7f5}
-    #frame-caveats a{color:var(--accent)}
+    #frame-help{width:430px}
+    #frame-help .ctlBody p{font-size:12px;line-height:1.6;color:#c9d8ec;margin:0 0 9px}
+    #frame-help .ctlBody b{color:#fff}
+    #frame-help .ctlBody h3{font-size:13px;margin:14px 0 7px;color:#dbe7f5}
+    #frame-help a{color:var(--accent)}
     .caveatList{margin:0 0 9px;padding-left:18px;display:grid;gap:7px}
     .caveatList li{font-size:12px;line-height:1.55;color:#c9d8ec}
     .attribBox{font-size:11.5px;color:#a8bcd6;line-height:1.55;background:rgba(16,32,57,.35);border:1px solid #223a58;border-radius:9px;padding:9px 11px}
@@ -324,8 +327,7 @@
     <button class="tbBtn" data-frame="search" type="button" title="Search — look up an attack or threat group and jump to it" aria-label="Search"><span class="tbIco">🔍</span><span class="tbLabel">Search</span></button>
     <button class="tbBtn" data-frame="charts" type="button" title="Charts — incident, KEV, ICS advisory and EPSS charts" aria-label="Charts"><span class="tbIco">📊</span><span class="tbLabel">Charts</span></button>
     <button class="tbBtn" data-frame="bench" type="button" title="Compare against published findings from ENISA, Verizon and Dragos" aria-label="Compare"><span class="tbIco">⚖</span><span class="tbLabel">Compare</span></button>
-    <button class="tbBtn" data-frame="caveats" type="button" title="Reading the data — what these severity figures can and cannot show" aria-label="Reading the data"><span class="tbIco">⚠</span><span class="tbLabel">Caveats</span></button>
-    <button class="tbBtn" data-frame="sources" type="button" title="Sources & info — data layers, methodology, licences and about" aria-label="Sources and info"><span class="tbIco">ⓘ</span><span class="tbLabel">Sources</span></button>
+    <button class="tbBtn" data-frame="help" type="button" title="Help — how to read this map, its limitations, sources and licences" aria-label="Help"><span class="tbIco">ⓘ</span><span class="tbLabel">Help</span></button>
   </div>
   <div id="frames">
 
@@ -491,17 +493,32 @@
         <div class="frameBody"><div id="benchBody"></div></div>
       </section>
 
-      <section class="frame hidden" id="frame-caveats" aria-label="Reading the data">
-        <div class="frameHead"><h2>Reading the data</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Reading the data" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Reading the data">&#215;</button></span></div>
+      
+
+            <section class="frame hidden" id="frame-help" aria-label="Help">
+        <div class="frameHead"><h2>Help</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Help" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Help">&#215;</button></span></div>
         <div class="frameBody">
-          <h3 style="margin-top:0">Severity is shaped by who has done the coding</h3>
-          <p>In this dataset, <b>Critical</b> severity can only originate from EuRepoC or a small hand-curated layer. The VERIS Community Database caps at High, and ransomware leak-site claims are coded Medium unless the victim was widely reported.</p>
+        <div class="miniLinks" style="margin:0 0 8px"><button id="helpExpandAll" type="button">Expand all</button><button id="helpCollapseAll" type="button">Collapse all</button></div>
+        <details class="ctlSec" data-sec="about" open>
+          <summary>About this map</summary>
+          <div class="ctlBody"><p class="demo"><b>Mapped incident sources:</b> a ~90-incident curated layer embedded in this file (works fully offline), plus — when hosted — EuRepoC (2000–2024), VCDB, and recent-months ransomware leak-site claims from Ransomware.live, deduplicated across sources. Incident actors link to a cited threat-group directory (MITRE ATT&amp;CK + Ransomware.live profiles). MITRE ATT&amp;CK and CISA KEV load as enrichment. Origins are attribution or ecosystem proxies — see each incident's note.</p>
+        <p>The strip above the timeline is an attacks-per-month histogram (2000&nbsp;→&nbsp;today) — click any bar to jump there. The on-map counter tracks documented attacks accumulated since the start of the selected period, with a tempo multiplier measured against that period’s opening months. The green line is a year-on-year trend of peak monthly activity. Press <b>⟲ Replay</b> to watch the monthly missile salvos escalate.</p>
+        <p class="small">AI built from primary sources as a personal project · no trackers or analytics.</p>
+
+        </div>
+        </details>
+        <details class="ctlSec" data-sec="severity">
+          <summary>Reading severity &mdash; the most important caveat</summary>
+          <div class="ctlBody"><p>In this dataset, <b>Critical</b> severity can only originate from EuRepoC or a small hand-curated layer. The VERIS Community Database caps at High, and ransomware leak-site claims are coded Medium unless the victim was widely reported.</p>
           <p>EuRepoC's <b>fully expert-reviewed</b> release covers incidents up to <b>31 December 2024</b>. Anything after that date comes from their live TableView working data, which EuRepoC state is <b>not fully expert-reviewed</b> &mdash; and most of those records are still marked as being coded rather than finished. Recent months are also dominated by ransomware leak-site claims.</p>
           <p><b>So any apparent change in Critical and High severity after 2024 reflects coding lag, coding status and source composition. It should not be read as a change in real-world severity.</b></p>
           <p>The <a href="#" data-open-chart="coverage">Where the data comes from, by year</a> chart shows this composition directly, and every incident card states which layer and coding status it came from.</p>
 
-          <h3>Six other things worth knowing</h3>
-          <ul class="caveatList">
+          </div>
+        </details>
+        <details class="ctlSec" data-sec="limits">
+          <summary>Other limitations</summary>
+          <div class="ctlBody"><ul class="caveatList">
             <li><b>These are documented incidents, not all attacks.</b> The overwhelming majority are never publicly disclosed or catalogued.</li>
             <li><b>Growth partly reflects better recording.</b> Disclosure regimes, breach notification laws and dataset coverage all expanded over this period. Some of the rise is real; some is improved measurement. The two cannot be cleanly separated.</li>
             <li><b>Coverage is uneven by geography.</b> Countries with mandatory disclosure and active research communities appear far more often. A sparse region means sparse <i>reporting</i>, not safety.</li>
@@ -510,26 +527,32 @@
             <li><b>Vulnerability counts are context, not attacks.</b> The CVE and KEV series measure attack surface and known exploitation, not incidents.</li>
           </ul>
           <p class="small" style="margin-bottom:0">Built as a personal project. Nothing here represents the views of any employer or organisation.</p>
+        <div class="warningBox">
+          This map shows <b>documented</b> incidents, not all attacks. Growth over time reflects both a real rise in activity and substantially improved recording &mdash; the two cannot be cleanly separated. Sparse regions indicate sparse <i>reporting</i>, not safety. Attacker origins are usually attribution or ecosystem proxies rather than verified launch locations, and leak-site entries are unverified attacker claims.
         </div>
-      </section>
-
-      <section class="frame hidden" id="frame-sources" aria-label="Sources and info">
-        <div class="frameHead"><h2>Sources &amp; info</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Sources" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Sources">&#215;</button></span></div>
-        <div class="frameBody">
-        <h3 style="margin-top:0">About this map</h3>
-        <p class="demo"><b>Mapped incident sources:</b> a ~90-incident curated layer embedded in this file (works fully offline), plus — when hosted — EuRepoC (2000–2024), VCDB, and recent-months ransomware leak-site claims from Ransomware.live, deduplicated across sources. Incident actors link to a cited threat-group directory (MITRE ATT&amp;CK + Ransomware.live profiles). MITRE ATT&amp;CK and CISA KEV load as enrichment. Origins are attribution or ecosystem proxies — see each incident's note.</p>
-        <p>The strip above the timeline is an attacks-per-month histogram (2000&nbsp;→&nbsp;today) — click any bar to jump there. The on-map counter tracks documented attacks accumulated since the start of the selected period, with a tempo multiplier measured against that period’s opening months. The green line is a year-on-year trend of peak monthly activity. Press <b>⟲ Replay</b> to watch the monthly missile salvos escalate.</p>
-        <p class="small">AI built from primary sources as a personal project · no trackers or analytics.</p>
-
-        <h3>Data &amp; sources</h3>
-        <div class="warningBox">Missiles represent publicly documented incidents, not every attack. Disclosure and collection rates differ sharply by country.</div>
+        </div>
+        </details>
+        <details class="ctlSec" data-sec="data">
+          <summary>Data &amp; sources</summary>
+          <div class="ctlBody"><div class="warningBox">Missiles represent publicly documented incidents, not every attack. Disclosure and collection rates differ sharply by country.</div>
         <div class="btnrow" style="margin:8px 0"><button id="searchBtn" class="hidden"></button><button id="resetBtn">Reset all filters</button></div>
         <h3>Mapped incident layers</h3><div id="sourceLayerControls"></div>
         <h3>Loaded intelligence enrichment</h3><div id="enrichmentStatus" class="provenanceList"></div>
-        <h3>Primary sources</h3><div id="sourceCatalogue"></div>
-        <h3>Threat reports &amp; agency research</h3><div id="reportList" class="provenanceList"></div>
-        <h3>Attribution &amp; licences</h3>
-        <div class="attribBox">
+        </div>
+        </details>
+        <details class="ctlSec" data-sec="primary">
+          <summary>Primary sources</summary>
+          <div class="ctlBody"><div id="sourceCatalogue"></div>
+        </div>
+        </details>
+        <details class="ctlSec" data-sec="reports">
+          <summary>Threat reports &amp; agency research</summary>
+          <div class="ctlBody"><div id="reportList" class="provenanceList"></div>
+        </div>
+        </details>
+        <details class="ctlSec" data-sec="attrib">
+          <summary>Attribution &amp; licences</summary>
+          <div class="ctlBody"><div class="attribBox">
           <p>Built entirely from third-party open data. Sources are credited here and in full in the repository.</p>
           <p><b>Contains information from:</b> EuRepoC · VERIS Community Database · Ransomware.live · CISA Known Exploited Vulnerabilities · NIST National Vulnerability Database · EPSS (FIRST) · MITRE ATT&amp;CK<sup>&#174;</sup> · ICS Advisory Project · Natural Earth.</p>
           <p><b>ICS advisory data</b> is provided by the <a href="https://www.icsadvisoryproject.com/" target="_blank" rel="noopener">ICS Advisory Project</a> under the <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">Open Database Licence (ODbL) v1.0</a>. The data pack published with this application is a derived database and is offered under the same licence.</p>
@@ -540,14 +563,17 @@
             <a href="https://opendatacommons.org/licenses/odbl/1-0/" target="_blank" rel="noopener">ODbL v1.0</a>
           </div>
         </div>
-        <h3>Limitations</h3>
-        <div class="warningBox">
-          This map shows <b>documented</b> incidents, not all attacks. Growth over time reflects both a real rise in activity and substantially improved recording &mdash; the two cannot be cleanly separated. Sparse regions indicate sparse <i>reporting</i>, not safety. Attacker origins are usually attribution or ecosystem proxies rather than verified launch locations, and leak-site entries are unverified attacker claims.
         </div>
-        <h3>Methodology</h3><p class="small">Records are normalised to a common incident schema and deduplicated across sources using date, victim country and a suffix-normalised victim-name key. Ransomware.live records are leak-site claims — attacker assertions, placed at country level, with no origin asserted. Unknown attacker locations launch from a neutral ocean anchor. Incident actors are matched against a threat-group directory built from an embedded core plus MITRE ATT&amp;CK intrusion sets and Ransomware.live group profiles, each cited with links.</p>
+        </details>
+        <details class="ctlSec" data-sec="method">
+          <summary>Methodology</summary>
+          <div class="ctlBody"><p class="small">Records are normalised to a common incident schema and deduplicated across sources using date, victim country and a suffix-normalised victim-name key. Ransomware.live records are leak-site claims — attacker assertions, placed at country level, with no origin asserted. Unknown attacker locations launch from a neutral ocean anchor. Incident actors are matched against a threat-group directory built from an embedded core plus MITRE ATT&amp;CK intrusion sets and Ransomware.live group profiles, each cited with links.</p>
         <div class="btnrow"><button id="exportVisible" type="button">Export visible CSV</button><button id="copySourceLinks" type="button">Copy source links</button></div>
         </div>
+        </details>
+        </div>
       </section>
+
   </div>
 
   <input id="search" type="text" class="hidden" />
@@ -777,6 +803,54 @@ const BENCHMARKS=[
   method:"ENISA's own statement on their dataset",
   bias:"None - this is a caveat, not a measurement.",
   claim:"Ransomware and denial-of-service are visible quickly because operators claim them, whereas cyberespionage is typically documented anywhere from six months to more than four years later.",
+  test:{kind:"note"}
+ },
+ {
+  id:"eurepoc-cab25-sectors",
+  org:"EuRepoC", pub:"Cyber Activity Balance 2025 (with SWP Berlin)", year:2026,
+  url:"https://eurepoc.eu/publication/cyber-activity-balance-2025-the-european-union-in-focus/",
+  period:"Calendar year 2025",
+  population:"179 cyber operations targeting the European Union",
+  method:"EuRepoC's own expert coding \u2014 the same database this map draws on",
+  bias:"EU-focused, and restricted to operations meeting EuRepoC's inclusion criteria.",
+  claim:"Transport and health were the most-targeted sectors for EU entities, with digital providers rising sharply. Net operations fell for the first time since the pandemic, yet the number of EU targets affected rose.",
+  validity:true,
+  test:{kind:"rank", field:"sector", subject:"Transport", within:5, from:"2025-01", to:"2025-12",
+        countries:["Germany","France","Italy","Spain","Netherlands","Belgium","Poland","Sweden","Denmark","Finland","Austria","Ireland","Portugal","Greece","Czechia","Romania","Hungary","Bulgaria","Croatia","Slovakia","Slovenia","Lithuania","Latvia","Estonia","Luxembourg","Malta","Cyprus"]}
+ },
+ {
+  id:"eurepoc-cab25-attribution",
+  org:"EuRepoC", pub:"Cyber Activity Balance 2025 (with SWP Berlin)", year:2026,
+  url:"https://eurepoc.eu/publication/cyber-activity-balance-2025-the-european-union-in-focus/",
+  period:"Calendar year 2025",
+  population:"EU-targeting operations recorded by EuRepoC",
+  method:"EuRepoC expert coding of attribution events",
+  bias:"Counts formal joint attributions only, not national statements.",
+  claim:"Not a single joint attribution was made for an incident targeting the EU during 2025, which EuRepoC link to a lack of coordination.",
+  validity:true,
+  test:{kind:"note"}
+ },
+ {
+  id:"eurepoc-q4-25-volume",
+  org:"EuRepoC / DCSO", pub:"Cyber Conflict Briefing Q4 2025", year:2026,
+  url:"https://eurepoc.eu/",
+  period:"October to December 2025",
+  population:"Operations newly added to the EuRepoC database",
+  method:"EuRepoC expert coding; counts when an operation was ADDED, not when it began",
+  bias:"Records the coding date, so it lags real-world activity \u2014 a direct illustration of the lag this map warns about.",
+  claim:"207 new operations were added in Q4 2025, about 9% fewer than Q3, but still above EuRepoC's long-run quarterly average of 186.",
+  validity:true,
+  test:{kind:"note"}
+ },
+ {
+  id:"esas25-thirdparty",
+  org:"European Supervisory Authorities", pub:"2025 Report on major ICT-related incidents", year:2026,
+  url:"https://www.eba.europa.eu/",
+  period:"Calendar year 2025",
+  population:"Major ICT incidents reported by EU financial entities under mandatory reporting",
+  method:"Regulatory incident reporting \u2014 compelled disclosure, not open-source collection",
+  bias:"Financial sector only, and only incidents crossing a regulatory materiality threshold. The opposite bias to this map: under-reports small events, over-reports regulated ones.",
+  claim:"About a third of major ICT incidents in the EU financial sector originated in third-party failures, while relatively few were categorised as cyber-security related at all.",
   test:{kind:"note"}
  },
  {
@@ -2774,7 +2848,7 @@ function openFrame(name){
  // generated on demand can never open.
  if(name==="charts")renderChartsMenu();
  if(name==="bench")renderBenchmarks();
- if(name==="sources")renderSourceMenu();
+ if(name==="help")renderSourceMenu();
  // Guard against blank windows: content must exist before the frame is shown.
  // Stray empty frames during look-up came from opening before rendering.
  const body=f.querySelector(".frameBody");
@@ -2798,7 +2872,7 @@ function toggleFrame(name){
  f.classList.contains("hidden")?openFrame(name):closeFrame(name);
 }
 /* showTab kept as an alias so existing call sites (e.g. look-up navigation) work */
-function showTab(name){openFrame(name==="data"||name==="info"?"sources":name)}
+function showTab(name){openFrame(/^(data|info|sources|caveats)$/.test(name)?"help":name)}
 document.querySelectorAll(".tbBtn").forEach(b=>b.addEventListener("click",()=>toggleFrame(b.dataset.frame)));
 /* One place that wires up a frame, so frames created at run time (the individual
    chart windows) behave exactly like the built-in ones. */
@@ -3099,7 +3173,7 @@ document.getElementById("resetDefaults").addEventListener("click",()=>{
  enabledSources.clear();
  DEFAULT_SOURCE_LAYERS.forEach(n=>enabledSources.add(n));
  document.querySelectorAll("#sourceLayerControls input").forEach(i=>{i.checked=true});
- document.querySelectorAll(".ctlSec").forEach(d=>{d.open=false});
+ document.querySelectorAll("#frame-controls .ctlSec").forEach(d=>{d.open=false});
  document.getElementById("histoOverlay").value="";
  refreshOpenCharts();
  sigLocked=false; significantShown=null;
@@ -3140,10 +3214,16 @@ document.querySelectorAll("#frame-controls input,#frame-controls select").forEac
  el.addEventListener("change",()=>setTimeout(updateBadges,0));
 });
 document.getElementById("secCollapseAll").addEventListener("click",()=>{
- document.querySelectorAll(".ctlSec").forEach(d=>d.open=false);
+ document.querySelectorAll("#frame-controls .ctlSec").forEach(d=>d.open=false);
 });
 document.getElementById("secExpandAll").addEventListener("click",()=>{
- document.querySelectorAll(".ctlSec").forEach(d=>d.open=true);
+ document.querySelectorAll("#frame-controls .ctlSec").forEach(d=>d.open=true);
+});
+document.getElementById("helpCollapseAll").addEventListener("click",()=>{
+ document.querySelectorAll("#frame-help .ctlSec").forEach(d=>d.open=false);
+});
+document.getElementById("helpExpandAll").addEventListener("click",()=>{
+ document.querySelectorAll("#frame-help .ctlSec").forEach(d=>d.open=true);
 });
 /* The running totals start tucked away so the map has the screen; the small
    info button brings them back. */
@@ -3254,8 +3334,12 @@ function benchAttacks(from,to){
    return i>=w.a&&i<=w.b;
  });
 }
-function benchRank(field,subject,from,to){
- const set=benchAttacks(from,to);
+function benchRank(field,subject,from,to,countries){
+ let set=benchAttacks(from,to);
+ if(countries&&countries.length){
+   const want=new Set(countries.map(c=>canonicalCountry(c)));
+   set=set.filter(a=>want.has(a.victimCountry));
+ }
  if(!set.length)return null;
  const t={};
  set.forEach(a=>{const k=a[field];if(k)t[k]=(t[k]||0)+1});
@@ -3274,7 +3358,7 @@ function evaluateBenchmark(b){
  const t=b.test||{kind:"note"};
  try{
    if(t.kind==="rank"){
-     const r=benchRank(t.field,t.subject,t.from,t.to);
+     const r=benchRank(t.field,t.subject,t.from,t.to,t.countries);
      if(!r||!r.n)return {verdict:"nodata",text:"No incidents in this window to compare against."};
      if(r.rank==null)
        return {verdict:"diverges",
@@ -3304,8 +3388,8 @@ function renderBenchmarks(){
    if(v.verdict==="agrees")agree++;
    if(v.verdict==="diverges")diverge++;
    const label=(b.test&&b.test.kind==="direction"&&v.verdict==="agrees")?"Agrees on direction":BENCH_LABEL[v.verdict];
-   return `<div class="benchCard ${v.verdict}">
-     <div class="benchHead"><span class="benchOrg">${b.org}</span><span class="benchTag">${label}</span></div>
+   return `<div class="benchCard ${v.verdict}${b.validity?" validity":""}">
+     <div class="benchHead"><span class="benchOrg">${b.org}${b.validity?' <span class="benchCheck">same data</span>':""}</span><span class="benchTag">${label}</span></div>
      <div class="benchPub">${b.pub}</div>
      <p class="benchClaim">${b.claim}</p>
      <p class="benchOurs">${v.text}</p>
@@ -3318,7 +3402,7 @@ function renderBenchmarks(){
  }).join("");
  el.innerHTML=`
    <p class="small" style="margin-top:0">Independent analyses of the same problem space, so this map can be checked rather than taken on trust. <b>Only rank and direction are compared.</b> Shares and percentages are not, because these reports count different populations by different methods &mdash; a percentage here and a percentage there are not the same quantity.</p>
-   <div class="benchSummary">${agree} of the testable findings agree with this dataset, ${diverge} diverge. Divergence is usually a difference of method, not a mistake &mdash; the panel below says which.</div>
+   <div class="benchSummary">${agree} of the testable findings agree with this dataset, ${diverge} diverge. Divergence is usually a difference of method, not a mistake &mdash; each card says which. Cards marked <b>same data</b> are a different kind of test: they come from EuRepoC's own analysis of the database this map uses, so disagreement there would point to a fault in <i>this</i> tool rather than a difference of approach.</div>
    ${cards}
    <p class="chartNote" style="margin-top:10px">Findings that contradict this tool are included on purpose. Claims are stated in our own words with a link to the original; nothing is reproduced from the reports.</p>`;
 }
