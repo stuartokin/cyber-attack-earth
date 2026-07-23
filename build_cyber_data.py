@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.5.0 (2026-07-23) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.6.1 (2026-07-23) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.6.1  TableView export slimmed to the static release's columns and the EuRepoC
+        coding status ("Open" / "Coding finished") carried through to the app.
+ 3.6.0  EuRepoC TableView manual export supported as a provisional layer covering
+        the period after the static release; manual-drop reader generalised so
+        several sources can coexist; EuRepoC noted as CC BY-NC 4.0.
  3.5.0  Version stamped into the run banner and manifest; per-source expected row
         counts; CISSM switched to the Base44 API-key model with a manual-export
         fallback that accepts any .csv/.json in manual_sources/ or the repo root.
@@ -86,7 +91,7 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.5.0"
+BUILDER_VERSION = "3.6.1"
 BUILDER_DATE = "2026-07-23"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
@@ -726,6 +731,141 @@ def _cissm_fetch_remote():
         title="CISSM / GoTech Cyber Events Database",
         licence="Access granted by CISSM on request - do not redistribute raw records",
         cadence="manual export", homepage="https://cybereventsdatabase.org", expected=17169)
+def _manual_rows(kind, allow_any=False):
+    """Read an export the user downloaded from a portal and committed to the repo.
+
+    Files are matched by name first (anything containing `kind`), so several manual
+    sources can coexist. `allow_any` keeps the older behaviour of accepting an
+    unnamed export, used only by CISSM for backwards compatibility.
+    """
+    pool = []
+    for d in (MANUAL_DIR, Path(".")):
+        if d.exists():
+            pool += [p for p in d.iterdir()
+                     if p.suffix.lower() in (".csv", ".json") and p.is_file()]
+    named = [p for p in pool if kind in p.name.lower()]
+    # never let another source's clearly-named export be claimed by this one
+    others = {"cissm", "eurepoc"} - {kind}
+    generic = [p for p in pool
+               if not any(o in p.name.lower() for o in others)
+               and kind not in p.name.lower()]
+    cands = sorted(named, key=lambda p: p.stat().st_size, reverse=True)
+    if allow_any:
+        cands += sorted(generic, key=lambda p: p.stat().st_size, reverse=True)
+    for path in cands:
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except Exception as exc:                                  # noqa: BLE001
+            print("  [%s] cannot read %s (%s)" % (kind, path.name, str(exc)[:60]))
+            continue
+        rows = []
+        if path.suffix.lower() == ".json":
+            try:
+                rows = _cissm_rows_from_json(json.loads(text))
+            except Exception as exc:                              # noqa: BLE001
+                print("  [%s] %s is not valid JSON (%s)" % (kind, path.name, str(exc)[:60]))
+                continue
+        else:
+            rows = list(csv.DictReader(io.StringIO(text)))
+        if rows and isinstance(rows[0], dict):
+            print("  [%s] using manual export %s (%d rows, %.1f MB)"
+                  % (kind, path.name, len(rows), path.stat().st_size / 1e6))
+            return rows
+        print("  [%s] %s contained no usable rows" % (kind, path.name))
+    return None
+
+
+# ===========================================================================
+# EuRepoC TableView export (MANUAL, PROVISIONAL)
+# ---------------------------------------------------------------------------
+# The static Zenodo release is fully expert-reviewed but stops at 31.12.2024.
+# EuRepoC's TableView offers the current working data, which they describe as
+# NOT fully expert-reviewed. Downloading it is a browser action, so it cannot be
+# automated here.
+#
+#   1. Open https://eurepoc.eu/table-view/ on a desktop browser
+#   2. Use the download button to export the table
+#   3. Commit the file with "eurepoc" in its name, e.g.
+#          manual_sources/eurepoc_tableview_2026-07.csv
+#
+# Only incidents AFTER the static release's coverage end are kept, so the two
+# layers cannot double-count. Everything from here is flagged provisional and is
+# labelled as such in the application.
+#
+# LICENCE: EuRepoC is CC BY-NC 4.0 (non-commercial) as of 2 April 2025. Check
+# before redistributing these records.
+# ===========================================================================
+EUREPOC_STATIC_END = "2024-12-31"
+
+
+@source(id="eurepoc_live", table="incidents",
+        title="EuRepoC TableView export (provisional, not fully expert-reviewed)",
+        licence="CC BY-NC 4.0 - non-commercial use only",
+        cadence="manual export", expected=0,
+        homepage="https://eurepoc.eu/table-view/")
+def build_eurepoc_live():
+    rows = _manual_rows("eurepoc")
+    if rows is None:
+        raise RuntimeError(
+            "no EuRepoC TableView export found. The static release covers only to "
+            "%s; to fill the period since, export from https://eurepoc.eu/table-view/ "
+            "and commit the file with 'eurepoc' in its name" % EUREPOC_STATIC_END)
+    header = list(rows[0].keys())
+    print("  [eurepoc_live] fields: %s" % (header[:12],))
+    find = col_finder(header)
+    c_date = find("start date", "incident start", "start", "date")
+    if not c_date:
+        raise RuntimeError("could not identify a start-date column in the export")
+    cutoff = EUREPOC_STATIC_END
+    out, skipped = [], 0
+    for row in rows:
+        d = str(row.get(c_date) or "").strip()
+        m = (re.search(r"(20\d{2})-(\d{1,2})-(\d{1,2})", d)
+             or re.search(r"(\d{1,2})[/.](\d{1,2})[/.](20\d{2})", d))
+        if not m:
+            continue
+        if len(m.group(1)) == 4:
+            iso = "%s-%02d-%02d" % (m.group(1), int(m.group(2)), int(m.group(3)))
+        else:
+            iso = "%s-%02d-%02d" % (m.group(3), int(m.group(2)), int(m.group(1)))
+        if iso <= cutoff:
+            skipped += 1
+            continue                       # the static release already covers this
+        # Keep the same columns as the static release rather than all 84, so the
+        # published pack stays small and the two EuRepoC layers look alike.
+        pats = [re.compile(p, re.I) for p in EUREPOC_KEEP]
+        slim = {}
+        for k, v in row.items():
+            if not k:
+                continue
+            val = str(v or "").strip()
+            if not val:
+                continue
+            if any(p.search(k) for p in pats):
+                slim[k] = val[:600 if LONG_TEXT.search(k) else 200]
+        slim[c_date] = iso
+        slim["_provisional"] = "1"
+        # EuRepoC marks each record "Open" (still being coded) or "Coding finished".
+        # That distinction matters: an open record is a working draft.
+        st = ""
+        for k, v in row.items():
+            if k and k.strip().lower() == "status":
+                st = str(v or "").strip()
+                break
+        if st:
+            slim["_status"] = st[:40]
+        out.append(slim)
+    finished = sum(1 for r in out if str(r.get("_status", "")).lower().startswith("coding finished"))
+    print("  [eurepoc_live] %d rows -> %d after %s (%d already in the static release)"
+          % (len(rows), len(out), cutoff, skipped))
+    print("  [eurepoc_live] coding status: %d finished, %d still open"
+          % (finished, len(out) - finished))
+    if not out:
+        raise RuntimeError(
+            "export contained no incidents after %s - it may be an older extract" % cutoff)
+    return out
+
+
 def _cissm_manual_rows():
     """Read an export the user downloaded from the portal's Analytics dashboard.
 
@@ -733,19 +873,11 @@ def _cissm_manual_rows():
     exports with a timestamp, so requiring an exact filename just creates a
     needless step. The newest usable file wins.
     """
-    # Look in manual_sources/ first, then the repository root - uploading into a
-    # subfolder is awkward from a phone, so either location is accepted. The search
-    # is not recursive, so the data lake's own JSON files are never picked up.
-    pool = []
-    for d in (MANUAL_DIR, Path(".")):
-        if d.exists():
-            pool += [p for p in d.iterdir()
-                     if p.suffix.lower() in (".csv", ".json") and p.is_file()]
-    if not pool:
-        return None
-    cands = sorted(pool,
-                   key=lambda p: (p.name.lower().startswith("cissm"), p.stat().st_size),
-                   reverse=True)
+    return _manual_rows("cissm", allow_any=True)
+
+
+def _cissm_manual_rows_unused():
+    cands = []
     for path in cands:
         try:
             text = path.read_text(encoding="utf-8", errors="replace")
@@ -1082,6 +1214,10 @@ def main():
         write_json(out_dir / "incidents" / "cissm.json", results["cissm"])
         inc_files["cissm"] = "incidents/cissm.json"
         inc_counts["cissm"] = len(results["cissm"])
+    if "eurepoc_live" in results:
+        write_json(out_dir / "incidents" / "eurepoc_live.json", results["eurepoc_live"])
+        inc_files["eurepoc_live"] = "incidents/eurepoc_live.json"
+        inc_counts["eurepoc_live"] = len(results["eurepoc_live"])
     if inc_files:
         tables["incidents"] = {"files": inc_files, "counts": inc_counts,
                                "total": sum(inc_counts.values())}
