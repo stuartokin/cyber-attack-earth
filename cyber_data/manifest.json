@@ -1,6 +1,6 @@
 {
  "schema": 3,
- "generated": "2026-07-23T06:19:04+00:00",
+ "generated": "2026-07-23T06:55:01+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -137,7 +137,7 @@
     },
     "cve": {
      "file": "vulns/cve.json",
-     "months": 107
+     "months": 123
     }
    }
   },
@@ -177,7 +177,7 @@
    "cadence": "on release",
    "status": "ok",
    "rows": 4296,
-   "seconds": 3.8
+   "seconds": 2.0
   },
   {
    "id": "vcdb",
@@ -188,7 +188,7 @@
    "cadence": "weekly",
    "status": "ok",
    "rows": 10362,
-   "seconds": 4.4
+   "seconds": 5.4
   },
   {
    "id": "rwlive",
@@ -199,7 +199,7 @@
    "cadence": "daily",
    "status": "ok",
    "rows": 21298,
-   "seconds": 165.9
+   "seconds": 173.1
   },
   {
    "id": "kev",
@@ -221,7 +221,7 @@
    "cadence": "daily",
    "status": "ok",
    "rows": 17182,
-   "seconds": 0.7
+   "seconds": 0.9
   },
   {
    "id": "attack",
@@ -232,7 +232,7 @@
    "cadence": "on release",
    "status": "ok",
    "rows": 871,
-   "seconds": 3.3
+   "seconds": 0.5
   },
   {
    "id": "icsadv",
@@ -243,7 +243,7 @@
    "cadence": "weekly",
    "status": "ok",
    "rows": 3895,
-   "seconds": 0.7
+   "seconds": 0.4
   },
   {
    "id": "cissm",
@@ -251,7 +251,7 @@
    "table": "incidents",
    "licence": "Access granted by CISSM on request - do not redistribute raw records",
    "homepage": "https://cybereventsdatabase.org",
-   "status": "failed: no portal download and no manual_sources/cissm.csv. Either set the CISSM_USER/CISSM_PASS secrets, or export the CSV from",
+   "status": "failed: credentials seen but none of 16 login paths worked - the portal login flow differs; see the [cissm] log lines | no manual_sources/cissm.csv either. Fix the workflow env: block, or export the CSV from cybereventsdatabase.org and commit it to manual_sources/cissm.csv",
    "rows": 0
   },
   {
@@ -262,8 +262,8 @@
    "homepage": "https://nvd.nist.gov/",
    "cadence": "daily",
    "status": "ok",
-   "rows": 2,
-   "seconds": 269.2
+   "rows": 123,
+   "seconds": 264.5
   },
   {
    "id": "reports",
