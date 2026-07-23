@@ -990,28 +990,85 @@ function renderCountrySelected(){
  const words={between:"attacks between",any:"attacks involving",victim:"attacks on",origin:"attacks from"}[mode];
  el.innerHTML=`Showing <b>${words}</b>: ${[...selectedCountries].join(", ")}`;
 }
-/* The filter predicate, shared by the map and the charts. `when` decides the time
-   window: "timeline" is what the map shows right now; "period" is everything in the
-   selected year range, used by charts set to show the finished result. */
-function passesFilters(a,when){
- const sev=checked("severity"), sec=checkedSectors(), types=checkedTypes();
- const cumulative=document.getElementById("cumulative").checked;
- const showUnattr=document.getElementById("showUnattributed").checked;
- const showEx=document.getElementById("showExercise").checked;
- const q=document.getElementById("search").value.trim().toLowerCase();
- const i=idx(a.year,a.month);
- const inTime=(when==="period")
-   ? (i>=viewStartIdx&&i<=Math.min(viewEndIdx,endTimelineIndex))
-   : (cumulative?i<=timelineIndex:i===timelineIndex);
- return enabledSources.has(sourceLayerName(a))&&inTime&&sev.includes(a.severity)&&
-   (sec===null||sec.includes(a.sector))&&(types===null||types.includes(a.type))&&
-   (showUnattr||!isUnattributed(a))&&(showEx||!isExercise(a))&&countryPass(a)&&
-   (!q||Object.values(a).join(" ").toLowerCase().includes(q));
+/* ── Filtering ─────────────────────────────────────────────────────────────
+   The filter settings are read from the DOM ONCE into a plain object, then every
+   attack is tested against that object. Reading the controls inside the per-attack
+   loop meant hundreds of thousands of DOM queries per pass and made the whole app
+   crawl on the full dataset. */
+function filterState(when){
+ const secBoxes=document.querySelectorAll(".sector");
+ const typeBoxes=document.querySelectorAll(".atype");
+ const st={
+   when,
+   sev:new Set(checked("severity")),
+   sec:secBoxes.length?new Set([...secBoxes].filter(x=>x.checked).map(x=>x.value)):null,
+   types:typeBoxes.length?new Set([...typeBoxes].filter(x=>x.checked).map(x=>x.value)):null,
+   cumulative:document.getElementById("cumulative").checked,
+   showUnattr:document.getElementById("showUnattributed").checked,
+   showEx:document.getElementById("showExercise").checked,
+   q:document.getElementById("search").value.trim().toLowerCase(),
+   countries:selectedCountries.size?new Set(selectedCountries):null,
+   countryMode:document.getElementById("countryMode").value,
+   now:timelineIndex, vs:viewStartIdx, ve:Math.min(viewEndIdx,endTimelineIndex),
+   sources:enabledSources
+ };
+ // "all" ignores the timeline position, so leave it out of its cache key - otherwise
+ // the histogram would be rebuilt on every single month tick for no reason.
+ const timeBits=(when==="all")?"*" :(when==="period")?`${st.vs}:${st.ve}`
+   :(when==="heat")?`${st.vs}:${st.now}`:`${st.cumulative?"c":"m"}${st.now}`;
+ st.key=[when,[...st.sev].sort().join("|"),st.sec?[...st.sec].sort().join("|"):"*",
+   st.types?[...st.types].sort().join("|"):"*",st.showUnattr,st.showEx,st.q,
+   st.countries?[...st.countries].sort().join("|"):"*",st.countryMode,
+   timeBits,[...enabledSources].sort().join("|"),attacks.length].join("~");
+ return st;
 }
-/* Charts need every matching record, not the sampled subset the renderer gets. */
-function filteredForCharts(when){return attacks.filter(a=>passesFilters(a,when))}
+function countryPassSt(a,st){
+ if(!st.countries)return true;
+ const vin=st.countries.has(a.victimCountry), oin=st.countries.has(a.originCountry);
+ const m=st.countryMode;
+ if(m==="victim")return vin;
+ if(m==="origin")return oin;
+ if(m==="any")return vin||oin;
+ if(vin&&oin)return true;
+ return st.showUnattr&&vin&&isUnattributed(a);       // keep unattributed hits on a chosen country
+}
+function passesFilters(a,st){
+ const i=(a._i!==undefined)?a._i:(a._i=idx(a.year,a.month));
+ const inTime=(st.when==="all")?true
+   :(st.when==="period")?(i>=st.vs&&i<=st.ve)
+   :(st.when==="heat")?(i>=st.vs&&i<=st.now)
+   :(st.cumulative?i<=st.now:i===st.now);
+ if(!inTime)return false;
+ if(!st.sources.has(sourceLayerName(a)))return false;
+ if(!st.sev.has(a.severity))return false;
+ if(st.sec&&!st.sec.has(a.sector))return false;
+ if(st.types&&!st.types.has(a.type))return false;
+ if(!st.showUnattr&&isUnattributed(a))return false;
+ if(!st.showEx&&isExercise(a))return false;
+ if(!countryPassSt(a,st))return false;
+ if(st.q){
+   if(!a._hay)a._hay=Object.values(a).join(" ").toLowerCase();
+   if(!a._hay.includes(st.q))return false;
+ }
+ return true;
+}
+/* Small memo so the map, the heat shading and several open charts share one pass
+   instead of repeating identical work within a single update. */
+const _filterMemo=new Map();
+function filterPass(when){
+ const st=filterState(when);
+ const hit=_filterMemo.get(st.key);
+ if(hit)return hit;
+ const out=attacks.filter(a=>passesFilters(a,st));
+ if(_filterMemo.size>8)_filterMemo.clear();
+ _filterMemo.set(st.key,out);
+ return out;
+}
+function filteredForCharts(when){return filterPass(when)}
+/* Kept for callers that still pass an attack plus a mode string. */
+function countryPass(a){return countryPassSt(a,filterState("timeline"))}
 function filtered(){
- const all=attacks.filter(a=>passesFilters(a,"timeline"));
+ const all=filterPass("timeline");
  const perfCap=(window.__perfCap||900);
  if(densityMode && densityMode.value==="performance" && all.length>perfCap){
    const step=all.length/perfCap; return Array.from({length:perfCap},(_,i)=>all[Math.floor(i*step)]);
@@ -1101,13 +1158,9 @@ function renderSignificant(a){
 const histoEl=document.getElementById("histo");
 const escMeta=document.getElementById("escMeta");
 let histoCounts=[],histoPrefix=[],histoDirty=true;
-function histoFiltered(){
- const sev=checked("severity"),sec=checkedSectors(),types=checkedTypes();
- const q=search.value.trim().toLowerCase();
- const showUnattr=document.getElementById("showUnattributed").checked;
- const showEx=document.getElementById("showExercise").checked;
- return attacks.filter(a=>enabledSources.has(sourceLayerName(a))&&sev.includes(a.severity)&&(sec===null||sec.includes(a.sector))&&(types===null||types.includes(a.type))&&(showUnattr||!isUnattributed(a))&&(showEx||!isExercise(a))&&countryPass(a)&&(!q||Object.values(a).join(" ").toLowerCase().includes(q)));
-}
+/* Every month across the whole record, ignoring where the timeline currently sits:
+   the histogram is the shape of the entire filtered dataset. */
+function histoFiltered(){return filterPass("all")}
 function computeHistoCounts(){
  histoCounts=new Array(endTimelineIndex+1).fill(0);
  histoFiltered().forEach(a=>{const i=idx(a.year,a.month);if(i>=0&&i<=endTimelineIndex)histoCounts[i]++});
@@ -1115,7 +1168,7 @@ function computeHistoCounts(){
  for(let i=0;i<histoCounts.length;i++){run+=histoCounts[i];histoPrefix[i]=run}
  histoDirty=false;
 }
-function markHistoDirty(){histoDirty=true}
+function markHistoDirty(){_filterMemo.clear();histoDirty=true}
 function renderHisto(){
  if(!histoEl)return;
  if(histoDirty||!histoCounts.length)computeHistoCounts();
@@ -1301,21 +1354,9 @@ const countryNumericISO={
 function victimCountryKey(a){
   return (a.victimISO && String(a.victimISO).padStart(3,"0")) || countryNumericISO[a.victimCountry] || a.victimCountry;
 }
-function heatSourceData(){
- // Same filters as the map (including the country picker), accumulating from the start
- // of the visible window up to the current month — so countries redden as attacks land.
- const sev=checked("severity"), sec=checkedSectors(), types=checkedTypes();
- const q=document.getElementById("search").value.trim().toLowerCase();
- const showUnattr=document.getElementById("showUnattributed").checked;
- const showEx=document.getElementById("showExercise").checked;
- return attacks.filter(a=>{
-   const i=idx(a.year,a.month);
-   return enabledSources.has(sourceLayerName(a)) && i>=viewStartIdx && i<=timelineIndex
-     && sev.includes(a.severity) && (sec===null||sec.includes(a.sector)) && (types===null||types.includes(a.type))
-     && (showUnattr||!isUnattributed(a)) && (showEx||!isExercise(a)) && countryPass(a)
-     && (!q||Object.values(a).join(" ").toLowerCase().includes(q));
- });
-}
+/* Same filters as the map, accumulating from the start of the visible window up to
+   the current month, so countries redden as attacks land on them. */
+function heatSourceData(){return filterPass("heat")}
 /* Heat score combines how often a country is hit with how hard: each attack
    contributes 0.5 plus its impact, so a run of minor incidents and a single
    severe one are both visible, but not treated as equivalent. */

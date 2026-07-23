@@ -1,6 +1,19 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py (v3) — data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.5.0 (2026-07-23) - data-lake builder for Cyber Attack Earth.
+
+VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
+-----------------------------------------------------------------------------
+ 3.5.0  Version stamped into the run banner and manifest; per-source expected row
+        counts; CISSM switched to the Base44 API-key model with a manual-export
+        fallback that accepts any .csv/.json in manual_sources/ or the repo root.
+ 3.4.0  ICS advisories merged across the whole archive rather than one file
+        (394 -> ~3,900 rows); attacker-origin column guarded against falling back
+        onto the victim country.
+ 3.3.0  CVE backfill bounded per run with throttle detection and caching.
+ 3.2.0  CISSM connector added; CVE publication-volume series added.
+ 3.1.0  ICS Advisory Project column matching normalised.
+ 3.0.0  Connector registry, typed tables, partitioned incidents, manifest.
 
 WHAT THIS IS
 ------------
@@ -70,6 +83,11 @@ from typing import Callable, Optional
 import requests
 
 SCHEMA_VERSION = 3
+# Bump this whenever the builder changes. It is printed at the start of every run and
+# written into manifest.json, so you can tell at a glance which version produced a
+# given data pack - and spot immediately if an old copy is still deployed.
+BUILDER_VERSION = "3.5.0"
+BUILDER_DATE = "2026-07-23"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -997,6 +1015,13 @@ def count_rows(data):
 def main():
     out_dir = Path(sys.argv[1] if len(sys.argv) > 1 else "cyber_data")
     out_dir.mkdir(parents=True, exist_ok=True)
+    print("=" * 66)
+    print("  BUILDER v%s   (%s)   schema v%d" % (BUILDER_VERSION, BUILDER_DATE, SCHEMA_VERSION))
+    print("  output: %s" % out_dir.resolve())
+    print("  If manifest.json does not show builder %s afterwards, the repository"
+          % BUILDER_VERSION)
+    print("  is still running an older copy of this script.")
+    print("=" * 66)
     only = set(x for x in os.environ.get("ONLY_SOURCES", "").split(",") if x)
 
     results, entries = {}, []
@@ -1099,13 +1124,16 @@ def main():
 
     manifest = {
         "schema": SCHEMA_VERSION,
+        "builder": BUILDER_VERSION,
+        "builder_date": BUILDER_DATE,
         "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "tables": tables,
         "sources": entries,
     }
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
 
-    print("\n[done] manifest written. Summary:")
+    print("\n[done] manifest written by BUILDER v%s (schema v%d). Summary:"
+          % (BUILDER_VERSION, SCHEMA_VERSION))
     for e in entries:
         exp = e.get("expected") or 0
         if not exp:
@@ -1119,6 +1147,7 @@ def main():
         print("   %-9s %-30s %8d rows%s" % (e["id"], e["status"][:30], e["rows"], health))
     total_mb = sum(f.stat().st_size for f in out_dir.rglob("*.json")) / 1e6
     print("   total pack size: %.1f MB" % total_mb)
+    print("\n   Verify in cyber_data/manifest.json:  \"builder\": \"%s\"" % BUILDER_VERSION)
 
 
 if __name__ == "__main__":
