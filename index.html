@@ -81,7 +81,7 @@
     .impact-label b{display:block;margin-bottom:3px}
     .impact-label span{color:#b8c8dc}
     .hidden{display:none!important}
-.heatLegend{position:absolute;left:50%;bottom:118px;transform:translateX(-50%);z-index:25;display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:999px;background:rgba(5,12,25,.86);border:1px solid rgba(255,255,255,.14);font-size:12px}.heatBar{width:150px;height:9px;border-radius:999px;background:linear-gradient(90deg,#18304f,#ffb347,#ff4d66)}
+.heatLegend{position:fixed;left:50%;bottom:190px;transform:translateX(-50%);z-index:25;display:flex;align-items:center;gap:8px;padding:6px 11px;border-radius:999px;background:rgba(5,12,25,.9);border:1px solid rgba(255,255,255,.14);font-size:10.5px;color:#a8bcd6;white-space:nowrap;pointer-events:none}.heatBar{width:150px;height:9px;border-radius:999px;background:linear-gradient(90deg,#fffdf0,#fff3b0,#ffe066,#ffc03d,#ff9433,#ff5f3c,#e01b24,#a4161a,#6a040f);border:1px solid rgba(255,255,255,.18)}
 .pulse-path{stroke-linecap:round}
 .detailDrawer{position:absolute;z-index:45;top:12px;right:12px;width:min(430px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;background:rgba(5,12,25,.97);border:1px solid #38506f;border-radius:14px;padding:16px;box-shadow:0 18px 55px rgba(0,0,0,.48)}
 .detailDrawer.hidden{display:none}
@@ -149,6 +149,20 @@
     .chartFrame{width:420px}
     .chartHost{min-height:60px}
     .chartScope{margin:8px 0 0;padding-top:7px;border-top:1px solid #1e3350;opacity:.85}
+    .modeSwitch{display:flex;gap:0;border:1px solid #2c4666;border-radius:8px;overflow:hidden;margin-bottom:4px}
+    .modeSwitch button{flex:1;background:transparent;border:0;border-radius:0;color:var(--muted);font-size:11px;padding:6px 8px}
+    .modeSwitch button.on{background:rgba(77,216,255,.16);color:var(--text);font-weight:600}
+    .modeSwitch button:not(.on):hover{background:rgba(20,38,63,.7);color:var(--text)}
+    .league{display:grid;gap:3px;max-height:none}
+    .lgRow{position:relative;display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;
+      background:#0a1626;border:1px solid #1e3350;border-radius:6px;padding:4px 8px;font-size:11.5px;overflow:hidden}
+    .lgRow i{position:absolute;left:0;top:0;bottom:0;opacity:.2}
+    .lgRank,.lgName,.lgVal,.lgMove{position:relative;z-index:1}
+    .lgRank{color:#6f86a6;font-variant-numeric:tabular-nums;min-width:2.1em}
+    .lgName{color:#c9d8ec;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .lgVal{color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
+    .lgMove{min-width:2.6em;text-align:right;font-size:10px;font-variant-numeric:tabular-nums}
+    .lgMove.up{color:#4ee6a5}.lgMove.down{color:#ff6b78}.lgMove.new{color:var(--accent)}
     .chartPicks{display:grid;gap:6px;margin:6px 0 4px}
     .chartPick{display:grid;grid-template-columns:1fr auto;gap:2px 10px;text-align:left;
       background:rgba(10,22,38,.75);border:1px solid #1e3350;border-radius:9px;padding:8px 10px;width:100%}
@@ -189,6 +203,21 @@
     .attribBox p{margin:0 0 7px}.attribBox p:last-of-type{margin-bottom:0}
     .attribBox b{color:#dbe7f5}
     .tlCredit a,.attribBox a{color:var(--accent)}
+    .healthTable{display:grid;gap:6px}
+    .healthRow{display:grid;grid-template-columns:1fr auto;gap:2px 10px;
+      background:rgba(10,22,38,.7);border:1px solid #1e3350;border-left-width:3px;border-radius:8px;padding:7px 10px}
+    .healthRow.good{border-left-color:#4ee6a5}
+    .healthRow.warn{border-left-color:var(--orange)}
+    .healthRow.bad{border-left-color:#ff6b78}
+    .healthName{font-size:12px;color:#dbe7f5;font-weight:600}
+    .healthNums{font-size:12px;color:#fff;font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+    .healthExp{color:#7f95b4;font-weight:400;font-size:10.5px}
+    .healthTag{grid-column:2;font-size:10px;text-transform:uppercase;letter-spacing:.04em;text-align:right;color:#7f95b4}
+    .healthRow.good .healthTag{color:#4ee6a5}
+    .healthRow.warn .healthTag{color:var(--orange)}
+    .healthRow.bad .healthTag{color:#ff6b78}
+    .healthWhy{grid-column:1/-1;font-size:10.5px;color:#ffb37a;line-height:1.45;margin-top:2px}
+    .healthMeta{grid-column:1/-1;font-size:10px;color:#6f86a6;margin-top:2px}
     .provenanceList{display:grid;gap:7px}.provenanceItem{border-left:3px solid var(--accent);padding-left:9px}
     /* Phone: dock adapts width, HUD shrinks, timeline stays a fixed bottom bar */
     @media(max-width:720px){
@@ -203,7 +232,8 @@
       .btnrow{gap:5px}
       #dataStatus{flex-basis:100%;font-size:10.5px}
       #legend{display:none}
-      .heatLegend{bottom:8px}
+      .heatLegend{font-size:9.5px;gap:6px;padding:5px 9px}
+      .heatLegend .heatBar{width:90px}
       .timelineBottom{flex-wrap:wrap}
     }
   </style>
@@ -355,7 +385,6 @@
         <p class="demo"><b>Mapped incident sources:</b> a ~90-incident curated layer embedded in this file (works fully offline), plus — when hosted — EuRepoC (2000–2024), VCDB, and recent-months ransomware leak-site claims from Ransomware.live, deduplicated across sources. Incident actors link to a cited threat-group directory (MITRE ATT&amp;CK + Ransomware.live profiles). MITRE ATT&amp;CK and CISA KEV load as enrichment. Origins are attribution or ecosystem proxies — see each incident's note.</p>
         <p>The strip above the timeline is an attacks-per-month histogram (2000&nbsp;→&nbsp;today) — click any bar to jump there. The on-map counter tracks cumulative documented attacks and the tempo multiplier versus the 2000–02 baseline. The green line is a year-on-year trend of peak monthly activity. Press <b>⟲ Replay</b> to watch the monthly missile salvos escalate.</p>
         <p class="small">AI built from primary sources as a personal project · no trackers or analytics.</p>
-      </div>
 
         <h3>Data &amp; sources</h3>
         <div class="warningBox">Missiles represent publicly documented incidents, not every attack. Disclosure and collection rates differ sharply by country.</div>
@@ -382,8 +411,6 @@
         </div>
         <h3>Methodology</h3><p class="small">Records are normalised to a common incident schema and deduplicated across sources using date, victim country and a suffix-normalised victim-name key. Ransomware.live records are leak-site claims — attacker assertions, placed at country level, with no origin asserted. Unknown attacker locations launch from a neutral ocean anchor. Incident actors are matched against a threat-group directory built from an embedded core plus MITRE ATT&amp;CK intrusion sets and Ransomware.live group profiles, each cited with links.</p>
         <div class="btnrow"><button id="exportVisible" type="button">Export visible CSV</button><button id="copySourceLinks" type="button">Copy source links</button></div>
-      </div>
-
         </div>
       </section>
   </div>
@@ -411,6 +438,12 @@
       <span><i class="dot" style="background:#b6c8e2"></i>City</span>
     </div>
   </main>
+
+  <div id="heatLegend" class="heatLegend">
+    <span>Lighter = fewer, milder</span>
+    <span class="heatBar" aria-hidden="true"></span>
+    <span>Darker = more, harder</span>
+  </div>
 
   <section id="timeline">
     <div class="histoHead">
@@ -841,15 +874,28 @@ function renderCountrySelected(){
  const words={between:"attacks between",any:"attacks involving",victim:"attacks on",origin:"attacks from"}[mode];
  el.innerHTML=`Showing <b>${words}</b>: ${[...selectedCountries].join(", ")}`;
 }
-function filtered(){
+/* The filter predicate, shared by the map and the charts. `when` decides the time
+   window: "timeline" is what the map shows right now; "period" is everything in the
+   selected year range, used by charts set to show the finished result. */
+function passesFilters(a,when){
  const sev=checked("severity"), sec=checked("sector"), type=typeFilter.value;
  const cumulative=document.getElementById("cumulative").checked;
  const showUnattr=document.getElementById("showUnattributed").checked;
  const showEx=document.getElementById("showExercise").checked;
  const q=document.getElementById("search").value.trim().toLowerCase();
- const all=attacks.filter(a=>enabledSources.has(sourceLayerName(a))&&(cumulative?idx(a.year,a.month)<=timelineIndex:idx(a.year,a.month)===timelineIndex)&&sev.includes(a.severity)&&sec.includes(a.sector)&&(!type||a.type===type)&&
-  (showUnattr||!isUnattributed(a))&&(showEx||!isExercise(a))&&countryPass(a)&&
-  (!q||Object.values(a).join(" ").toLowerCase().includes(q)));
+ const i=idx(a.year,a.month);
+ const inTime=(when==="period")
+   ? (i>=viewStartIdx&&i<=Math.min(viewEndIdx,endTimelineIndex))
+   : (cumulative?i<=timelineIndex:i===timelineIndex);
+ return enabledSources.has(sourceLayerName(a))&&inTime&&sev.includes(a.severity)&&
+   sec.includes(a.sector)&&(!type||a.type===type)&&
+   (showUnattr||!isUnattributed(a))&&(showEx||!isExercise(a))&&countryPass(a)&&
+   (!q||Object.values(a).join(" ").toLowerCase().includes(q));
+}
+/* Charts need every matching record, not the sampled subset the renderer gets. */
+function filteredForCharts(when){return attacks.filter(a=>passesFilters(a,when))}
+function filtered(){
+ const all=attacks.filter(a=>passesFilters(a,"timeline"));
  const perfCap=(window.__perfCap||900);
  if(densityMode && densityMode.value==="performance" && all.length>perfCap){
    const step=all.length/perfCap; return Array.from({length:perfCap},(_,i)=>all[Math.floor(i*step)]);
@@ -1153,8 +1199,28 @@ function heatSourceData(){
      && (!q||Object.values(a).join(" ").toLowerCase().includes(q));
  });
 }
-function heatCounts(){const counts={};heatSourceData().forEach(a=>{const k=victimCountryKey(a);if(k)counts[k]=(counts[k]||0)+1});return counts}
-function heatColor(n,max){if(!n||!heatToggle||!heatToggle.checked)return "#10213b";const t=Math.min(1,n/Math.max(1,max));return d3.interpolateRgbBasis(["#18304f","#ffb347","#ff4d66"])(.18+.82*t)}
+/* Heat score combines how often a country is hit with how hard: each attack
+   contributes 0.5 plus its impact, so a run of minor incidents and a single
+   severe one are both visible, but not treated as equivalent. */
+function heatCounts(){
+ const counts={};
+ heatSourceData().forEach(a=>{
+   const k=victimCountryKey(a);
+   if(!k)return;
+   const weight=0.5+Math.max(0,Math.min(100,+a.impact||50))/100;
+   counts[k]=(counts[k]||0)+weight;
+ });
+ return counts;
+}
+/* Pale yellow on the first hits, deepening through amber and orange into red and
+   finally dark red. Counts are very skewed - a handful of countries dominate - so
+   the scale is logarithmic, otherwise everywhere but the top few stays pale. */
+const HEAT_RAMP=["#fffdf0","#fff3b0","#ffe066","#ffc03d","#ff9433","#ff5f3c","#e01b24","#a4161a","#6a040f"];
+function heatColor(n,max){
+ if(!n||!heatToggle||!heatToggle.checked)return "#10213b";
+ const t=Math.log(1+n)/Math.log(1+Math.max(1.0001,max));
+ return d3.interpolateRgbBasis(HEAT_RAMP)(Math.max(0,Math.min(1,t)));
+}
 function applySphereHeat(){
  if(!window.globe||!countriesGeo||!countriesGeo.features)return;
  const counts=heatCounts(),max=Math.max(1,...Object.values(counts));
@@ -1477,13 +1543,33 @@ function renderSourceMenu(){
  }
  if(LAKE.manifest){
    const m=LAKE.manifest;
+   // Fallback expectations for data packs built before the builder recorded them.
+   const FALLBACK={eurepoc:4300,vcdb:10400,rwlive:21000,kev:1650,epss:17000,
+                   attack:870,icsadv:3800,cissm:17169,cve:320,reports:15};
+   let okCount=0,lowCount=0,missCount=0;
    const rows=(m.sources||[]).map(s=>{
-     const ok=s.status==="ok";
-     return `<div class="provenanceItem"><b>${s.title}</b>
-       <div class="sourceMeta">${ok?s.rows.toLocaleString()+" rows":s.status} · ${s.table} · ${s.licence}
-       ${s.homepage?` · <a href="${s.homepage}" target="_blank" rel="noopener">source</a>`:""}</div></div>`;
+     const got=+s.rows||0;
+     const exp=+s.expected||FALLBACK[s.id]||0;
+     const failed=s.status!=="ok";
+     let cls,word,pct="";
+     if(failed||got===0){cls="bad";word=failed?"not loaded":"empty";missCount++}
+     else if(exp&&got<exp*0.9){cls="warn";word="below expected";lowCount++;pct=` · ${Math.round(100*got/exp)}% of expected`}
+     else {cls="good";word="as expected";okCount++}
+     const detail=failed?String(s.status).replace(/^failed:\s*/,""):"";
+     return `<div class="healthRow ${cls}">
+       <div class="healthName">${s.title}</div>
+       <div class="healthNums">${got.toLocaleString()}${exp?` <span class="healthExp">/ ~${exp.toLocaleString()} expected</span>`:""}</div>
+       <div class="healthTag">${word}</div>
+       ${detail?`<div class="healthWhy">${detail}</div>`:""}
+       <div class="healthMeta">${s.table} · ${s.licence}${s.homepage?` · <a href="${s.homepage}" target="_blank" rel="noopener">source</a>`:""}${pct}</div>
+     </div>`;
    }).join("");
-   enrichmentStatus.innerHTML=`<div class="sourceMeta" style="margin-bottom:6px">Data lake schema v${m.schema}, built ${String(m.generated).slice(0,10)}</div>${rows}`;
+   const banner=missCount||lowCount
+     ? `<div class="warningBox" style="margin-bottom:8px">${missCount?`${missCount} source${missCount>1?"s":""} did not load`:""}${missCount&&lowCount?"; ":""}${lowCount?`${lowCount} returned fewer rows than expected`:""}. Expected figures are typical healthy volumes, not hard targets &mdash; sources do grow and shrink.</div>`
+     : `<div class="sourceMeta" style="margin-bottom:8px">All ${okCount} sources loaded at expected volumes.</div>`;
+   enrichmentStatus.innerHTML=
+     `<div class="sourceMeta" style="margin-bottom:6px">Data lake schema v${m.schema}, built ${String(m.generated).slice(0,10)}</div>`+
+     banner+`<div class="healthTable">${rows}</div>`;
  }else{
    enrichmentStatus.innerHTML=`<div class="provenanceItem"><b>MITRE ATT&CK</b><div class="sourceMeta">${enrichmentCounts.mitre==null?"Unavailable in this browser":enrichmentCounts.mitre.toLocaleString()+" campaign objects loaded"}</div></div><div class="provenanceItem"><b>CISA KEV</b><div class="sourceMeta">${enrichmentCounts.kev==null?"Unavailable in this browser":enrichmentCounts.kev.toLocaleString()+" exploited vulnerabilities loaded"}</div></div><div class="sourceMeta" style="margin-top:6px">No data lake found — run build_cyber_data.py and deploy <code>cyber_data/</code> for the full multi-table catalogue.</div>`;
  }
@@ -1983,6 +2069,12 @@ function safeBottom(){
  const tl=document.getElementById("timeline");
  return tl?tl.getBoundingClientRect().top:window.innerHeight;
 }
+/* Sit the heat legend just above the timeline, whatever height it currently is. */
+function placeHeatLegend(){
+ const el=document.getElementById("heatLegend");
+ if(!el)return;
+ el.style.bottom=Math.max(8,window.innerHeight-safeBottom()+10)+"px";
+}
 /* Cap a frame's height so it never runs under the fixed timeline bar. */
 function fitFrame(f){
  const top=f.getBoundingClientRect().top;
@@ -2003,6 +2095,13 @@ function positionFrame(f){
 }
 function openFrame(name){
  const f=frameEl(name); if(!f)return;
+ // Guard against blank windows: content must exist before the frame is shown.
+ // Stray empty frames during look-up came from opening before rendering.
+ const body=f.querySelector(".frameBody");
+ if(body && !body.textContent.trim() && !body.querySelector("input,select,button,svg,canvas,img")){
+   console.warn("[frame] refusing to open empty frame:",name);
+   return;
+ }
  f.classList.remove("hidden");
  positionFrame(f); bringToFront(f);
  const b=tbBtn(name); if(b)b.classList.add("on");
@@ -2101,6 +2200,7 @@ function dragBy(el,handle,onStart,onMove){
 const tbGrip=document.getElementById("tbGrip");
 let gripMoved=false;
 dragBy(toolbar,tbGrip,null,()=>{gripMoved=true});
+placeHeatLegend();
 tbGrip.addEventListener("click",()=>{
  if(gripMoved){gripMoved=false;return}          // that was a drag, not a click
  const m=toolbar.classList.toggle("min");
@@ -2118,6 +2218,7 @@ tlMin.addEventListener("click",()=>{
  tlMin.setAttribute("aria-label",m?"Expand timeline":"Minimise timeline");
  if(!m)renderHisto();                       // redraw at the restored width
  document.querySelectorAll(".frame").forEach(f=>{if(!f.classList.contains("hidden"))fitFrame(f)});
+ placeHeatLegend();
  resize();
 });
 /* ── Data status moved into an info popover to keep the bar clean ── */
@@ -2148,6 +2249,7 @@ document.addEventListener("click",e=>{
 window.addEventListener("resize",()=>{
  clearTimeout(window.__chartResizeTimer);
  window.__chartResizeTimer=setTimeout(refreshOpenCharts,180);
+ placeHeatLegend();
  [toolbar,...document.querySelectorAll(".frame")].forEach(el=>{
    if(el.classList&&el.classList.contains("hidden"))return;
    const r=el.getBoundingClientRect();
@@ -2331,6 +2433,65 @@ function visTally(arr,key){
  const t={};arr.forEach(a=>{const k=a[key];if(k)t[k]=(t[k]||0)+1});
  return Object.entries(t).sort((x,y)=>y[1]-x[1]);
 }
+/* ── League tables ─────────────────────────────────────────────────────────
+   A full ranked table rather than a top-ten. In "As it happens" mode it is
+   rebuilt every time the timeline moves, so entries climb and fall and the
+   arrows show which way. In "Whole period" mode it is computed once over the
+   selected years and then stays put. */
+const CHART_MODE={};                 // chartId -> "live" | "period"
+const CHART_LAST_RANK={};            // chartId -> {name: rank}
+function chartMode(id){return CHART_MODE[id]||"live"}
+function setChartMode(id,mode){
+ CHART_MODE[id]=mode;
+ delete CHART_LAST_RANK[id];         // movement arrows are meaningless across a switch
+ renderChartFrame(id);
+}
+function modeSwitch(id){
+ const m=chartMode(id);
+ return `<div class="modeSwitch" data-for="${id}">
+   <button type="button" data-mode="live" class="${m==="live"?"on":""}">As it happens</button>
+   <button type="button" data-mode="period" class="${m==="period"?"on":""}">Whole period</button>
+ </div>`;
+}
+function leagueTable(id,key,opts){
+ opts=opts||{};
+ const mode=chartMode(id);
+ let src=filteredForCharts(mode==="period"?"period":"timeline");
+ if(opts.only)src=src.filter(opts.only);
+ const rows=visTally(src,key);
+ const yA=fromIdx(viewStartIdx).year, yB=fromIdx(Math.min(viewEndIdx,endTimelineIndex)).year;
+ const scope=mode==="period"
+   ? `Final standings for ${yA}\u2013${yB}. This does not change as the timeline plays.`
+   : `Standings as at ${mon(month)} ${year}. Positions shift as the timeline runs.`;
+ if(!rows.length)
+   return modeSwitch(id)+`<p class="chartNote">Nothing matches the current filters.</p>`;
+ const max=rows[0][1];
+ const prev=CHART_LAST_RANK[id]||null;
+ const now={};
+ rows.forEach(([name],i)=>{now[name]=i+1});
+ const body=rows.map(([name,n],i)=>{
+   const rank=i+1;
+   let move="",cls="flat";
+   if(mode==="live"&&prev&&prev[name]){
+     const d=prev[name]-rank;
+     if(d>0){move=`\u25b2${d}`;cls="up"}
+     else if(d<0){move=`\u25bc${-d}`;cls="down"}
+   }else if(mode==="live"&&prev&&!prev[name]){move="new";cls="new"}
+   return `<div class="lgRow">
+     <span class="lgRank">${rank}</span>
+     <span class="lgName" title="${String(name).replace(/"/g,"&quot;")}">${name}</span>
+     <span class="lgVal">${n.toLocaleString()}</span>
+     <span class="lgMove ${cls}">${move}</span>
+     <i style="width:${(n/max*100).toFixed(1)}%;background:${opts.color||"#4dd8ff"}"></i>
+   </div>`;
+ }).join("");
+ if(mode==="live")CHART_LAST_RANK[id]=now;
+ const total=rows.reduce((a,b)=>a+b[1],0);
+ return modeSwitch(id)+
+   `<p class="chartNote" style="margin:6px 0 4px">${scope} ${rows.length.toLocaleString()} entries, ${total.toLocaleString()} attacks.</p>
+    <div class="league">${body}</div>
+    ${opts.note?`<p class="chartNote">${opts.note}</p>`:""}`;
+}
 const CHART_DEFS=[
  {id:"incidents",title:"Documented incidents / month",group:"filtered",
   blurb:"How many attacks per month match your filters.",
@@ -2343,40 +2504,29 @@ const CHART_DEFS=[
       <p class="chartNote">${total.toLocaleString()} incidents match your current filters. Each bar is one month.</p>`;
   }},
  {id:"targets",title:"Most-targeted countries",group:"filtered",
-  blurb:"Where the visible attacks landed.",
-  ok:()=>filtered().length>0,
-  build:W=>{
-    const top=visTally(filtered(),"victimCountry").slice(0,14);
-    if(!top.length)return `<p class="chartNote">Nothing visible with the current filters.</p>`;
-    return svgHBars(top,{color:"#ff6b78"})+
-      `<p class="chartNote">Counts the attacks currently shown on the map. Countries with strong disclosure rules appear more often &mdash; this measures <b>reporting</b> as much as risk.</p>`;
-  }},
+  blurb:"Full league table of where attacks landed.",
+  ok:()=>attacks.length>0,
+  build:W=>leagueTable("targets","victimCountry",{color:"#ff6b78",
+    note:"Countries with strong disclosure rules appear more often \u2014 this measures <b>reporting</b> as much as risk."})},
  {id:"origins",title:"Most-named origin countries",group:"filtered",
-  blurb:"Where attacks were publicly attributed from.",
-  ok:()=>filtered().some(a=>!isUnattributed(a)),
-  build:W=>{
-    const top=visTally(filtered().filter(a=>!isUnattributed(a)),"originCountry").slice(0,14);
-    if(!top.length)return `<p class="chartNote">No attributed origins in the current selection.</p>`;
-    return svgHBars(top,{color:"#4dd8ff"})+
-      `<p class="chartNote">Only where an origin has been publicly named. These are attribution or ecosystem proxies, not verified launch locations. Attacks with no known origin are left out.</p>`;
-  }},
+  blurb:"Full league table of named attack origins.",
+  ok:()=>attacks.length>0,
+  build:W=>leagueTable("origins","originCountry",{color:"#4dd8ff",
+    only:a=>!isUnattributed(a),
+    note:"Only where an origin has been publicly named. These are attribution or ecosystem proxies, not verified launch locations, and attacks with no known origin are excluded."})},
  {id:"sectors",title:"Sectors hit",group:"filtered",
-  blurb:"Which parts of the economy were affected.",
-  ok:()=>filtered().length>0,
-  build:W=>{
-    const top=visTally(filtered(),"sector").slice(0,14);
-    if(!top.length)return `<p class="chartNote">Nothing visible with the current filters.</p>`;
-    return svgHBars(top,{color:"#c58cff"})+
-      `<p class="chartNote">Which parts of the economy the visible attacks landed on.</p>`;
-  }},
+  blurb:"Full league table of affected sectors.",
+  ok:()=>attacks.length>0,
+  build:W=>leagueTable("sectors","sector",{color:"#c58cff",
+    note:"Sector labels are normalised across sources, so they are broad groupings rather than exact industry codes."})},
  {id:"severity",title:"Severity mix",group:"filtered",
-  blurb:"How damaging the visible attacks were.",
-  ok:()=>filtered().length>0,
+  blurb:"How damaging the attacks were.",
+  ok:()=>attacks.length>0,
   build:W=>{
-    const vis=filtered();
+    const vis=filteredForCharts(chartMode("severity")==="period"?"period":"timeline");
     const rows=["Critical","High","Medium","Low"].map(s=>[s,vis.filter(a=>a.severity===s).length]).filter(x=>x[1]);
-    if(!rows.length)return `<p class="chartNote">Nothing visible with the current filters.</p>`;
-    return svgHBars(rows,{color:"#ff9d3c"})+
+    if(!rows.length)return modeSwitch("severity")+`<p class="chartNote">Nothing matches the current filters.</p>`;
+    return modeSwitch("severity")+svgHBars(rows,{color:"#ff9d3c"})+
       `<p class="chartNote">Severity comes from the impact recorded in each source, so it compares well within a source but only roughly across sources. Medium and Low are switched off by default in Controls.</p>`;
   }},
  {id:"kev",title:"Known-exploited vulnerabilities added / month",group:"reference",
@@ -2449,6 +2599,10 @@ function renderChartFrame(id){
  try{ out=def.build(chartWidthFor(host))||"" }
  catch(e){ console.warn("chart "+id+" failed",e); out='<p class="chartNote">This chart could not be drawn.</p>' }
  host.innerHTML=out||'<p class="chartNote">No data available for this chart yet.</p>';
+ host.querySelectorAll(".modeSwitch button").forEach(b=>b.addEventListener("click",()=>{
+   const target=b.closest(".modeSwitch").dataset.for;
+   setChartMode(target,b.dataset.mode);
+ }));
 }
 function refreshOpenCharts(){
  CHART_DEFS.forEach(d=>{
@@ -2472,8 +2626,8 @@ function openChartFrame(id){
    document.getElementById("frames").appendChild(f);
    registerFrame(f);
  }
+ renderChartFrame(id);          // content first, so the frame is never blank
  openFrame("chart-"+id);
- renderChartFrame(id);
  renderChartsMenu();
 }
 function renderChartsMenu(){
@@ -2610,11 +2764,9 @@ function showGroupCarouselInner(name){
  const years=items.map(a=>a.year);
  const span=`${Math.min(...years)}–${Math.max(...years)}`;
  const countries=[...new Set(items.map(a=>a.victimCountry))];
- // show the whole active span on the timeline (cumulative) and enable everything needed
- pausePlayback();
- items.forEach(ensureVisibleFor);
- timelineIndex=endTimelineIndex; markHistoDirty(); update();
- openFrame("group");
+ // Deliberately does not touch the map or timeline: a look-up is a reference
+ // action, and rewriting the view underneath the user was both jarring and, with
+ // large datasets, slow enough to look like a freeze.
  lookupGroupBox.innerHTML=`
    <div class="groupHeader">
      <div><b>${name}</b>${gp&&gp.origin?` <span class="small">(${gp.origin})</span>`:""}
@@ -2632,6 +2784,7 @@ function showGroupCarouselInner(name){
  document.getElementById("carPrev").addEventListener("click",()=>moveCarousel(-1));
  document.getElementById("carNext").addEventListener("click",()=>moveCarousel(1));
  renderCarouselCard();
+ openFrame("group");            // only once there is something to show
 }
 function renderCarouselCard(){
  const a=groupCarouselItems[groupCarouselIdx];if(!a)return;

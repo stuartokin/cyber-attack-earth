@@ -88,6 +88,8 @@ class Source:
     homepage: str
     cadence: str = "daily"
     needs_key: Optional[str] = None
+    expected: int = 0          # roughly what a healthy run should return; the app
+                               # compares this against reality so shortfalls are obvious
     fn: Callable = None
 
 
@@ -157,7 +159,7 @@ LONG_TEXT = re.compile(r"description|summary", re.I)
 
 @source(id="eurepoc", table="incidents", title="EuRepoC Global Dataset",
         licence="See Zenodo record terms", cadence="on release",
-        homepage="https://eurepoc.eu/")
+        homepage="https://eurepoc.eu/", expected=4300)
 def build_eurepoc():
     r = get_first(EUREPOC_URLS, "EuRepoC")
     rows = list(csv.DictReader(io.StringIO(r.content.decode("utf-8", "replace"))))
@@ -192,7 +194,7 @@ TRUTHY = set(["1", "true", "TRUE", "True", "yes", "Y"])
 
 @source(id="vcdb", table="incidents", title="VERIS Community Database",
         licence="Repository terms", cadence="weekly",
-        homepage="https://verisframework.org/vcdb.html")
+        homepage="https://verisframework.org/vcdb.html", expected=10400)
 def build_vcdb():
     r = get_first(VCDB_URLS, "VCDB zip")
     with zipfile.ZipFile(io.BytesIO(r.content)) as z:
@@ -243,7 +245,7 @@ RWLIVE_START = (2020, 1)
 
 @source(id="rwlive", table="incidents", title="Ransomware.live leak-site claims",
         licence="Free community API - fair use; review T&C for organisational use",
-        cadence="daily", homepage="https://www.ransomware.live/about")
+        cadence="daily", homepage="https://www.ransomware.live/about", expected=21000)
 def build_rwlive():
     months, total = {}, 0
     y, m = date.today().year, date.today().month
@@ -299,7 +301,7 @@ KEV_URLS = [
 
 @source(id="kev", table="vulns", title="CISA Known Exploited Vulnerabilities",
         licence="US Government work - public domain", cadence="daily",
-        homepage="https://www.cisa.gov/known-exploited-vulnerabilities-catalog")
+        homepage="https://www.cisa.gov/known-exploited-vulnerabilities-catalog", expected=1650)
 def build_kev():
     data = get_first(KEV_URLS, "CISA KEV").json()
     out = []
@@ -327,7 +329,7 @@ EPSS_MIN = 0.10        # keep the file small: everything at/above 10% probabilit
 
 @source(id="epss", table="vulns", title="EPSS exploit-prediction scores (FIRST)",
         licence="Free to use; attribution to FIRST expected", cadence="daily",
-        homepage="https://www.first.org/epss/")
+        homepage="https://www.first.org/epss/", expected=17000)
 def build_epss():
     r = get_first(EPSS_URLS, "EPSS")
     text = gzip.decompress(r.content).decode("utf-8", "replace")
@@ -358,7 +360,7 @@ ATTACK_URL = ("https://raw.githubusercontent.com/mitre-attack/attack-stix-data/"
 
 @source(id="attack", table="techniques", title="MITRE ATT&CK Enterprise",
         licence="MITRE terms of use - attribution required", cadence="on release",
-        homepage="https://attack.mitre.org/")
+        homepage="https://attack.mitre.org/", expected=870)
 def build_attack():
     bundle = get_json(ATTACK_URL, timeout=300)
     techniques, groups = [], []
@@ -406,7 +408,7 @@ ICSAP_DIR = "ICS-CERT_ADV"
 @source(id="icsadv", table="advisories",
         title="CISA ICS advisories (via ICS Advisory Project)",
         licence="Open Database Licence (ODbL) v1.0 - attribution + share-alike",
-        cadence="weekly", homepage="https://www.icsadvisoryproject.com/")
+        cadence="weekly", homepage="https://www.icsadvisoryproject.com/", expected=3800)
 def build_icsadv():
     """Pull the full ICS advisory archive.
 
@@ -540,15 +542,23 @@ def norm_header(s):
 
 
 def col_finder(header):
-    """Return a function that finds a column by normalised name (exact, then substring)."""
+    """Find a column by normalised name: exact match first, then substring.
+
+    `exclude` prevents a column already claimed by a more specific field from being
+    reused - without it, "actor country" falls back to the victim's "country" and
+    every attack appears to originate from its own victim.
+    """
     normmap = {norm_header(h): h for h in header if h}
 
-    def find(*cands):
+    def find(*cands, **kw):
+        exclude = set(kw.get("exclude") or ())
         for c in cands:
-            if c in normmap:
+            if c in normmap and normmap[c] not in exclude:
                 return normmap[c]
         for c in cands:
             for nk, orig in normmap.items():
+                if orig in exclude:
+                    continue
                 if c in nk or nk in c:
                     return orig
         return None
@@ -571,131 +581,205 @@ def col_finder(header):
 # fails the connector falls back to a manual export at manual_sources/cissm.csv
 # and tells you exactly what it saw. Optional overrides if the paths move:
 #       CISSM_LOGIN_URL, CISSM_DOWNLOAD_URL
-CISSM_BASES = ["https://www.cybereventsdatabase.org", "https://cybereventsdatabase.org"]
+# The portal is a Base44 application. Base44 apps authenticate with an API key,
+# not a scripted username/password login (sign-in is browser-based), and expose
+# their data through an auto-generated REST "entities" endpoint.
+#
+# HOW TO SET THIS UP
+#   1. Sign in at https://cybereventsdatabase.org in a browser
+#   2. Open the "Api Management" page and create / copy your API key
+#   3. Repo -> Settings -> Secrets and variables -> Actions -> New repository secret
+#         CISSM_API_KEY   the key from that page
+#   4. Make sure the workflow passes it through:
+#         env:
+#           CISSM_API_KEY: ${{ secrets.CISSM_API_KEY }}
+#
+# If the Api Management page shows an exact request URL, put it in CISSM_DOWNLOAD_URL
+# and this connector will use it verbatim - that is the most reliable route.
+# Optional overrides: CISSM_APP_ID, CISSM_ENTITY, CISSM_DOWNLOAD_URL
+CISSM_APP_ID_DEFAULT = "68c3041c75bb09b9728e4b37"      # from the site's own asset URLs
+CISSM_API_ROOT = "https://app.base44.com/api/apps"
+CISSM_ENTITY_CANDIDATES = ["CyberEvent", "CyberEvents", "Event", "Events",
+                           "CyberEventRecord", "Incident", "Incidents"]
+CISSM_PAGE_SIZE = 500
+CISSM_MAX_PAGES = 200
 CISSM_DIAG = ""          # short summary, surfaced in manifest.json so it can be read
                          # without opening the Actions log
-CISSM_LOGIN_CANDIDATES = ["/api/login", "/api/auth/login", "/api/v1/login", "/login",
-                          "/auth/login", "/users/sign_in", "/api/token", "/api/session"]
-CISSM_DOWNLOAD_CANDIDATES = ["/api/events/download?format=csv", "/api/events/download",
-                             "/api/events.csv", "/api/v1/events?format=csv",
-                             "/download/csv", "/download", "/api/events?format=json",
-                             "/api/events", "/api/v1/events", "/data/export.csv"]
 
 
 def _cissm_rows_from_json(payload):
     if isinstance(payload, dict):
-        for k in ("data", "events", "results", "rows", "items"):
+        for k in ("data", "events", "results", "rows", "items", "records"):
             if isinstance(payload.get(k), list):
                 return payload[k]
         return []
     return payload if isinstance(payload, list) else []
 
 
-def _cissm_fetch_remote():
-    """Log in and download. Returns list-of-dicts, or None if the portal path fails."""
-    user = os.environ.get("CISSM_USER", "").strip()
-    pw = os.environ.get("CISSM_PASS", "")
-    # Be explicit about what reached the process. Setting a repository secret is NOT
-    # enough on its own: the workflow step must also map it into the environment with
-    #   env:
-    #     CISSM_USER: ${{ secrets.CISSM_USER }}
-    #     CISSM_PASS: ${{ secrets.CISSM_PASS }}
-    # If you see "not visible to this step" below, that mapping is what is missing.
-    print("  [cissm] CISSM_USER %s | CISSM_PASS %s"
-          % (("seen (%d chars, ...%s)" % (len(user), user[-12:])) if user
-             else "NOT visible to this step",
-             ("seen (%d chars)" % len(pw)) if pw else "NOT visible to this step"))
-    global CISSM_DIAG
-    if not (user and pw):
-        CISSM_DIAG = ("credentials NOT visible to this workflow step - the secrets "
-                      "exist but the workflow is not passing them through env:")
-        return None
-    CISSM_DIAG = "credentials seen"
-    s = requests.Session()
-    s.headers.update(UA)
-    login_urls = ([os.environ["CISSM_LOGIN_URL"]] if os.environ.get("CISSM_LOGIN_URL")
-                  else [b + p for b in CISSM_BASES for p in CISSM_LOGIN_CANDIDATES])
-    logged_in = False
-    for url in login_urls:
-        for payload_key in ("json", "data"):
-            try:
-                kw = {payload_key: {"email": user, "username": user, "password": pw}}
-                r = s.post(url, timeout=60, allow_redirects=True, **kw)
-                # treat any 2xx, or a redirect that drops a session cookie, as success
-                if r.status_code < 400 and (s.cookies or "token" in r.text.lower()[:400]):
-                    print("  [cissm] authenticated via %s (%s)" % (url, payload_key))
-                    logged_in = True
-                    break
-                print("  [cissm] login %s (%s) -> HTTP %d %s"
-                      % (url, payload_key, r.status_code,
-                         (r.text or "")[:90].replace("\n", " ")))
-            except Exception as exc:                          # noqa: BLE001
-                print("  [cissm] login attempt %s failed: %s" % (url, str(exc)[:90]))
-        if logged_in:
-            break
-    if not logged_in:
-        CISSM_DIAG = ("credentials seen but none of %d login paths worked - the portal "
-                      "login flow differs; see the [cissm] log lines"
-                      % len(login_urls))
-        print("  [cissm] could not authenticate - the portal's login flow may differ "
-              "from the paths tried. Set CISSM_LOGIN_URL/CISSM_DOWNLOAD_URL, or use "
-              "the manual export route.")
-        return None
-    dl_urls = ([os.environ["CISSM_DOWNLOAD_URL"]] if os.environ.get("CISSM_DOWNLOAD_URL")
-               else [b + p for b in CISSM_BASES for p in CISSM_DOWNLOAD_CANDIDATES])
-    for url in dl_urls:
+def _cissm_get(url, key, params=None):
+    """Base44 expects the key in an api_key header; send the common variants."""
+    headers = dict(UA)
+    headers["api_key"] = key
+    headers["Authorization"] = "Bearer " + key
+    headers["Accept"] = "application/json"
+    return requests.get(url, headers=headers, params=params or {}, timeout=120)
+
+
+def _cissm_pull_entity(url, key):
+    """Page through an entities endpoint. Returns [] if the endpoint is not usable."""
+    rows, skip = [], 0
+    for page in range(CISSM_MAX_PAGES):
         try:
-            r = s.get(url, timeout=300)
-            if r.status_code >= 400:
-                print("  [cissm] %s -> HTTP %d" % (url, r.status_code))
-                continue
-            ctype = (r.headers.get("content-type") or "").lower()
+            r = _cissm_get(url, key, {"limit": CISSM_PAGE_SIZE, "skip": skip})
+        except Exception as exc:                                  # noqa: BLE001
+            print("  [cissm] %s failed: %s" % (url, str(exc)[:90]))
+            return rows
+        if r.status_code >= 400:
+            if page == 0:
+                print("  [cissm] %s -> HTTP %d %s"
+                      % (url, r.status_code, (r.text or "")[:80].replace("\n", " ")))
+            return rows
+        try:
+            batch = _cissm_rows_from_json(r.json())
+        except Exception:                                         # noqa: BLE001
+            # not JSON - it may be a direct CSV export
             body = r.content.decode("utf-8", "replace")
-            if "json" in ctype or body.lstrip()[:1] in "[{":
-                rows = _cissm_rows_from_json(json.loads(body))
-                if rows:
-                    print("  [cissm] downloaded %d records (JSON) from %s" % (len(rows), url))
-                    return rows
-            if "csv" in ctype or "," in body.split("\n", 1)[0]:
-                rows = list(csv.DictReader(io.StringIO(body)))
-                if rows:
-                    print("  [cissm] downloaded %d records (CSV) from %s" % (len(rows), url))
-                    return rows
-            print("  [cissm] %s returned %s but no usable rows" % (url, ctype or "unknown type"))
-        except Exception as exc:                              # noqa: BLE001
-            print("  [cissm] download %s failed: %s" % (url, str(exc)[:90]))
-    CISSM_DIAG = "authenticated, but no download endpoint matched - set CISSM_DOWNLOAD_URL"
-    print("  [cissm] authenticated but no download endpoint matched")
+            if "," in body.split("\n", 1)[0]:
+                return list(csv.DictReader(io.StringIO(body)))
+            return rows
+        if not batch:
+            break
+        rows.extend(batch)
+        print("  [cissm] page %d: +%d (total %d)" % (page + 1, len(batch), len(rows)))
+        if len(batch) < CISSM_PAGE_SIZE:
+            break
+        skip += len(batch)
+        time.sleep(0.4)
+    return rows
+
+
+def _cissm_fetch_remote():
+    """Fetch via the Base44 API. Returns list-of-dicts, or None to fall back."""
+    global CISSM_DIAG
+    key = os.environ.get("CISSM_API_KEY", "").strip()
+    if not key:
+        legacy = os.environ.get("CISSM_USER", "").strip()
+        CISSM_DIAG = ("no CISSM_API_KEY set - looking for a manual export instead. "
+                      "The portal is a Base44 app; API keys are only offered to admin "
+                      "accounts, so the Download Dataset export is the normal route."
+                      + (" CISSM_USER/CISSM_PASS cannot be used and can be deleted."
+                         if legacy else ""))
+        print("  [cissm] %s" % CISSM_DIAG)
+        return None
+    print("  [cissm] CISSM_API_KEY seen (%d chars)" % len(key))
+
+    explicit = os.environ.get("CISSM_DOWNLOAD_URL", "").strip()
+    if explicit:
+        print("  [cissm] using CISSM_DOWNLOAD_URL")
+        rows = _cissm_pull_entity(explicit, key)
+        if rows:
+            CISSM_DIAG = "ok via CISSM_DOWNLOAD_URL"
+            return rows
+        CISSM_DIAG = "CISSM_DOWNLOAD_URL returned no rows - check the URL and key"
+        return None
+
+    app_id = os.environ.get("CISSM_APP_ID", "").strip() or CISSM_APP_ID_DEFAULT
+    entities = ([os.environ["CISSM_ENTITY"]] if os.environ.get("CISSM_ENTITY")
+                else CISSM_ENTITY_CANDIDATES)
+    tried = []
+    for ent in entities:
+        url = "%s/%s/entities/%s" % (CISSM_API_ROOT, app_id, ent)
+        print("  [cissm] trying entity %s" % ent)
+        rows = _cissm_pull_entity(url, key)
+        tried.append(ent)
+        if rows:
+            print("  [cissm] entity %s returned %d records" % (ent, len(rows)))
+            CISSM_DIAG = "ok via entity %s (%d records)" % (ent, len(rows))
+            return rows
+    CISSM_DIAG = ("API key accepted but no entity matched (tried: %s). Open the Api "
+                  "Management page, copy the exact request URL, and set it as "
+                  "CISSM_DOWNLOAD_URL - or set CISSM_ENTITY to the entity name."
+                  % ", ".join(tried))
+    print("  [cissm] %s" % CISSM_DIAG)
     return None
 
 
 @source(id="cissm", table="incidents",
         title="CISSM / GoTech Cyber Events Database",
         licence="Access granted by CISSM on request - do not redistribute raw records",
-        cadence="daily", homepage="https://cybereventsdatabase.org")
+        cadence="manual export", homepage="https://cybereventsdatabase.org", expected=17169)
+def _cissm_manual_rows():
+    """Read an export the user downloaded from the portal's Analytics dashboard.
+
+    Accepts any .csv or .json dropped in manual_sources/ - the portal names its
+    exports with a timestamp, so requiring an exact filename just creates a
+    needless step. The newest usable file wins.
+    """
+    # Look in manual_sources/ first, then the repository root - uploading into a
+    # subfolder is awkward from a phone, so either location is accepted. The search
+    # is not recursive, so the data lake's own JSON files are never picked up.
+    pool = []
+    for d in (MANUAL_DIR, Path(".")):
+        if d.exists():
+            pool += [p for p in d.iterdir()
+                     if p.suffix.lower() in (".csv", ".json") and p.is_file()]
+    if not pool:
+        return None
+    cands = sorted(pool,
+                   key=lambda p: (p.name.lower().startswith("cissm"), p.stat().st_size),
+                   reverse=True)
+    for path in cands:
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except Exception as exc:                                  # noqa: BLE001
+            print("  [cissm] cannot read %s (%s)" % (path.name, str(exc)[:60]))
+            continue
+        rows = []
+        if path.suffix.lower() == ".json":
+            try:
+                rows = _cissm_rows_from_json(json.loads(text))
+            except Exception as exc:                              # noqa: BLE001
+                print("  [cissm] %s is not valid JSON (%s)" % (path.name, str(exc)[:60]))
+                continue
+        else:
+            rows = list(csv.DictReader(io.StringIO(text)))
+        if rows and isinstance(rows[0], dict):
+            print("  [cissm] using manual export %s (%d rows, %.1f MB)"
+                  % (path.name, len(rows), path.stat().st_size / 1e6))
+            return rows
+        print("  [cissm] %s contained no usable rows" % path.name)
+    return None
+
+
 def build_cissm():
     rows = _cissm_fetch_remote()
     if rows is None:
-        path = MANUAL_DIR / "cissm.csv"
-        if not path.exists():
-            raise RuntimeError(
-                "%s | no manual_sources/cissm.csv either. Fix the workflow env: block, "
-                "or export the CSV from cybereventsdatabase.org and commit it to "
-                "manual_sources/cissm.csv" % (CISSM_DIAG or "portal download unavailable"))
-        rows = list(csv.DictReader(io.StringIO(
-            path.read_text(encoding="utf-8", errors="replace"))))
-        print("  [cissm] using manual export (%d rows)" % len(rows))
+        rows = _cissm_manual_rows()
+    if rows is None:
+        raise RuntimeError(
+            "%s | no export found. Sign in at cybereventsdatabase.org, open Analytics, "
+            "press Download Dataset, and commit the file to the repository - either in "
+            "manual_sources/ or the top level. Any .csv or .json filename works."
+            % (CISSM_DIAG or "portal download unavailable"))
     if not rows:
         raise RuntimeError("no rows obtained")
     header = list(rows[0].keys())
     print("  [cissm] fields: %s" % (header,))
     find = col_finder(header)
     c_date = find("event date", "date", "date published", "eventdate", "event_date")
-    c_actor = find("actor", "threat actor", "actor name")
-    c_actorc = find("actor country", "threat actor country", "country of actor")
     c_org = find("organization", "target", "victim", "organisation", "entity")
     c_ind = find("industry", "sector", "industry code")
+    # Victim country first, so the attacker-origin lookup cannot fall back onto it.
     c_country = find("country", "country of impact", "impacted country", "target country")
+    c_actorc = find("actor country", "threat actor country", "country of actor",
+                    "attacker country", "origin country", exclude=[c_country])
+    # Only trust an origin column that actually names an actor/attacker/origin.
+    if c_actorc and not re.search(r"actor|attack|threat|origin|source",
+                                  norm_header(c_actorc)):
+        print("  [cissm] ignoring %r as attacker origin - not an actor column" % c_actorc)
+        c_actorc = None
+    c_actor = find("actor", "threat actor", "actor name", "actor type",
+                   exclude=[c_org, c_country, c_actorc])
     c_type = find("event type", "type", "event subtype", "attack type")
     c_desc = find("description", "summary", "event description")
     c_url = find("source url", "url", "source", "link")
@@ -755,7 +839,7 @@ CVE_MAX_SECONDS = 420          # hard stop, so one slow source cannot stall the 
 
 @source(id="cve", table="vulns", title="CVE publication volume (NVD)",
         licence="NVD data - US Government work, public domain", cadence="daily",
-        homepage="https://nvd.nist.gov/")
+        homepage="https://nvd.nist.gov/", expected=320)
 def build_cve(out_dir=None):
     key = os.environ.get("NVD_API_KEY", "").strip()
     headers = dict(UA)
@@ -887,7 +971,7 @@ VENDOR_REPORTS = [
 
 @source(id="reports", table="reports", title="Vendor & agency threat reports (curated)",
         licence="Links only - reports are copyright of their publishers",
-        cadence="manual", homepage="")
+        cadence="manual", homepage="", expected=15)
 def build_reports():
     return VENDOR_REPORTS
 
@@ -923,6 +1007,7 @@ def main():
             print("[skip] %s: %s not set" % (src.id, src.needs_key))
             entries.append({"id": src.id, "title": src.title, "table": src.table,
                             "licence": src.licence, "homepage": src.homepage,
+                            "expected": src.expected,
                             "status": "skipped (no key)", "rows": 0})
             continue
         print("[build] %s -> %s" % (src.id, src.table))
@@ -935,12 +1020,13 @@ def main():
             entries.append({"id": src.id, "title": src.title, "table": src.table,
                             "licence": src.licence, "homepage": src.homepage,
                             "cadence": src.cadence, "status": "ok",
-                            "rows": count_rows(data),
+                            "expected": src.expected, "rows": count_rows(data),
                             "seconds": round(time.time() - t0, 1)})
         except Exception as exc:                       # noqa: BLE001
             print("[error] %s failed: %s - previous output left in place" % (src.id, exc))
             entries.append({"id": src.id, "title": src.title, "table": src.table,
                             "licence": src.licence, "homepage": src.homepage,
+                            "expected": src.expected,
                             "status": "failed: %s" % str(exc)[:300], "rows": 0})
 
     tables = {}
@@ -1021,7 +1107,16 @@ def main():
 
     print("\n[done] manifest written. Summary:")
     for e in entries:
-        print("   %-9s %-30s %8d rows" % (e["id"], e["status"][:30], e["rows"]))
+        exp = e.get("expected") or 0
+        if not exp:
+            health = ""
+        elif e["rows"] == 0:
+            health = "  <-- MISSING (expected ~%d)" % exp
+        elif e["rows"] < exp * 0.9:
+            health = "  <-- LOW (%d%% of ~%d expected)" % (round(100 * e["rows"] / exp), exp)
+        else:
+            health = "  ok vs ~%d expected" % exp
+        print("   %-9s %-30s %8d rows%s" % (e["id"], e["status"][:30], e["rows"], health))
     total_mb = sum(f.stat().st_size for f in out_dir.rglob("*.json")) / 1e6
     print("   total pack size: %.1f MB" % total_mb)
 
