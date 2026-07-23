@@ -1,6 +1,6 @@
 {
  "schema": 3,
- "generated": "2026-07-23T00:03:37+00:00",
+ "generated": "2026-07-23T05:51:06+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -137,7 +137,7 @@
     },
     "cve": {
      "file": "vulns/cve.json",
-     "months": 75
+     "months": 91
     }
    }
   },
@@ -145,7 +145,7 @@
    "files": {
     "ics": {
      "file": "advisories/ics.json",
-     "rows": 394
+     "rows": 3895
     }
    }
   },
@@ -177,7 +177,7 @@
    "cadence": "on release",
    "status": "ok",
    "rows": 4296,
-   "seconds": 2.2
+   "seconds": 3.8
   },
   {
    "id": "vcdb",
@@ -188,7 +188,7 @@
    "cadence": "weekly",
    "status": "ok",
    "rows": 10362,
-   "seconds": 5.9
+   "seconds": 5.7
   },
   {
    "id": "rwlive",
@@ -199,7 +199,7 @@
    "cadence": "daily",
    "status": "ok",
    "rows": 21298,
-   "seconds": 169.1
+   "seconds": 172.2
   },
   {
    "id": "kev",
@@ -210,7 +210,7 @@
    "cadence": "daily",
    "status": "ok",
    "rows": 1653,
-   "seconds": 0.1
+   "seconds": 0.3
   },
   {
    "id": "epss",
@@ -232,7 +232,7 @@
    "cadence": "on release",
    "status": "ok",
    "rows": 871,
-   "seconds": 3.1
+   "seconds": 3.2
   },
   {
    "id": "icsadv",
@@ -242,8 +242,8 @@
    "homepage": "https://www.icsadvisoryproject.com/",
    "cadence": "weekly",
    "status": "ok",
-   "rows": 394,
-   "seconds": 0.4
+   "rows": 3895,
+   "seconds": 0.6
   },
   {
    "id": "cissm",
@@ -263,7 +263,7 @@
    "cadence": "daily",
    "status": "ok",
    "rows": 2,
-   "seconds": 303.3
+   "seconds": 271.6
   },
   {
    "id": "reports",
