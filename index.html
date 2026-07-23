@@ -40,6 +40,11 @@
     .frameBtns{display:flex;gap:5px;align-items:center}
     .frameClose,.frameMax{font-size:17px;line-height:1;padding:3px 9px;min-width:32px}
     .frame.maxed{left:2vw!important;top:2vh!important;width:96vw!important;max-width:96vw!important}
+    .frameGrip{position:absolute;right:0;bottom:0;width:18px;height:18px;cursor:nwse-resize;
+      touch-action:none;z-index:3;
+      background:linear-gradient(135deg,transparent 0 46%,#3d5c80 46% 54%,transparent 54% 70%,#3d5c80 70% 78%,transparent 78%)}
+    .frameGrip:hover{background:linear-gradient(135deg,transparent 0 46%,var(--accent) 46% 54%,transparent 54% 70%,var(--accent) 70% 78%,transparent 78%)}
+    .frame.maxed .frameGrip{display:none}
     .frame.maxed .frameMax{border-color:var(--accent);color:var(--accent)}
     .tbGrip{background:transparent;border:1px solid transparent;border-radius:8px;padding:6px 8px;
       color:#7f95b4;cursor:grab;touch-action:none;user-select:none;font-size:16px;letter-spacing:-1px}
@@ -74,7 +79,7 @@
     #flatMap{display:none;padding:12px}
     #flatMap svg{width:100%;height:100%;display:block}
     .country{fill:#10213b;stroke:#38506f;stroke-width:.35}
-    .flat-arc{fill:none;stroke-linecap:round;opacity:.85}
+    .flat-arc{fill:none;stroke-linecap:round}
     .flat-origin{fill:#4dd8ff;stroke:#dff8ff;stroke-width:.5}
     .flat-victim{stroke:#fff;stroke-width:.5}
     .impact-label{position:absolute;z-index:15;max-width:220px;background:rgba(5,12,25,.94);border:1px solid #ff6b78;border-radius:9px;padding:8px 10px;color:#fff;font-size:12px;cursor:pointer;box-shadow:0 6px 22px rgba(0,0,0,.32)}
@@ -113,13 +118,22 @@
     #detail h3{margin:0 0 8px;font-size:17px}.kv{display:grid;grid-template-columns:90px 1fr;gap:5px;font-size:12px;margin:6px 0}.kv b{color:var(--muted)}
     .impact{font-weight:800}.critical{color:var(--red)}.high{color:var(--orange)}.medium{color:#ffe374}.low{color:var(--green)}
     #yearBig{position:absolute;right:20px;top:16px;font-size:48px;font-weight:800;letter-spacing:-.05em;opacity:.88;pointer-events:none;text-align:right}
-    #escalation{position:absolute;right:22px;top:78px;z-index:12;pointer-events:none;font-size:12px;color:var(--muted);line-height:1.5;max-width:255px;text-align:right;text-shadow:0 1px 6px rgba(4,8,18,.9)}
+    #escalation{position:absolute;right:22px;top:74px;z-index:12;pointer-events:none;font-size:12px;color:var(--muted);line-height:1.5;max-width:255px;text-align:right;text-shadow:0 1px 6px rgba(4,8,18,.9)}
     #escalation strong{display:block;font-size:27px;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
     #escalation .tempo{color:var(--orange);font-weight:700}
+    #escalation{pointer-events:none}
+    .escCount{display:flex;align-items:baseline;gap:6px;justify-content:flex-end}
+    .escCount #cumN{font-size:26px;font-weight:800;letter-spacing:-.02em;color:#fff}
+    .escUnit{font-size:13px;color:var(--muted);letter-spacing:.02em}
+    #escWords{margin-top:5px}
     #escalation .escNote{font-size:10px;opacity:.75}
     #histo{height:48px;margin-bottom:7px;cursor:pointer;position:relative}
     #histo svg{display:block;width:100%;height:100%}
-    #histo:hover .histoPlayhead{stroke-width:2}
+    #playhead{position:absolute;top:0;width:2px;margin-left:-1px;background:#4dd8ff;
+      box-shadow:0 0 8px rgba(77,216,255,.7);pointer-events:none;border-radius:1px}
+    #histo{position:relative}
+    #histoSvg{display:block;line-height:0}
+    #histo:hover #playhead{width:3px;margin-left:-1.5px}
     #legend{position:absolute;left:20px;bottom:18px;background:rgba(5,12,25,.82);border:1px solid var(--line);padding:9px 11px;border-radius:9px;font-size:11px;display:flex;gap:13px}
     .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
     .timelineTop{display:flex;align-items:center;gap:10px}.timelineTop strong{min-width:50px;font-size:19px}.timelineTop input{flex:1}
@@ -137,6 +151,11 @@
     .sigHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
     .sigPause{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);margin:0}.sigPause input{margin:0}
     .sectorHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px}
+    #escToggle{display:block;margin:3px 0 0 auto;width:28px;height:28px;padding:0;
+      border-radius:999px;border:1px solid #2c4666;background:rgba(5,12,25,.9);color:var(--muted);
+      font-size:14px;line-height:1;pointer-events:auto}
+    #escToggle:hover,#escToggle.on{color:var(--accent);border-color:var(--accent)}
+    #escWords.collapsed{display:none}
     .ctlSec{border:1px solid #1e3350;border-radius:9px;margin-bottom:7px;background:rgba(10,22,38,.45)}
     .ctlSec>summary{cursor:pointer;list-style:none;padding:9px 11px;font-size:13px;font-weight:600;
       color:#dbe7f5;display:flex;align-items:center;gap:8px;user-select:none}
@@ -174,6 +193,15 @@
     .lgVal{color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
     .lgMove{min-width:2.6em;text-align:right;font-size:10px;font-variant-numeric:tabular-nums}
     .lgMove.up{color:#4ee6a5}.lgMove.down{color:#ff6b78}.lgMove.new{color:var(--accent)}
+    .coverage{display:grid;gap:3px;margin:6px 0}
+    .covRow{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;font-size:11px}
+    .covY{color:#7f95b4;font-variant-numeric:tabular-nums}
+    .covBar{position:relative;height:11px;background:#0a1626;border:1px solid #1e3350;border-radius:3px;overflow:hidden}
+    .covBar i{position:absolute;top:0;bottom:0;opacity:.85}
+    .covN{color:#c9d8ec;font-variant-numeric:tabular-nums;min-width:3.6em;text-align:right}
+    .covLegend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+    .covKey{display:flex;align-items:center;gap:4px;font-size:10.5px;color:#a8bcd6}
+    .covKey i{width:9px;height:9px;border-radius:2px;display:inline-block}
     .leagueToggle{width:100%;margin-top:6px;background:rgba(10,22,38,.75);border:1px solid #2c4666;
       border-radius:8px;padding:7px;font-size:11.5px;color:var(--accent)}
     .leagueToggle:hover{background:rgba(20,38,63,.85)}
@@ -238,7 +266,7 @@
       .frame{width:min(320px,calc(100vw - 20px))}
       .frameBody{max-height:50vh}
       #yearBig{font-size:26px;top:70px;right:14px;left:auto}
-      #escalation{top:102px;right:16px;left:auto;max-width:190px}
+      #escalation{top:100px;right:16px;left:auto;max-width:200px}
       #escalation strong{font-size:19px}
       #histo{height:36px}
       #timeline button{padding:7px 9px;font-size:12px}
@@ -269,12 +297,14 @@
         <div class="frameBody">
         <div class="btnrow" style="margin:0 0 10px"><button id="resetDefaults" class="primary" type="button" style="width:100%">&#8635; Reset everything to defaults</button></div>
 
-        <details class="ctlSec" data-sec="display" open>
+        <div class="miniLinks" style="margin:0 0 8px"><button id="secExpandAll" type="button">Expand all</button><button id="secCollapseAll" type="button">Collapse all</button></div>
+
+        <details class="ctlSec" data-sec="display">
           <summary>Display <span class="secBadge" id="badgeDisplay"></span></summary>
           <div class="ctlBody">
         <p class="small" style="margin:0 0 8px">Each missile is one publicly documented attack, flying from where it was attributed to where it landed.</p>
         <div class="btnrow" style="margin-bottom:10px">
-          <button id="sphereBtn" class="primary">Sphere</button>
+          <button id="sphereBtn" class="primary">Globe</button>
           <button id="flatBtn">Flat map</button>
         </div>
         <label for="viewMode">What to highlight on the map</label>
@@ -298,13 +328,13 @@
           <option value="performance">Fewer missiles (smoother on phones)</option>
         </select>
         <label class="form-check" style="display:flex;gap:8px;align-items:center">
-          <input id="cumulative" type="checkbox" checked /> Build up attacks over time (rather than one month at a time)
+          <input id="cumulative" type="checkbox" /> Build up attacks over time (rather than one month at a time)
         </label>
         <label class="form-check" style="display:flex;gap:8px;align-items:center">
           <input id="heatToggle" type="checkbox" checked /> Shade countries by how often they are hit
         </label>
         <label class="form-check" style="display:flex;gap:8px;align-items:center">
-          <input id="cities" type="checkbox" checked /> Show major cities
+          <input id="cities" type="checkbox" /> Show major cities
         </label>
         <label class="form-check" style="display:flex;gap:8px;align-items:center">
           <input id="showUnattributed" type="checkbox" checked /> Include attacks with no known origin
@@ -423,7 +453,7 @@
         <div class="frameBody">
         <h3 style="margin-top:0">About this map</h3>
         <p class="demo"><b>Mapped incident sources:</b> a ~90-incident curated layer embedded in this file (works fully offline), plus — when hosted — EuRepoC (2000–2024), VCDB, and recent-months ransomware leak-site claims from Ransomware.live, deduplicated across sources. Incident actors link to a cited threat-group directory (MITRE ATT&amp;CK + Ransomware.live profiles). MITRE ATT&amp;CK and CISA KEV load as enrichment. Origins are attribution or ecosystem proxies — see each incident's note.</p>
-        <p>The strip above the timeline is an attacks-per-month histogram (2000&nbsp;→&nbsp;today) — click any bar to jump there. The on-map counter tracks cumulative documented attacks and the tempo multiplier versus the 2000–02 baseline. The green line is a year-on-year trend of peak monthly activity. Press <b>⟲ Replay</b> to watch the monthly missile salvos escalate.</p>
+        <p>The strip above the timeline is an attacks-per-month histogram (2000&nbsp;→&nbsp;today) — click any bar to jump there. The on-map counter tracks documented attacks accumulated since the start of the selected period, with a tempo multiplier measured against that period’s opening months. The green line is a year-on-year trend of peak monthly activity. Press <b>⟲ Replay</b> to watch the monthly missile salvos escalate.</p>
         <p class="small">AI built from primary sources as a personal project · no trackers or analytics.</p>
 
         <h3>Data &amp; sources</h3>
@@ -467,10 +497,12 @@
     </section>
     <div id="yearBig">Jun 2026</div>
     <div id="escalation" aria-live="polite">
-      <strong id="cumN">0</strong>
-      <span>documented attacks mapped since 2000</span>
-      <div id="escMeta"></div>
-      <div class="escNote">Counts reflect public disclosure and dataset coverage, which also grew over time.</div>
+      <div class="escCount"><strong id="cumN">0</strong> <span class="escUnit">attacks</span></div>
+      <button id="escToggle" type="button" aria-expanded="false" aria-controls="escWords" title="Show the tempo and how these counts are made">&#9432;</button>
+      <div id="escWords" class="collapsed">
+        <div id="escMeta"></div>
+        <div class="escNote">Counts reflect public disclosure.</div>
+      </div>
     </div>
     <div id="legend">
       <span><i class="dot" style="background:#4dd8ff"></i>Origin</span>
@@ -487,14 +519,21 @@
 
   <section id="timeline">
     <div class="histoHead">
-      <span class="small">Attacks per month, 2000 &rarr; today &#183; click a bar to jump there</span>
+      <span class="small">Click a bar to jump there</span>
       <span class="histoHeadRight">
         <label class="small" style="margin:0;display:flex;align-items:center;gap:5px">Years
           <select id="rangeStart" style="width:auto;padding:3px 5px;font-size:11px"></select>
           <span>to</span>
           <select id="rangeEnd" style="width:auto;padding:3px 5px;font-size:11px"></select>
         </label>
-        <label class="small" style="margin:0;display:flex;align-items:center;gap:5px"><input id="showTrend" type="checkbox" checked style="margin:0"> Trend</label>
+        <label class="small" style="margin:0;display:flex;align-items:center;gap:5px">Trend
+          <select id="trendMode" style="width:auto;padding:3px 5px;font-size:11px">
+            <option value="avg" selected>12-month average</option>
+            <option value="long">Long-run trend, 2000 to today</option>
+            <option value="both">Both</option>
+            <option value="off">Off</option>
+          </select>
+        </label>
         <label class="small" style="margin:0;display:flex;align-items:center;gap:6px">Overlay
           <select id="histoOverlay" style="width:auto;padding:3px 6px;font-size:11px">
             <option value="">None</option>
@@ -1090,7 +1129,7 @@ function update(){
  const dt=fromIdx(timelineIndex);year=dt.year;month=dt.month;
  yearLabel.textContent=`${mon(month)} ${year}`;yearBig.textContent=`${mon(month)} ${year}`;
  if(yearSlider.max!=String(endTimelineIndex))yearSlider.max=String(endTimelineIndex);
- yearSlider.value=timelineIndex;
+ if(yearSlider.step!=="any")yearSlider.step="any";
  const mode=viewMode.value;
  globe.arcsData(mode==="attacks"?data:[]);
  // Impact rings are expensive; with a large cumulative field, only pulse the freshest salvo (current month) plus the highest-impact strikes.
@@ -1169,6 +1208,65 @@ function computeHistoCounts(){
  histoDirty=false;
 }
 function markHistoDirty(){_filterMemo.clear();histoDirty=true}
+/* The bars are redrawn into a child container so the playhead element survives
+   between renders. Recreating it every month was why it stepped instead of
+   gliding: a brand-new element has nothing to transition from. */
+function histoSvgHost(){
+ let h=document.getElementById("histoSvg");
+ if(!h){
+   h=document.createElement("div");
+   h.id="histoSvg";
+   histoEl.insertBefore(h,histoEl.firstChild);
+ }
+ return h;
+}
+function playheadEl(){
+ let ph=document.getElementById("playhead");
+ if(!ph){
+   ph=document.createElement("div");
+   ph.id="playhead";
+   histoEl.appendChild(ph);
+ }
+ return ph;
+}
+/* The marker glides over the whole gap to the next month. When a month is skipped
+   the gap is wider, so the same duration covers more ground and it visibly speeds
+   up - which is the behaviour you want when the timeline jumps over empty months. */
+function positionPlayhead(px,W,H){
+ if(!histoEl)return;
+ const ph=playheadEl();
+ const pct=(W?(px/W)*100:0);
+ const ms=(timer&&!playheadJump)?Math.max(120,(+speed.value||3000)):0;
+ if(ms){
+   ph.style.transition=`left ${ms}ms linear`;
+ }else{
+   ph.style.transition="none";
+   // force the browser to accept the jump before any later transition is applied
+   void ph.offsetWidth;
+ }
+ ph.style.left=pct+"%";
+ ph.style.height=(H-12)+"px";
+ glideSlider(ms);
+ playheadJump=false;
+}
+/* The range control is stepped, so it cannot transition. Interpolate its value
+   instead, matching the playhead, then snap back to whole months when paused. */
+let sliderRAF=null;
+function glideSlider(ms){
+ if(sliderRAF){cancelAnimationFrame(sliderRAF);sliderRAF=null}
+ if(!ms){yearSlider.value=timelineIndex;return}
+ const from=parseFloat(yearSlider.value);
+ const to=timelineIndex;
+ if(!isFinite(from)||from===to){yearSlider.value=to;return}
+ const t0=performance.now();
+ const step=now=>{
+   const t=Math.min(1,(now-t0)/ms);
+   yearSlider.value=(from+(to-from)*t).toFixed(3);
+   if(t<1)sliderRAF=requestAnimationFrame(step); else sliderRAF=null;
+ };
+ sliderRAF=requestAnimationFrame(step);
+}
+let playheadJump=false;
 function renderHisto(){
  if(!histoEl)return;
  if(histoDirty||!histoCounts.length)computeHistoCounts();
@@ -1201,8 +1299,41 @@ function renderHisto(){
  // ── trend: 12-month rolling mean across the whole record, plus a projection to
  // year end when the current year is incomplete (dashed, clearly marked). ──
  let trend="",projection="",growthTxt="",dots="";
- const wantTrend=!document.getElementById("showTrend")||document.getElementById("showTrend").checked;
- if(wantTrend){
+ const tmSel=document.getElementById("trendMode");
+ const tMode=tmSel?tmSel.value:"avg";
+ const wantAvg=(tMode==="avg"||tMode==="both");
+ const wantLong=(tMode==="long"||tMode==="both");
+ const wantTrend=wantAvg||wantLong;
+ let longPath="",longProj="";
+ if(wantLong){
+   // Least-squares fit across every month on record, not year by year. This is the
+   // direction of travel for the whole period; the rolling average shows the texture.
+   let n0=0,sx=0,sy=0,sxy=0,sxx=0;
+   for(let i=0;i<=endTimelineIndex;i++){
+     const y=histoCounts[i]||0;
+     n0++;sx+=i;sy+=y;sxy+=i*y;sxx+=i*i;
+   }
+   const denom=(n0*sxx-sx*sx)||1;
+   const slope=(n0*sxy-sx*sy)/denom, intercept=(sy-slope*sx)/n0;
+   const at=i=>Math.max(0,intercept+slope*i);
+   let d="";
+   for(let k=0;k<n;k++){
+     const i=viewStartIdx+k;
+     const tx=(k*bw+bw/2).toFixed(1), ty=((H-12)-(at(i)/max)*(H-13)).toFixed(1);
+     d+=(k?"L":"M")+tx+","+ty;
+   }
+   longPath=`<path d="${d}" fill="none" stroke="#8f9dff" stroke-width="1.8" opacity=".95"/>`;
+   const lastY=fromIdx(endTimelineIndex).year, ye=idx(lastY,12);
+   if(ye>endTimelineIndex&&viewEndIdx>=endTimelineIndex){
+     let dp="";
+     for(let i=endTimelineIndex;i<=Math.min(ye,viewEndIdx);i++){
+       const tx=((i-viewStartIdx)*bw+bw/2).toFixed(1), ty=((H-12)-(at(i)/max)*(H-13)).toFixed(1);
+       dp+=(i===endTimelineIndex?"M":"L")+tx+","+ty;
+     }
+     longProj=`<path d="${dp}" fill="none" stroke="#8f9dff" stroke-width="1.6" opacity=".8" stroke-dasharray="4 3"/>`;
+   }
+ }
+ if(wantAvg){
    const win=12, roll=new Array(endTimelineIndex+1).fill(0);
    let acc=0;
    for(let i=0;i<=endTimelineIndex;i++){
@@ -1255,13 +1386,18 @@ function renderHisto(){
      overlayLabel=`<text x="${W-6}" y="19" text-anchor="end" fill="#ffd24d" font-size="8">${ovName} (relative scale)</text>`;
    }
  }
- histoEl.innerHTML=`<svg width="${W}" height="${H}" aria-hidden="true">
+ histoSvgHost().innerHTML=`<svg width="${W}" height="${H}" aria-hidden="true">
   <defs><linearGradient id="hgrad" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ff9d3c"/><stop offset="1" stop-color="#ff4d66"/></linearGradient></defs>
   ${bars}${ticks}
-  ${wantTrend?`<path d="${trend}" fill="none" stroke="#4ee6a5" stroke-width="1.6" opacity=".95"/>${projection}`:""}
-  ${wantTrend?`<text x="${W-6}" y="9" text-anchor="end" fill="#4ee6a5" font-size="8.5">12-month average${growthTxt}${projection?" \u00b7 dashed = projected":""}</text>`:""}${overlayLabel}
+  ${wantAvg?`<path d="${trend}" fill="none" stroke="#4ee6a5" stroke-width="1.6" opacity=".95"/>${projection}`:""}
+  ${longPath}${longProj}
+  ${wantTrend?`<text x="${W-6}" y="9" text-anchor="end" font-size="8.5" fill="${wantLong&&!wantAvg?"#8f9dff":"#4ee6a5"}">${
+     wantAvg&&wantLong?"12-month average (green) and long-run trend (blue)"
+     :wantLong?"long-run trend, 2000 to today"
+     :"12-month average"}${growthTxt}${(projection||longProj)?" \u00b7 dashed = projected":""}</text>`:""}${overlayLabel}
   ${overlay}
-  <line class="histoPlayhead" x1="${px}" x2="${px}" y1="0" y2="${H-12}" stroke="#4dd8ff" stroke-width="1.4"/></svg>`;
+  </svg>`;
+ positionPlayhead(px,W,H);
 }
 let cumShown=0,cumTarget=0,cumAnim=null;
 function tweenCum(){
@@ -1280,13 +1416,21 @@ function renderEscalation(){
  if(!escMeta||!histoCounts.length)return;
  const i=timelineIndex;
  const monthN=histoCounts[i]||0;
- cumTarget=histoPrefix[i]||0;tweenCum();
- const base=Math.max(0.5,histoCounts.slice(0,36).reduce((s,n)=>s+n,0)/36);
- const trail=histoCounts.slice(Math.max(0,i-11),i+1);
+ cumTarget=(histoPrefix[i]||0)-(viewStartIdx>0?(histoPrefix[viewStartIdx-1]||0):0);tweenCum();
+ // Compare the current pace against the opening of whatever period is selected,
+ // so changing the year range changes what the multiplier is measured from.
+ const baseSpan=Math.min(12,Math.max(3,Math.floor((viewEndIdx-viewStartIdx+1)/8)||3));
+ const baseSlice=histoCounts.slice(viewStartIdx,viewStartIdx+baseSpan);
+ const base=Math.max(0.5,baseSlice.reduce((s,n)=>s+n,0)/Math.max(1,baseSlice.length));
+ const trail=histoCounts.slice(Math.max(viewStartIdx,i-11),i+1);
  const rate=trail.reduce((s,n)=>s+n,0)/Math.max(1,trail.length);
  const mult=rate/base;
- const multTxt=i<12?"—":`×${mult>=10?Math.round(mult).toLocaleString():mult.toFixed(1)}`;
- escMeta.innerHTML=`+${monthN.toLocaleString()} in ${mon(month)} ${year} • tempo <span class="tempo">${multTxt}</span> vs 2000–02 baseline`;
+ const from=fromIdx(viewStartIdx), to=fromIdx(Math.min(viewStartIdx+baseSpan-1,endTimelineIndex));
+ const baseLabel=(from.year===to.year)?`${mon(from.month)}\u2013${mon(to.month)} ${from.year}`
+   :`${mon(from.month)} ${from.year}\u2013${mon(to.month)} ${to.year}`;
+ const enough=(i-viewStartIdx)>=baseSpan;
+ const multTxt=enough?`\u00d7${mult>=10?Math.round(mult).toLocaleString():mult.toFixed(1)}`:"\u2014";
+ escMeta.innerHTML=`Since ${fromIdx(viewStartIdx).year} \u00b7 +${monthN.toLocaleString()} this month<br>tempo <span class="tempo">${multTxt}</span> vs the start of this period (${baseLabel})`;
 }
 if(histoEl)histoEl.addEventListener("click",e=>{
  const r=histoEl.getBoundingClientRect();
@@ -1410,36 +1554,49 @@ function renderFlat(data){
  if(mode==="attacks"){
    const flightMs=Math.min(850,Math.max(160,(+speed.value||1000)*0.82));
    const paths=layer.selectAll("path.flat-arc").data(data).join("path")
-    .attr("class","flat-arc pulse-path").attr("pathLength",1)
+    .attr("class","flat-arc pulse-path")
     .attr("d",d=>{
       const a=flatProjection([d.startLng,d.startLat]), b=flatProjection([d.endLng,d.endLat]);
       const mx=(a[0]+b[0])/2, my=Math.min(a[1],b[1])-Math.abs(a[0]-b[0])*.14;
       return `M${a[0]},${a[1]} Q${mx},${my} ${b[0]},${b[1]}`;
     })
     .attr("stroke",d=>severityColor[d.severity]).attr("stroke-width",d=>1+d.impact/45)
-    .attr("stroke-dasharray",function(){return this.getTotalLength()})
-    .attr("stroke-dashoffset",function(){return this.getTotalLength()})
     .on("click",(e,d)=>showDetail(d));
-   // Always draw the arc as it travels — that is the point of the visualisation.
-   // With a lot of arcs, stagger and shorten rather than skipping the animation.
+   // A comet, not a drawn line. Previously the whole arc was inked in from origin
+   // to target, which reads as "a line growing towards the victim". Instead each
+   // arc carries a SHORT bright dash that travels the full path with empty space
+   // in front of and behind it, so what you see is a projectile with a tail.
+   //
+   // Mechanics: dasharray is [tail, len] so only one short segment is ever visible,
+   // and dashoffset sweeps from +tail (just before the start) to -len (just past
+   // the end), carrying that segment along the whole route. This is a pure SVG
+   // transition, so it works for every arc rather than a capped few.
    const many=data.length>1500;
-   paths.transition("draw")
-     .delay((d,i)=>many?(i%40)*8:0)
-     .duration(many?Math.max(220,flightMs*0.55):flightMs)
+   const dur=many?Math.max(260,flightMs*0.6):flightMs;
+   const delayFor=i=>many?(i%40)*8:0;
+   paths
+     .attr("stroke-linecap","round")
+     .attr("stroke-dasharray",function(){
+       const len=this.getTotalLength?this.getTotalLength():100;
+       const tail=Math.max(14,Math.min(70,len*0.16));
+       this.__len=len; this.__tail=tail;
+       return tail+" "+(len+tail);
+     })
+     .attr("stroke-dashoffset",function(){return this.__tail})
+     .attr("opacity",many?.85:1);
+   paths.transition("fly")
+     .delay((d,i)=>delayFor(i))
+     .duration(dur)
      .ease(d3.easeLinear)
+     .attr("stroke-dashoffset",function(){return -(this.__len)});
+   // Once it lands, leave the route behind very faintly so the picture builds up
+   // over the month without competing with the missiles still in flight.
+   paths.transition("settle")
+     .delay((d,i)=>delayFor(i)+dur)
+     .duration(260)
+     .attr("stroke-dasharray",function(){return this.__len+" 0"})
      .attr("stroke-dashoffset",0)
-     .attr("opacity",many?.5:.85);
-   if(data.length<=1200) paths.each(function(d){
-     const pathNode=this;
-     const dot=layer.append("circle").attr("class","missile-dot").attr("r",4.2).attr("fill",severityColor[d.severity]);
-     const start=performance.now();
-     function move(now){
-       const t=Math.min(1,(now-start)/flightMs), point=pathNode.getPointAtLength(pathNode.getTotalLength()*t);
-       dot.attr("cx",point.x).attr("cy",point.y);
-       if(t<1) requestAnimationFrame(move); else dot.remove();
-     }
-     requestAnimationFrame(move);
-   });
+     .attr("opacity",many?.12:.2);
    layer.selectAll("circle.flat-origin").data(data).join("circle").attr("class","flat-origin")
     .attr("cx",d=>flatProjection([d.startLng,d.startLat])[0]).attr("cy",d=>flatProjection([d.startLng,d.startLat])[1])
     .attr("r",4).on("click",(e,d)=>showDetail(d));
@@ -2256,24 +2413,26 @@ attackDrawer.addEventListener("keydown",e=>{if(e.key==="Escape")closeAttackDetai
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAttackDetails()});
 sphereBtn.addEventListener("click",()=>setMapMode("sphere"));
 flatBtn.addEventListener("click",()=>setMapMode("flat"));
-function setTimeline(v){timelineIndex=clampToView(+v);update()}
+function setTimeline(v,smooth){playheadJump=!smooth;timelineIndex=clampToView(+v);update()}
 function play(){
  if(timer){clearInterval(timer);timer=null;playBtn.textContent="▶ Play";update();return}
  playBtn.textContent="❚❚ Pause";
  const intervalMs=Number(speed.value);
  timer=setInterval(()=>{
    const nxt=nextIndex(timelineIndex,1);
-   timelineIndex=(nxt>playEnd())?viewStartIdx:nxt;
+   const wrapped=(nxt>playEnd());
+   playheadJump=wrapped;                 // glide forward, but snap when looping back
+   timelineIndex=wrapped?viewStartIdx:nxt;
    update();
  },Number.isFinite(intervalMs)&&intervalMs>0?intervalMs:1000);
  update();
 }
 function restartTimer(){if(timer){clearInterval(timer);timer=null;play()}}
-function pausePlayback(){if(timer){clearInterval(timer);timer=null;playBtn.textContent="▶ Play";update()}}
+function pausePlayback(){playheadJump=true;if(sliderRAF){cancelAnimationFrame(sliderRAF);sliderRAF=null}yearSlider.value=timelineIndex;if(timer){clearInterval(timer);timer=null;playBtn.textContent="▶ Play";update()}}
 function resumePlayback(){if(!timer){play()}}
 function resize(){globe.width(globeEl.clientWidth).height(globeEl.clientHeight);renderHisto()}
 const citiesBox=document.getElementById("cities");
-yearSlider.addEventListener("input",e=>setTimeline(e.target.value));
+yearSlider.addEventListener("input",e=>setTimeline(Math.round(+e.target.value)));
 playBtn.addEventListener("click",play); prevBtn.addEventListener("click",()=>setTimeline(nextIndex(timelineIndex,-1))); nextBtn.addEventListener("click",()=>setTimeline(nextIndex(timelineIndex,1)));
 speed.addEventListener("change",restartTimer);
 densityMode.addEventListener("change",update);
@@ -2291,7 +2450,7 @@ launchSeq.addEventListener("click",()=>{
 });
 resetBtn.addEventListener("click",()=>{
  search.value=""; typeOptOut.clear(); sectorOptOut.clear();
- document.querySelectorAll(".atype").forEach(x=>x.checked=true); cumulative.checked=true; viewMode.value="attacks";
+ document.querySelectorAll(".atype").forEach(x=>x.checked=true); cumulative.checked=false; viewMode.value="attacks";
  selectedCountries.clear();renderCountryList();renderCountrySelected();
  document.querySelectorAll(".severity,.sector").forEach(x=>x.checked=true);document.getElementById("showUnattributed").checked=true;document.getElementById("showExercise").checked=false;document.getElementById("sigPause").checked=false;sigLocked=false;significantShown=null;impactLabel.classList.add("hidden");attackDrawer.classList.add("hidden");selectedAttack=null;markHistoDirty();setTimeline(defaultTimelineIndex);
 });
@@ -2317,7 +2476,16 @@ function placeHeatLegend(){
 /* Cap a frame's height so it never runs under the fixed timeline bar. */
 function fitFrame(f){
  const top=f.getBoundingClientRect().top;
- f.style.maxHeight=Math.max(150,safeBottom()-top-12)+"px";
+ const room=Math.max(150,safeBottom()-top-12);
+ if(f.dataset.sized){
+   // Respect a hand-sized frame; only pull it in if it no longer fits.
+   const want=parseFloat(f.style.height)||room;
+   const h=Math.min(want,room);
+   f.style.height=h+"px";
+   f.style.maxHeight=h+"px";
+ }else{
+   f.style.maxHeight=room+"px";
+ }
 }
 function positionFrame(f){
  if(f.dataset.placed){fitFrame(f);return}
@@ -2366,6 +2534,7 @@ document.querySelectorAll(".tbBtn").forEach(b=>b.addEventListener("click",()=>to
 function registerFrame(f){
  if(f.dataset.wired)return;
  f.dataset.wired="1";
+ addResizeGrip(f);
  const name=f.id.replace("frame-","");
  const cl=f.querySelector(".frameClose");
  if(cl)cl.addEventListener("click",()=>{closeFrame(name);if(name.startsWith("chart-"))renderChartsMenu()});
@@ -2376,6 +2545,60 @@ function registerFrame(f){
  dragBy(f,f.querySelector(".frameHead"),()=>{bringToFront(f);f.dataset.placed="1"});
 }
 document.querySelectorAll(".frame").forEach(registerFrame);
+/* Frames can be resized from the bottom-right corner in both directions. Charts
+   re-render at the new pixel width rather than being scaled, so text stays crisp
+   and never stretches. */
+function addResizeGrip(f){
+ if(f.querySelector(".frameGrip"))return;
+ const g=document.createElement("div");
+ g.className="frameGrip";
+ g.title="Drag to resize";
+ g.setAttribute("aria-hidden","true");
+ f.appendChild(g);
+ let sx=0,sy=0,w0=0,h0=0,active=false;
+ const down=e=>{
+   active=true;
+   const p=e.touches?e.touches[0]:e;
+   const r=f.getBoundingClientRect();
+   sx=p.clientX;sy=p.clientY;w0=r.width;h0=r.height;
+   f.classList.remove("maxed");
+   bringToFront(f);
+   e.preventDefault();e.stopPropagation();
+ };
+ const move=e=>{
+   if(!active)return;
+   const p=e.touches?e.touches[0]:e;
+   const left=f.getBoundingClientRect().left, top=f.getBoundingClientRect().top;
+   const maxW=window.innerWidth-left-6, maxH=safeBottom()-top-6;
+   const w=Math.max(240,Math.min(maxW,w0+(p.clientX-sx)));
+   const h=Math.max(140,Math.min(maxH,h0+(p.clientY-sy)));
+   f.style.width=w+"px";
+   f.style.maxWidth=w+"px";
+   f.style.height=h+"px";          // an explicit height, so the frame really grows
+   f.style.maxHeight=h+"px";
+   f.dataset.sized="1";            // remember the user chose this size
+   e.preventDefault();
+ };
+ const up=()=>{
+   if(!active)return;
+   active=false;
+   if(f.id.startsWith("frame-chart-"))renderChartFrame(f.id.replace("frame-chart-",""));
+ };
+ g.addEventListener("mousedown",down);
+ g.addEventListener("touchstart",down,{passive:false});
+ window.addEventListener("mousemove",move);
+ window.addEventListener("touchmove",move,{passive:false});
+ window.addEventListener("mouseup",up);
+ window.addEventListener("touchend",up);
+ // live redraw while dragging, throttled so it stays responsive
+ if(window.ResizeObserver&&f.id.startsWith("frame-chart-")){
+   let t=null;
+   new ResizeObserver(()=>{
+     clearTimeout(t);
+     t=setTimeout(()=>renderChartFrame(f.id.replace("frame-chart-","")),90);
+   }).observe(f);
+ }
+}
 /* Maximise: fill most of the screen for reading long text or studying a chart. */
 function toggleMaximise(f){
  const on=f.classList.toggle("maxed");
@@ -2384,10 +2607,14 @@ function toggleMaximise(f){
  if(btn){btn.textContent=on?"\u2750":"\u2751";btn.setAttribute("aria-label",(on?"Restore ":"Maximise ")+f.getAttribute("aria-label"))}
  if(on){
    f.dataset.prevLeft=f.style.left;f.dataset.prevTop=f.style.top;
-   f.style.left="";f.style.top="";
+   f.dataset.prevWidth=f.style.width;f.dataset.prevMaxWidth=f.style.maxWidth;
+   f.dataset.prevHeight=f.style.height;
+   f.style.left="";f.style.top="";f.style.width="";f.style.maxWidth="";f.style.height="";
    f.style.maxHeight=Math.max(200,safeBottom()-(window.innerHeight*0.02)-20)+"px";
  }else{
    f.style.left=f.dataset.prevLeft||"";f.style.top=f.dataset.prevTop||"";
+   f.style.width=f.dataset.prevWidth||"";f.style.maxWidth=f.dataset.prevMaxWidth||"";
+   f.style.height=f.dataset.prevHeight||"";
    fitFrame(f);
  }
  if(f.id.startsWith("frame-chart-"))renderChartFrame(f.id.replace("frame-chart-",""));
@@ -2549,7 +2776,7 @@ function buildRangePickers(){
 }
 viewEndIdx=idx(fromIdx(endTimelineIndex).year,12);
 buildRangePickers();
-document.getElementById("showTrend").addEventListener("change",renderHisto);
+document.getElementById("trendMode").addEventListener("change",renderHisto);
 
 /* ── Skip months with nothing in them, so playback keeps moving ──────────── */
 function monthHasData(i){
@@ -2576,10 +2803,10 @@ document.getElementById("resetDefaults").addEventListener("click",()=>{
  document.getElementById("showUnattributed").checked=true;
  document.getElementById("showExercise").checked=false;
  document.getElementById("skipEmpty").checked=true;
- document.getElementById("cumulative").checked=true;
+ document.getElementById("cumulative").checked=false;
  document.getElementById("heatToggle").checked=true;
- document.getElementById("cities").checked=true;
- document.getElementById("showTrend").checked=true;
+ document.getElementById("cities").checked=false;
+ document.getElementById("trendMode").value="avg";
  document.getElementById("sigPause").checked=false;
  document.querySelectorAll(".atype").forEach(x=>x.checked=true); viewMode.value="attacks"; speed.value="3000";
  densityMode.value="full";      // matches the markup default, i.e. genuine first-load state
@@ -2601,7 +2828,7 @@ document.getElementById("resetDefaults").addEventListener("click",()=>{
  enabledSources.clear();
  DEFAULT_SOURCE_LAYERS.forEach(n=>enabledSources.add(n));
  document.querySelectorAll("#sourceLayerControls input").forEach(i=>{i.checked=true});
- document.querySelectorAll(".ctlSec").forEach(d=>{d.open=(d.dataset.sec==="display")});
+ document.querySelectorAll(".ctlSec").forEach(d=>{d.open=false});
  document.getElementById("histoOverlay").value="";
  refreshOpenCharts();
  sigLocked=false; significantShown=null;
@@ -2640,6 +2867,22 @@ function updateBadges(){
 }
 document.querySelectorAll("#frame-controls input,#frame-controls select").forEach(el=>{
  el.addEventListener("change",()=>setTimeout(updateBadges,0));
+});
+document.getElementById("secCollapseAll").addEventListener("click",()=>{
+ document.querySelectorAll(".ctlSec").forEach(d=>d.open=false);
+});
+document.getElementById("secExpandAll").addEventListener("click",()=>{
+ document.querySelectorAll(".ctlSec").forEach(d=>d.open=true);
+});
+/* The running totals start tucked away so the map has the screen; the small
+   info button brings them back. */
+const escToggle=document.getElementById("escToggle");
+const escalationBox=document.getElementById("escalation");
+escToggle.addEventListener("click",()=>{
+ const words=document.getElementById("escWords");
+ const open=words.classList.toggle("collapsed")===false;
+ escToggle.setAttribute("aria-expanded",String(open));
+ escToggle.classList.toggle("on",open);
 });
 document.getElementById("countrySearch").addEventListener("input",renderCountryList);
 document.getElementById("countryMode").addEventListener("change",()=>{renderCountrySelected();markHistoDirty();update()});
@@ -2830,7 +3073,52 @@ const CHART_DEFS=[
     const rows=["Critical","High","Medium","Low"].map(s=>[s,vis.filter(a=>a.severity===s).length]).filter(x=>x[1]);
     if(!rows.length)return modeSwitch("severity")+`<p class="chartNote">Nothing matches the current filters.</p>`;
     return modeSwitch("severity")+svgHBars(rows,{color:"#ff9d3c"})+
-      `<p class="chartNote">Severity comes from the impact recorded in each source, so it compares well within a source but only roughly across sources. Medium and Low are switched off by default in Controls.</p>`;
+      `<p class="chartNote">Severity comes from the impact recorded in each source, so it compares well within a source but only roughly across sources. Medium and Low are switched off by default in Controls.<br><br><b>Careful with trends.</b> Only the curated layer and EuRepoC can assign <i>Critical</i>, and both lag by a year or more, while recent volume is dominated by ransomware leak-site claims coded Medium. Critical and High therefore <i>appear</i> to decline in the most recent years even if severe incidents have not. See the <b>Where the data comes from</b> chart.</p>`;
+  }},
+ {id:"coverage",title:"Where the data comes from, by year",group:"reference",
+  blurb:"Which source supplied each year's incidents \u2014 read this before trusting a trend.",
+  ok:()=>attacks.length>0,
+  build:W=>{
+    const COL={"Curated primary-source incidents":"#ffd24d",
+               "EuRepoC Global Dataset v1.3":"#4ee6a5",
+               "VERIS Community Database":"#4dd8ff",
+               "Ransomware.live leak-site monitoring":"#ff6b78",
+               "CISSM Cyber Events Database":"#c58cff"};
+    const byYear={},layers=new Set();
+    attacks.forEach(a=>{
+      const y=a.year; if(!y)return;
+      const L=sourceLayerName(a);
+      layers.add(L);
+      (byYear[y]=byYear[y]||{})[L]=(byYear[y][L]||0)+1;
+    });
+    const years=Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+    if(!years.length)return "";
+    const max=Math.max(...years.map(y=>Object.values(byYear[y]).reduce((a,b)=>a+b,0)));
+    const order=[...layers];
+    const rows=years.map(y=>{
+      const tot=Object.values(byYear[y]).reduce((a,b)=>a+b,0);
+      let x=0,segs="";
+      order.forEach(L=>{
+        const n=byYear[y][L]||0; if(!n)return;
+        const wpc=(n/max)*100;
+        segs+=`<i style="left:${x}%;width:${wpc}%;background:${COL[L]||"#7f95b4"}" title="${L}: ${n.toLocaleString()}"></i>`;
+        x+=wpc;
+      });
+      return `<div class="covRow"><span class="covY">${y}</span><span class="covBar">${segs}</span><span class="covN">${tot.toLocaleString()}</span></div>`;
+    }).join("");
+    const legend=order.map(L=>`<span class="covKey"><i style="background:${COL[L]||"#7f95b4"}"></i>${
+      L.replace(" Global Dataset v1.3","").replace("VERIS Community Database","VCDB")
+       .replace(" leak-site monitoring","").replace("Curated primary-source incidents","Curated")
+       .replace(" Cyber Events Database","")}</span>`).join("");
+    // The single most important caveat in the whole application.
+    const crit=new Set(["Curated primary-source incidents","EuRepoC Global Dataset v1.3"]);
+    const lastY=years[years.length-1];
+    const recent=years.slice(-3);
+    const critRecent=recent.reduce((s,y)=>s+order.filter(L=>crit.has(L)).reduce((t,L)=>t+(byYear[y][L]||0),0),0);
+    const totRecent=recent.reduce((s,y)=>s+Object.values(byYear[y]).reduce((a,b)=>a+b,0),0);
+    const pct=totRecent?Math.round(100*critRecent/totRecent):0;
+    return `<div class="covLegend">${legend}</div><div class="coverage">${rows}</div>
+      <p class="chartNote"><b>Read this before reading any severity trend.</b> Only the curated layer and EuRepoC ever assign <i>Critical</i>; VCDB caps at High, and Ransomware.live entries are Medium unless widely reported. Those two Critical-capable sources supplied just <b>${pct}%</b> of incidents in ${recent[0]}\u2013${lastY}, because expert-coded datasets lag reality by a year or more. A fall in Critical and High over recent years therefore reflects <b>who has finished coding</b>, not a safer world.</p>`;
   }},
  {id:"kev",title:"Known-exploited vulnerabilities added / month",group:"reference",
   blurb:"Flaws attackers were seen using, over time.",
