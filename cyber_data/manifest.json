@@ -1,8 +1,8 @@
 {
  "schema": 3,
- "builder": "3.5.0",
+ "builder": "3.6.1",
  "builder_date": "2026-07-23",
- "generated": "2026-07-23T17:54:03+00:00",
+ "generated": "2026-07-23T22:15:05+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -118,15 +118,15 @@
      }
     },
     "rwlive": "incidents/rwlive.json",
-    "cissm": "incidents/cissm.json"
+    "eurepoc_live": "incidents/eurepoc_live.json"
    },
    "counts": {
     "eurepoc": 4296,
     "vcdb": 10362,
     "rwlive": 21299,
-    "cissm": 17169
+    "eurepoc_live": 992
    },
-   "total": 53126
+   "total": 36949
   },
   "vulns": {
    "files": {
@@ -141,7 +141,7 @@
     },
     "cve": {
      "file": "vulns/cve.json",
-     "months": 139
+     "months": 155
     }
    }
   },
@@ -182,7 +182,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 3.1
+   "seconds": 1.6
   },
   {
    "id": "vcdb",
@@ -194,7 +194,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10362,
-   "seconds": 4.7
+   "seconds": 5.4
   },
   {
    "id": "rwlive",
@@ -206,7 +206,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 21299,
-   "seconds": 159.7
+   "seconds": 145.4
   },
   {
    "id": "kev",
@@ -218,7 +218,7 @@
    "status": "ok",
    "expected": 1650,
    "rows": 1653,
-   "seconds": 0.2
+   "seconds": 0.1
   },
   {
    "id": "epss",
@@ -254,7 +254,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 3895,
-   "seconds": 0.8
+   "seconds": 0.5
   },
   {
    "id": "cissm",
@@ -262,11 +262,21 @@
    "table": "incidents",
    "licence": "Access granted by CISSM on request - do not redistribute raw records",
    "homepage": "https://cybereventsdatabase.org",
+   "expected": 17169,
+   "status": "failed: _manual_rows() missing 1 required positional argument: 'kind'",
+   "rows": 0
+  },
+  {
+   "id": "eurepoc_live",
+   "title": "EuRepoC TableView export (provisional, not fully expert-reviewed)",
+   "table": "incidents",
+   "licence": "CC BY-NC 4.0 - non-commercial use only",
+   "homepage": "https://eurepoc.eu/table-view/",
    "cadence": "manual export",
    "status": "ok",
-   "expected": 17169,
-   "rows": 17169,
-   "seconds": 0.2
+   "expected": 0,
+   "rows": 992,
+   "seconds": 0.4
   },
   {
    "id": "cve",
@@ -277,8 +287,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 320,
-   "rows": 139,
-   "seconds": 272.4
+   "rows": 155,
+   "seconds": 269.6
   },
   {
    "id": "reports",
