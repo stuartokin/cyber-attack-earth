@@ -21,7 +21,7 @@
     .panel{background:var(--panel);border-color:var(--line)}
     #stage{position:absolute;inset:0;background:radial-gradient(circle at center,#102248 0,#040812 62%)}
     /* ── Movable tool bar + independent movable frames ────────────────────── */
-    #toolbar{position:fixed;z-index:90;top:14px;left:14px;display:flex;align-items:stretch;gap:4px;
+    #toolbar{position:fixed;z-index:200;top:14px;left:14px;display:flex;align-items:stretch;gap:4px;
       background:rgba(6,13,26,.97);backdrop-filter:blur(12px);border:1px solid #34506f;border-radius:12px;
       padding:5px;box-shadow:0 14px 40px rgba(0,0,0,.5);max-width:calc(100vw - 20px);flex-wrap:wrap}
     .tbBtn{display:flex;align-items:center;gap:7px;padding:8px 11px;font-size:12.5px;background:transparent;
@@ -74,7 +74,7 @@
     .splashBars{display:grid;gap:7px;margin-bottom:8px}
     .splashRow{display:grid;grid-template-columns:96px 1fr 34px;gap:8px;align-items:center;font-size:10.5px;color:#7f95b4}
     .splashRow i{font-style:normal;text-align:right;color:#a8bcd6;font-variant-numeric:tabular-nums}
-    .splashVer{font-size:9.5px;color:#5f7a9c;margin-top:3px;letter-spacing:.04em}
+    .splashVer{font-size:10.5px;color:#7f97b6;margin-top:6px;letter-spacing:.05em;font-variant-numeric:tabular-nums}
     .splashJoke{margin-top:10px;min-height:2.6em;font-size:11.5px;line-height:1.5;color:#8fa6c4;
       border-top:1px solid #1e3350;padding-top:9px;transition:opacity .4s}
     .splashJoke.fade{opacity:0}
@@ -113,7 +113,9 @@
     .frameHead h2{margin:0;font-size:13px;letter-spacing:.02em}
     .frameBtns{display:flex;gap:5px;align-items:center}
     .frameClose,.frameMax{font-size:17px;line-height:1;padding:3px 9px;min-width:32px}
-    .frame.maxed{left:2vw!important;top:2vh!important;width:96vw!important;max-width:96vw!important}
+    /* Start below the tool bar (which sits at 14px, ~45px tall) so maximising a
+       window never paints over the controls. */
+    .frame.maxed{left:2vw!important;top:70px!important;width:96vw!important;max-width:96vw!important}
     .frameGrip{position:absolute;right:0;bottom:0;width:18px;height:18px;cursor:nwse-resize;
       touch-action:none;z-index:3;
       background:linear-gradient(135deg,transparent 0 46%,#3d5c80 46% 54%,transparent 54% 70%,#3d5c80 70% 78%,transparent 78%)}
@@ -162,8 +164,11 @@
     #stars{position:absolute;inset:0;width:100%;height:100%;z-index:0;display:block;background:#000005}
     #globe,#flatMap{position:absolute;inset:0}
     #globe{z-index:1}
-    #flatMap{display:none;padding:12px}
-    #flatMap svg{width:100%;height:100%;display:block}
+    /* The flat map sits ABOVE the starfield and paints an opaque sea, so space does
+       not show through it. Globe in space; flat earth on ocean. */
+    #flatMap{display:none;padding:12px;z-index:2;background:#071a30}
+    #flatMap svg{width:100%;height:100%;display:block;background:#071a30}
+    #flatMap .ocean{fill:#0a2242}
     .country{fill:#10213b;stroke:#38506f;stroke-width:.35}
     .flat-arc{fill:none;stroke-linecap:round}
     .flat-origin{fill:#4dd8ff;stroke:#dff8ff;stroke-width:.5}
@@ -1333,7 +1338,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v54";
+const APP_VERSION="v55";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -1552,6 +1557,9 @@ async function initFlatMap(){
     .attr("aria-label","Flat world map showing cyber attack origins and destinations");
   flatProjection = d3.geoNaturalEarth1().fitExtent([[20,20],[980,500]], countries);
   flatPath = d3.geoPath(flatProjection);
+  // A sea backdrop, drawn first so land sits on top of it.
+  flatSvg.append("rect").attr("class","ocean").attr("x",-200).attr("y",-200)
+    .attr("width",1400).attr("height",920).attr("fill","#0a2242");
   flatZoomLayer = flatSvg.append("g");
   flatZoomLayer.append("g").selectAll("path").data(countries.features).join("path").attr("class","country").attr("data-id",d=>String(d.id).padStart(3,"0")).attr("d",flatPath);
   flatZoom=d3.zoom().scaleExtent([1,8]).on("zoom",e=>flatZoomLayer.attr("transform",e.transform));
@@ -3283,6 +3291,8 @@ function setMapMode(mode){
  const sphere=mode==="sphere";
  globeEl.style.display=sphere?"block":"none";
  flatMapEl.style.display=sphere?"none":"block";
+ const st=document.getElementById("stars");           // stars are for space only
+ if(st)st.style.display=sphere?"block":"none";
  sphereBtn.classList.toggle("primary",sphere);
  flatBtn.classList.toggle("primary",!sphere);
  if(selectedAttack) showDetail(selectedAttack);
@@ -3538,7 +3548,7 @@ function toggleMaximise(f){
    f.dataset.prevWidth=f.style.width;f.dataset.prevMaxWidth=f.style.maxWidth;
    f.dataset.prevHeight=f.style.height;
    f.style.left="";f.style.top="";f.style.width="";f.style.maxWidth="";f.style.height="";
-   f.style.maxHeight=Math.max(200,safeBottom()-(window.innerHeight*0.02)-20)+"px";
+   f.style.maxHeight=Math.max(200,safeBottom()-70-16)+"px";   // 70px top + a small gap above the timeline
  }else{
    f.style.left=f.dataset.prevLeft||"";f.style.top=f.dataset.prevTop||"";
    f.style.width=f.dataset.prevWidth||"";f.style.maxWidth=f.dataset.prevMaxWidth||"";
@@ -3732,7 +3742,7 @@ function splashReady(){
  splashBar(3,100,"\u2713");
  document.getElementById("splashStatus").textContent="Ready.";
  const v=document.getElementById("splashVer");
- if(v)v.textContent=APP_VERSION+(LAKE.manifest&&LAKE.manifest.builder?"  \u00b7  data pack "+LAKE.manifest.builder+", built "+String(LAKE.manifest.generated).slice(0,10):"  \u00b7  no data pack");
+ if(v)v.textContent="Version "+APP_VERSION+(LAKE.manifest&&LAKE.manifest.builder?"  \u00b7  data pack "+LAKE.manifest.builder+", built "+String(LAKE.manifest.generated).slice(0,10):"  \u00b7  no data pack");
  const go=document.getElementById("splashGo");
  const n=attacks.length;
  document.getElementById("splashCount").textContent=n.toLocaleString();
@@ -3760,6 +3770,7 @@ function splashDismiss(then){
  s.classList.add("gone");
  setTimeout(()=>{s.remove();update();if(then)then()},600);
 }
+(function(){ const v=document.getElementById("splashVer"); if(v)v.textContent="Version "+APP_VERSION; })();
 document.getElementById("splashGo").addEventListener("click",()=>splashDismiss());
 document.getElementById("splashTour").addEventListener("click",()=>splashDismiss(()=>narrStart("demo")));
 // a gentle orbit while they read, so the wait is not a blank screen
@@ -4538,7 +4549,7 @@ const NARR_SCRIPTS={
   ]}
 };
 
-const NARR={running:false,mode:null,step:0,timer:null,muted:false,script:null,startedAt:0,seq:0,speaking:false};
+const NARR={running:false,mode:null,step:0,timer:null,muted:false,script:null,startedAt:0,seq:0,speaking:false,estSpeakMs:0};
 
 /* The voice, not a stopwatch, decides when to move on. Previously a step advanced
    after a fixed dwell while the voice ran at its own speed, so caption and audio
@@ -4556,14 +4567,20 @@ function narrSpeak(text,onDone){
    const pick=vs.find(v=>/en-GB/i.test(v.lang)&&/female|Sonia|Libby|Hazel/i.test(v.name))
             ||vs.find(v=>/en-GB/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang));
    if(pick)u.voice=pick;
-   let done=false;
+   let done=false, started=performance.now();
    const finish=ok=>{ if(done)return; done=true; if(onDone)onDone(ok) };
    u.onend=()=>finish(true);
    u.onerror=()=>finish(false);
    speechSynthesis.speak(u);
-   // Some browsers never fire onend. Estimate from length and give up gracefully.
-   const words=String(text).split(/\s+/).length;
-   setTimeout(()=>finish(false),Math.max(4000,words/2.6*1000+2500));
+   // Some browsers never fire onend. Estimate the spoken length GENEROUSLY - English
+   // TTS at this rate runs about 2.3 words/sec, and the early captions are the long
+   // ones - and only then fall back. Report the fallback as a real finish (true), so
+   // a slow onend never routes the step down the short "not spoken" branch and clips
+   // the audio. The estimate is deliberately long; a real onend will usually beat it.
+   const words=Math.max(1,String(text).trim().split(/\s+/).length);
+   const estMs=words/2.3*1000 + 3200;
+   NARR.estSpeakMs=estMs;
+   setTimeout(()=>finish(true),Math.max(6000,estMs));
  }catch(e){ if(onDone)onDone(false) }
 }
 function narrStopSpeech(){try{if("speechSynthesis" in window)speechSynthesis.cancel()}catch(e){}}
@@ -4689,7 +4706,10 @@ function narrGo(i){
  };
  const scheduleAfterSpeech=()=>{
    const elapsed=performance.now()-startedAt;
-   const wait=Math.max(700,minMs-elapsed);
+   // Hold for the longer of: the visual-settle floor, and the estimated spoken length
+   // plus a short tail. This stops an early onend from clipping the final words.
+   const speakFloor=(NARR.estSpeakMs||0)+450;
+   const wait=Math.max(700,minMs-elapsed,speakFloor-elapsed);
    NARR.timer=setTimeout(()=>{ if(!NARR.speaking)advance(); else NARR.timer=setTimeout(advance,900) },wait);
  };
  const seq=++NARR.seq;
@@ -4699,7 +4719,12 @@ function narrGo(i){
    NARR.speaking=false;
    if(!NARR.running)return;
    if(spoke)scheduleAfterSpeech();
-   else NARR.timer=setTimeout(advance,Math.max(900,(s.dwell||6)*1000-(performance.now()-startedAt)));
+   else {
+     // muted or speech unavailable: pace by caption length so nothing feels rushed
+     const words=Math.max(1,String(s.say).replace(/<[^>]+>/g," ").trim().split(/\s+/).length);
+     const readMs=Math.max((s.dwell||6)*1000, words/3.2*1000+1500);
+     NARR.timer=setTimeout(advance,Math.max(900,readMs-(performance.now()-startedAt)));
+   }
  });
 }
 function narrStart(mode){
