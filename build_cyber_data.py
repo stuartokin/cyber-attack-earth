@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.6.2 (2026-07-23) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.7.0 (2026-07-24) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.7.0  Disclosure-lag inputs retained: EuRepoC added_to_DB alongside start_date,
+        and Ransomware.live's discovery date alongside the attack date, so the gap
+        between an event and its appearance in a dataset can be measured.
  3.6.2  CVE per-run fetch cap lifts automatically when NVD_API_KEY is set, so the
         whole history completes in one run instead of five nights.
  3.6.1  TableView export slimmed to the static release's columns and the EuRepoC
@@ -93,8 +96,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.6.2"
-BUILDER_DATE = "2026-07-23"
+BUILDER_VERSION = "3.7.0"
+BUILDER_DATE = "2026-07-24"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -178,6 +181,7 @@ EUREPOC_KEEP = [
     r"description", r"^summary",
     r"receiver.*category", r"incident.*type", r"cyber.*means",
     r"^incident.*id", r"^id$",
+    r"added.*to.*db", r"^added", r"detection.*disclosure",
 ]
 LONG_TEXT = re.compile(r"description|summary", re.I)
 
@@ -296,6 +300,8 @@ def build_rwlive():
                     "victim": (v.get("victim") or v.get("post_title") or "")[:140],
                     "group": (v.get("group") or "")[:60],
                     "attackdate": (v.get("attackdate") or v.get("discovered") or "")[:10],
+                    # kept separately so the gap between the two can be measured
+                    "discovered": (v.get("discovered") or "")[:10],
                     "country": cc,
                     "activity": (v.get("activity") or v.get("sector") or "")[:60],
                     "press": len(v.get("press") or []),
