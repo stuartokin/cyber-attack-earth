@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.7.0 (2026-07-24) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.7.1 (2026-07-24) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.7.1  Removed a dead function left by the manual-export refactor and gave
+        _manual_rows a default argument, so a stale or partial copy cannot raise
+        "missing 1 required positional argument" in place of the real message.
  3.7.0  Disclosure-lag inputs retained: EuRepoC added_to_DB alongside start_date,
         and Ransomware.live's discovery date alongside the attack date, so the gap
         between an event and its appearance in a dataset can be measured.
@@ -96,7 +99,7 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.7.0"
+BUILDER_VERSION = "3.7.1"
 BUILDER_DATE = "2026-07-24"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
@@ -739,7 +742,7 @@ def _cissm_fetch_remote():
         title="CISSM / GoTech Cyber Events Database",
         licence="Access granted by CISSM on request - do not redistribute raw records",
         cadence="manual export", homepage="https://cybereventsdatabase.org", expected=17169)
-def _manual_rows(kind, allow_any=False):
+def _manual_rows(kind="cissm", allow_any=False):
     """Read an export the user downloaded from a portal and committed to the repo.
 
     Files are matched by name first (anything containing `kind`), so several manual
@@ -882,31 +885,6 @@ def _cissm_manual_rows():
     needless step. The newest usable file wins.
     """
     return _manual_rows("cissm", allow_any=True)
-
-
-def _cissm_manual_rows_unused():
-    cands = []
-    for path in cands:
-        try:
-            text = path.read_text(encoding="utf-8", errors="replace")
-        except Exception as exc:                                  # noqa: BLE001
-            print("  [cissm] cannot read %s (%s)" % (path.name, str(exc)[:60]))
-            continue
-        rows = []
-        if path.suffix.lower() == ".json":
-            try:
-                rows = _cissm_rows_from_json(json.loads(text))
-            except Exception as exc:                              # noqa: BLE001
-                print("  [cissm] %s is not valid JSON (%s)" % (path.name, str(exc)[:60]))
-                continue
-        else:
-            rows = list(csv.DictReader(io.StringIO(text)))
-        if rows and isinstance(rows[0], dict):
-            print("  [cissm] using manual export %s (%d rows, %.1f MB)"
-                  % (path.name, len(rows), path.stat().st_size / 1e6))
-            return rows
-        print("  [cissm] %s contained no usable rows" % path.name)
-    return None
 
 
 def build_cissm():
