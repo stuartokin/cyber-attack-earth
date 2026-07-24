@@ -202,6 +202,14 @@
     .covLegend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
     .covKey{display:flex;align-items:center;gap:4px;font-size:10.5px;color:#a8bcd6}
     .covKey i{width:9px;height:9px;border-radius:2px;display:inline-block}
+    .grpHead{font-size:12.5px;margin:0 0 2px;color:#dbe7f5;display:flex;justify-content:space-between;align-items:baseline}
+    .grpHead span{font-size:10.5px;color:#7f95b4;font-weight:400}
+    .grpRow{grid-template-columns:auto 1fr auto;row-gap:2px}
+    .grpRow .lgName a{color:#c9d8ec;text-decoration:none;border-bottom:1px dotted #3d5c80}
+    .grpRow .lgName a:hover{color:#fff;border-bottom-color:var(--accent)}
+    .grpMotive{grid-column:1/-1;position:relative;z-index:1;font-size:10px;color:#8fa6c4;line-height:1.4}
+    .grpMotive.unknown{color:#6f86a6;font-style:italic}
+    .grpAlias{grid-column:1/-1;position:relative;z-index:1;font-size:9.5px;color:#6f86a6}
     .leagueToggle{width:100%;margin-top:6px;background:rgba(10,22,38,.75);border:1px solid #2c4666;
       border-radius:8px;padding:7px;font-size:11.5px;color:var(--accent)}
     .leagueToggle:hover{background:rgba(20,38,63,.85)}
@@ -499,7 +507,7 @@
         <div class="frameHead"><h2>Help</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Help" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Help">&#215;</button></span></div>
         <div class="frameBody">
         <div class="miniLinks" style="margin:0 0 8px"><button id="helpExpandAll" type="button">Expand all</button><button id="helpCollapseAll" type="button">Collapse all</button></div>
-        <details class="ctlSec" data-sec="about" open>
+        <details class="ctlSec" data-sec="about">
           <summary>About this map</summary>
           <div class="ctlBody"><p class="demo"><b>Mapped incident sources:</b> a ~90-incident curated layer embedded in this file (works fully offline), plus — when hosted — EuRepoC (2000–2024), VCDB, and recent-months ransomware leak-site claims from Ransomware.live, deduplicated across sources. Incident actors link to a cited threat-group directory (MITRE ATT&amp;CK + Ransomware.live profiles). MITRE ATT&amp;CK and CISA KEV load as enrichment. Origins are attribution or ecosystem proxies — see each incident's note.</p>
         <p>The strip above the timeline is an attacks-per-month histogram (2000&nbsp;→&nbsp;today) — click any bar to jump there. The on-map counter tracks documented attacks accumulated since the start of the selected period, with a tempo multiplier measured against that period’s opening months. The green line is a year-on-year trend of peak monthly activity. Press <b>⟲ Replay</b> to watch the monthly missile salvos escalate.</p>
@@ -2470,18 +2478,18 @@ function registerGroup(p){
 }
 // Embedded core so group cards work offline. Verify links before publication.
 [
- {name:"Lazarus Group",aliases:["Hidden Cobra","APT38"],origin:"North Korea (multi-government attribution)",desc:"North Korean state-linked group behind bank heists, crypto theft and destructive attacks, from the Bangladesh Bank raid to Ronin.",links:[{name:"MITRE ATT&CK G0032",url:"https://attack.mitre.org/groups/G0032/"},{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Lazarus_Group"}]},
- {name:"Sandworm",aliases:["Voodoo Bear","Unit 74455","IRIDIUM"],origin:"Russia — GRU (indicted officers)",desc:"GRU unit behind the Ukraine grid attacks, NotPetya and Industroyer; the most consequential ICS-capable actor on public record.",links:[{name:"MITRE ATT&CK G0034",url:"https://attack.mitre.org/groups/G0034/"},{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Sandworm_(hacker_group)"}]},
- {name:"APT28",aliases:["Fancy Bear","Forest Blizzard","STRONTIUM"],origin:"Russia — GRU",desc:"GRU-linked espionage and hack-and-leak group; TV5Monde and election-interference operations.",links:[{name:"MITRE ATT&CK G0007",url:"https://attack.mitre.org/groups/G0007/"},{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Fancy_Bear"}]},
- {name:"APT29",aliases:["Cozy Bear","Midnight Blizzard","NOBELIUM"],origin:"Russia — SVR (multi-government attribution)",desc:"SVR-linked espionage group behind the SolarWinds supply-chain campaign.",links:[{name:"MITRE ATT&CK G0016",url:"https://attack.mitre.org/groups/G0016/"},{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Cozy_Bear"}]},
- {name:"Conti",aliases:["Wizard Spider"],origin:"Russian-speaking ecosystem",desc:"Prolific ransomware operation (Irish HSE, Costa Rica) that dissolved after its internal chats leaked in 2022.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Conti_(ransomware)"},{name:"MITRE ATT&CK G0102 (Wizard Spider)",url:"https://attack.mitre.org/groups/G0102/"}]},
- {name:"LockBit",aliases:["LockBit 3.0"],origin:"Russian-speaking ecosystem; infrastructure seized 2024 (Operation Cronos)",desc:"The most prolific ransomware-as-a-service brand of 2021–24 (Port of Nagoya, Royal Mail), disrupted by an NCA-led operation.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/LockBit"}]},
- {name:"REvil",aliases:["Sodinokibi"],origin:"Russian-speaking ecosystem; arrests by FSB reported 2022",desc:"Ransomware-as-a-service behind JBS and Kaseya; linked actors were later sanctioned over Medibank.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/REvil"}]},
- {name:"Lapsus$",aliases:[],origin:"Distributed; UK and Brazil arrests",desc:"Extortion crew of mostly teenagers that breached Okta, Nvidia, Microsoft and Brazilian government systems through social engineering.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Lapsus$"}]},
- {name:"Scattered Spider",aliases:["Octo Tempest","UNC3944"],origin:"English-speaking; The Com ecosystem (US/UK arrests)",desc:"Social-engineering specialists behind the 2023 casino intrusions and 2025 UK retail attacks.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Scattered_Spider"}]},
- {name:"Anonymous Sudan",aliases:[],origin:"Contested; US indictment named Sudanese nationals in 2024",desc:"High-volume DDoS brand that hit Kenya's eCitizen, Microsoft and many others.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Anonymous_Sudan"}]},
- {name:"Predatory Sparrow",aliases:["Gonjeshke Darande"],origin:"Self-described anti-regime; sponsorship unconfirmed",desc:"Conducted precision ICS attacks on Iranian fuel distribution and steel plants, publishing evidence videos.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Predatory_Sparrow"}]},
- {name:"Volt Typhoon",aliases:[],origin:"China (multi-government attribution)",desc:"State-linked group pre-positioning in US and allied critical infrastructure using living-off-the-land techniques.",links:[{name:"MITRE ATT&CK G1017",url:"https://attack.mitre.org/groups/G1017/"},{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Volt_Typhoon"}]},
+ {name:"Lazarus Group",motive:"State-linked — revenue generation and espionage",aliases:["Hidden Cobra","APT38"],origin:"North Korea (multi-government attribution)",desc:"North Korean state-linked group behind bank heists, crypto theft and destructive attacks, from the Bangladesh Bank raid to Ronin.",links:[{name:"MITRE ATT&CK G0032",url:"https://attack.mitre.org/groups/G0032/"},{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Lazarus_Group"}]},
+ {name:"Sandworm",motive:"State-linked — disruption and sabotage",aliases:["Voodoo Bear","Unit 74455","IRIDIUM"],origin:"Russia — GRU (indicted officers)",desc:"GRU unit behind the Ukraine grid attacks, NotPetya and Industroyer; the most consequential ICS-capable actor on public record.",links:[{name:"MITRE ATT&CK G0034",url:"https://attack.mitre.org/groups/G0034/"},{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Sandworm_(hacker_group)"}]},
+ {name:"APT28",motive:"State-linked — espionage",aliases:["Fancy Bear","Forest Blizzard","STRONTIUM"],origin:"Russia — GRU",desc:"GRU-linked espionage and hack-and-leak group; TV5Monde and election-interference operations.",links:[{name:"MITRE ATT&CK G0007",url:"https://attack.mitre.org/groups/G0007/"},{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Fancy_Bear"}]},
+ {name:"APT29",motive:"State-linked — espionage",aliases:["Cozy Bear","Midnight Blizzard","NOBELIUM"],origin:"Russia — SVR (multi-government attribution)",desc:"SVR-linked espionage group behind the SolarWinds supply-chain campaign.",links:[{name:"MITRE ATT&CK G0016",url:"https://attack.mitre.org/groups/G0016/"},{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Cozy_Bear"}]},
+ {name:"Conti",motive:"Financially motivated — extortion",aliases:["Wizard Spider"],origin:"Russian-speaking ecosystem",desc:"Prolific ransomware operation (Irish HSE, Costa Rica) that dissolved after its internal chats leaked in 2022.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Conti_(ransomware)"},{name:"MITRE ATT&CK G0102 (Wizard Spider)",url:"https://attack.mitre.org/groups/G0102/"}]},
+ {name:"LockBit",motive:"Financially motivated — extortion",aliases:["LockBit 3.0"],origin:"Russian-speaking ecosystem; infrastructure seized 2024 (Operation Cronos)",desc:"The most prolific ransomware-as-a-service brand of 2021–24 (Port of Nagoya, Royal Mail), disrupted by an NCA-led operation.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/LockBit"}]},
+ {name:"REvil",motive:"Financially motivated — extortion",aliases:["Sodinokibi"],origin:"Russian-speaking ecosystem; arrests by FSB reported 2022",desc:"Ransomware-as-a-service behind JBS and Kaseya; linked actors were later sanctioned over Medibank.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/REvil"}]},
+ {name:"Lapsus$",motive:"Extortion and notoriety",aliases:[],origin:"Distributed; UK and Brazil arrests",desc:"Extortion crew of mostly teenagers that breached Okta, Nvidia, Microsoft and Brazilian government systems through social engineering.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Lapsus$"}]},
+ {name:"Scattered Spider",motive:"Financially motivated — extortion",aliases:["Octo Tempest","UNC3944"],origin:"English-speaking; The Com ecosystem (US/UK arrests)",desc:"Social-engineering specialists behind the 2023 casino intrusions and 2025 UK retail attacks.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Scattered_Spider"}]},
+ {name:"Anonymous Sudan",motive:"Hacktivist — ideological disruption",aliases:[],origin:"Contested; US indictment named Sudanese nationals in 2024",desc:"High-volume DDoS brand that hit Kenya's eCitizen, Microsoft and many others.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Anonymous_Sudan"}]},
+ {name:"Predatory Sparrow",motive:"Politically motivated — disruption",aliases:["Gonjeshke Darande"],origin:"Self-described anti-regime; sponsorship unconfirmed",desc:"Conducted precision ICS attacks on Iranian fuel distribution and steel plants, publishing evidence videos.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Predatory_Sparrow"}]},
+ {name:"Volt Typhoon",motive:"State-linked — pre-positioning in critical infrastructure",aliases:[],origin:"China (multi-government attribution)",desc:"State-linked group pre-positioning in US and allied critical infrastructure using living-off-the-land techniques.",links:[{name:"MITRE ATT&CK G1017",url:"https://attack.mitre.org/groups/G1017/"},{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Volt_Typhoon"}]},
  {name:"Salt Typhoon",aliases:[],origin:"China (multi-government attribution)",desc:"State-linked group behind the large-scale compromise of telecoms networks disclosed in 2024–25.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Salt_Typhoon"}]},
  {name:"Hive",aliases:[],origin:"Ransomware-as-a-service; infrastructure seized by the FBI in 2023",desc:"Ransomware service used against healthcare including Newfoundland's health system before its takedown.",links:[{name:"Wikipedia",url:"https://en.wikipedia.org/wiki/Hive_(ransomware)"}]},
  {name:"MuddyWater",aliases:["Mango Sandstorm"],origin:"Iran — MOIS (US Cyber Command attribution)",desc:"Iranian state-linked espionage group active against government and telecoms targets across the Middle East.",links:[{name:"MITRE ATT&CK G0069",url:"https://attack.mitre.org/groups/G0069/"}]},
@@ -3436,6 +3444,85 @@ function renderContextualBenchmarks(){
  host.querySelectorAll(".benchMore").forEach(x=>x.addEventListener("click",()=>openFrame("bench")));
 }
 
+/* ── Threat groups ─────────────────────────────────────────────────────────
+   Two tables, never one. A leak-site entry is the attacker's OWN branding: it is
+   reliable evidence of who claimed an attack and no evidence at all of who
+   carried it out. An expert-coded initiator is a research judgement made after
+   review. Adding those two counts together would launder the first into the
+   second, so they are separated, labelled, and never totalled.
+
+   Names are resolved through the threat-group directory (which already carries
+   MITRE ATT&CK aliases), so "Sandworm (Russian GRU)", "Sandworm" and "APT44"
+   collapse to one row instead of three.
+
+   Motive is shown only where the group's cited profile states one. It is never
+   inferred from the attack type: guessing a motive for a named organisation is
+   a far bigger claim than counting its incidents, and nothing here supports it. */
+const CLAIM_LAYER="Ransomware.live leak-site monitoring";
+function groupProfileFor(name){
+ const k=String(name||"").toLowerCase().trim();
+ if(!k)return null;
+ if(GROUP_DIRECTORY.has(k))return GROUP_DIRECTORY.get(k);
+ // "Sandworm (Russian GRU)" and "LockBit affiliate" should still find their profile
+ const bare=k.replace(/\s*\([^)]*\)\s*/g," ").replace(/\b(affiliate|group|team|gang|ransomware)\b/g," ").trim();
+ if(bare.length>2&&GROUP_DIRECTORY.has(bare))return GROUP_DIRECTORY.get(bare);
+ for(const [key,p] of GROUP_DIRECTORY){
+   if(key.length>4&&(bare.indexOf(key)>=0||key.indexOf(bare)>=0))return p;
+ }
+ return null;
+}
+const VAGUE_ACTOR=/^(unknown|unattributed|not available|n\/a|none|various|multiple|unidentified)/i;
+function groupTally(when){
+ const set=filteredForCharts(when);
+ const attributed={}, claimed={};
+ set.forEach(a=>{
+   const raw=String(a.actor||"").trim();
+   if(!raw||VAGUE_ACTOR.test(raw)||isUnattributed(a)&&!raw)return;
+   if(VAGUE_ACTOR.test(raw))return;
+   const prof=groupProfileFor(raw);
+   const key=prof?prof.name:raw;
+   const bucket=(sourceLayerName(a)===CLAIM_LAYER)?claimed:attributed;
+   const e=bucket[key]||(bucket[key]={n:0,prof:prof||null,raw:new Set()});
+   e.n++; e.raw.add(raw);
+ });
+ const rank=o=>Object.entries(o).sort((x,y)=>y[1].n-x[1].n);
+ return {attributed:rank(attributed), claimed:rank(claimed), total:set.length};
+}
+function motiveFor(entry,basis){
+ if(entry.prof&&entry.prof.motive)return {text:entry.prof.motive,cited:true};
+ if(basis==="claimed")return {text:"Extortion \u2014 self-declared by operating a leak site",cited:true};
+ if(entry.prof&&entry.prof.origin&&!/unknown/i.test(entry.prof.origin))
+   return {text:"Attributed to "+entry.prof.origin,cited:true};
+ return {text:"Not recorded",cited:false};
+}
+/* Sources decorate names differently: Ransomware.live appends "(ransomware group)",
+   EuRepoC expands acronyms in brackets. Tidy for display only - the underlying
+   value is untouched, and the full text stays available on hover. */
+function tidyGroupName(s){
+ let t=String(s||"").replace(/\s*\((ransomware group|ransomware|group|gang)\)\s*$/i,"").trim();
+ if(t.length>46)t=t.slice(0,44).replace(/[\s,;/(-]+$/,"")+"\u2026";
+ return t||String(s||"");
+}
+function groupRows(list,basis,limit){
+ if(!list.length)return '<p class="chartNote">None in the current selection.</p>';
+ const max=list[0][1].n;
+ const shown=limit?list.slice(0,limit):list;
+ return '<div class="league">'+shown.map(([name,e],i)=>{
+   const m=motiveFor(e,basis);
+   const alt=[...e.raw].filter(r=>r.toLowerCase()!==name.toLowerCase()).map(tidyGroupName)
+     .filter((v,i,arr)=>v.toLowerCase()!==tidyGroupName(name).toLowerCase()&&arr.indexOf(v)===i);
+   const link=e.prof&&e.prof.links&&e.prof.links[0]?e.prof.links[0].url:null;
+   return `<div class="lgRow grpRow">
+     <span class="lgRank">${i+1}</span>
+     <span class="lgName" title="${String(name).replace(/"/g,"&quot;")}">${link?`<a href="${link}" target="_blank" rel="noopener">${tidyGroupName(name)}</a>`:tidyGroupName(name)}</span>
+     <span class="lgVal">${e.n.toLocaleString()}</span>
+     <i style="width:${(e.n/max*100).toFixed(1)}%;background:${basis==="claimed"?"#ff9d3c":"#4dd8ff"}"></i>
+     <span class="grpMotive ${m.cited?"":"unknown"}">${m.text}</span>
+     ${alt.length?`<span class="grpAlias">also recorded as: ${alt.slice(0,3).join(", ")}</span>`:""}
+   </div>`;
+ }).join("")+'</div>';
+}
+
 /* ── Charts ────────────────────────────────────────────────────────────────
    Each chart is a definition, not a block of a single long page. The Charts
    button opens a small gallery; picking a chart opens it in its own movable
@@ -3545,6 +3632,27 @@ const CHART_DEFS=[
   ok:()=>attacks.length>0,
   build:W=>leagueTable("sectors","sector",{color:"#c58cff",
     note:"Sector labels are normalised across sources, so they are broad groupings rather than exact industry codes."})},
+ {id:"groups",title:"Threat groups",group:"filtered",
+  blurb:"Who is named \u2014 attributed groups and leak-site claims, kept apart.",
+  ok:()=>attacks.length>0,
+  build:W=>{
+    const mode=chartMode("groups")==="period"?"period":"timeline";
+    const t=groupTally(mode);
+    const cap=topOnly("groups")?10:0;
+    const more=(t.attributed.length>10||t.claimed.length>10)
+      ? `<button class="leagueToggle" type="button" data-for="groups">${topOnly("groups")
+          ? `Show all (${t.attributed.length} attributed, ${t.claimed.length} claimed) \u25be`
+          : "Show top ten of each \u25b4"}</button>` : "";
+    return modeSwitch("groups")+
+      `<h4 class="grpHead">Attributed groups <span>${t.attributed.length}</span></h4>
+       <p class="chartNote" style="margin:2px 0 6px">Named by expert coding or primary reporting. This is a research judgement about who carried out the attack.</p>
+       ${groupRows(t.attributed,"attributed",cap)}
+       <h4 class="grpHead" style="margin-top:14px">Leak-site claims <span>${t.claimed.length}</span></h4>
+       <p class="chartNote" style="margin:2px 0 6px">The attacker's own branding, taken from their leak site. Reliable evidence of who <i>claimed</i> the attack, and none at all of who carried it out.</p>
+       ${groupRows(t.claimed,"claimed",cap)}
+       ${more}
+       <p class="chartNote" style="margin-top:10px"><b>The two tables must not be added together.</b> Leak-site operators always name themselves, so they dominate any combined count regardless of how active they really are. Motive is shown only where a group's cited profile states one \u2014 it is never inferred from the attack type.</p>`;
+  }},
  {id:"severity",title:"Severity mix",group:"filtered",
   blurb:"How damaging the attacks were.",
   ok:()=>attacks.length>0,
