@@ -22,7 +22,7 @@
     #stage{position:absolute;inset:0;background:radial-gradient(circle at center,#102248 0,#040812 62%)}
     /* ── Movable tool bar + independent movable frames ────────────────────── */
     #toolbar{position:fixed;z-index:200;top:14px;left:14px;display:flex;align-items:stretch;gap:4px;
-      background:rgba(6,13,26,.97);backdrop-filter:blur(12px);border:1px solid #34506f;border-radius:12px;
+      background:#0a1526;backdrop-filter:blur(10px);border:1px solid #34506f;border-radius:12px;
       padding:5px;box-shadow:0 14px 40px rgba(0,0,0,.5);max-width:calc(100vw - 20px);flex-wrap:wrap}
     .tbBtn{display:flex;align-items:center;gap:7px;padding:8px 11px;font-size:12.5px;background:transparent;
       border:1px solid transparent;border-radius:8px;color:var(--muted);white-space:nowrap;line-height:1}
@@ -104,7 +104,7 @@
     .dyadArrow{color:var(--accent);margin:0 2px}
     .dyadSelf{font-size:9px;color:#7f95b4;border:1px solid #2c4666;border-radius:3px;padding:0 3px}
     .frame{position:fixed;z-index:80;width:340px;max-width:calc(100vw - 20px);max-height:calc(100vh - 150px);
-      display:flex;flex-direction:column;background:rgba(6,13,26,.975);backdrop-filter:blur(12px);
+      display:flex;flex-direction:column;background:#0a1526;backdrop-filter:blur(10px);
       border:1px solid #34506f;border-radius:14px;box-shadow:0 22px 60px rgba(0,0,0,.55);overflow:hidden}
     .frame.hidden{display:none}
     .frameHead{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;
@@ -163,7 +163,7 @@
     }
     #stars{position:absolute;inset:0;width:100%;height:100%;z-index:0;display:block;background:#000005}
     #globe,#flatMap{position:absolute;inset:0}
-    #globe{z-index:1}
+    #globe{z-index:1;background:transparent}
     /* The flat map sits ABOVE the starfield and paints an opaque sea, so space does
        not show through it. Globe in space; flat earth on ocean. */
     #flatMap{display:none;padding:12px;z-index:2;background:#071a30}
@@ -1293,7 +1293,7 @@ const HOME=homeView();
  let rz; window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(build,200)},{passive:true});
 })();
 const globe = window.globe = Globe()(globeEl)
-  .backgroundColor("#000005")
+  .backgroundColor("rgba(0,0,0,0)")   /* transparent, so the starfield behind shows through */
   .globeImageUrl("https://cdn.jsdelivr.net/npm/three-globe@2.44.0/example/img/earth-night.jpg")
   .bumpImageUrl("https://cdn.jsdelivr.net/npm/three-globe@2.44.0/example/img/earth-topology.png")
   .showAtmosphere(true).atmosphereColor("#3f9dff").atmosphereAltitude(.18)
@@ -1338,7 +1338,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v55";
+const APP_VERSION="v56";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -3387,7 +3387,15 @@ function fitFrame(f){
    whatever is already open rather than cascading everything down from the tool bar:
    with several windows up, a cascade buries each behind the last. */
 function positionFrame(f){
- if(f.dataset.placed){fitFrame(f);return}
+ if(f.dataset.placed){
+   // Trust an existing placement only while it is actually on-screen; otherwise fall
+   // through and re-tile, so a frame can never open stranded off the viewport.
+   const r=f.getBoundingClientRect();
+   const onScreen=r.left>=-4 && r.top>=-4 && r.right<=window.innerWidth+4 && r.left<window.innerWidth-40 && r.top<safeBottom()-40;
+   if(onScreen){fitFrame(f);return}
+   delete f.dataset.placed; delete f.dataset.sized;
+   f.style.left="";f.style.top="";f.style.width="";f.style.maxWidth="";
+ }
  const tb=toolbar.getBoundingClientRect();
  const w=f.offsetWidth||360, h=f.offsetHeight||320;
  const gap=12;
@@ -4749,6 +4757,20 @@ function narrStop(){
  NARR.running=false;clearTimeout(NARR.timer);narrStopSpeech();
  document.body.classList.remove("narrating","narrFull");
  document.getElementById("narrOverlay").classList.add("hidden");
+ // Release every chart frame the presentation positioned, so its bespoke off-screen
+ // placement does not linger and strand the frame next time it is opened. Clearing the
+ // inline geometry and the placed/sized flags lets positionFrame tile it afresh.
+ document.querySelectorAll('.frame[id^="frame-chart-"]').forEach(f=>{
+   f.classList.add("hidden");
+   f.style.left="";f.style.top="";f.style.width="";f.style.maxWidth="";f.style.height="";f.style.maxHeight="";
+   delete f.dataset.placed; delete f.dataset.sized;
+   const btn=tbBtn(f.id.replace("frame-",""));
+   if(btn)btn.classList.remove("on");
+ });
+ // Also un-maximise anything the tour maximised, and drop stale placement on the
+ // standing frames so they re-tile cleanly rather than reopening in a tour position.
+ document.querySelectorAll(".frame.maxed").forEach(f=>{ if(typeof toggleMaximise==="function")toggleMaximise(f); });
+ if(typeof refreshCloseAll==="function")refreshCloseAll();
  pausePlayback();
 }
 function narrToggle(){
