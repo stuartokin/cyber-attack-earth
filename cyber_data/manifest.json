@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.6.2",
  "builder_date": "2026-07-23",
- "generated": "2026-07-23T22:26:19+00:00",
+ "generated": "2026-07-24T06:10:15+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -123,10 +123,10 @@
    "counts": {
     "eurepoc": 4296,
     "vcdb": 10362,
-    "rwlive": 21299,
+    "rwlive": 21300,
     "eurepoc_live": 992
    },
-   "total": 36949
+   "total": 36950
   },
   "vulns": {
    "files": {
@@ -149,7 +149,7 @@
    "files": {
     "ics": {
      "file": "advisories/ics.json",
-     "rows": 3895
+     "rows": 3902
     }
    }
   },
@@ -182,7 +182,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 1.4
+   "seconds": 3.1
   },
   {
    "id": "vcdb",
@@ -194,7 +194,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10362,
-   "seconds": 5.3
+   "seconds": 3.6
   },
   {
    "id": "rwlive",
@@ -205,8 +205,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 21000,
-   "rows": 21299,
-   "seconds": 139.6
+   "rows": 21300,
+   "seconds": 167.8
   },
   {
    "id": "kev",
@@ -218,7 +218,7 @@
    "status": "ok",
    "expected": 1650,
    "rows": 1653,
-   "seconds": 0.1
+   "seconds": 0.2
   },
   {
    "id": "epss",
@@ -230,7 +230,7 @@
    "status": "ok",
    "expected": 17000,
    "rows": 17183,
-   "seconds": 0.9
+   "seconds": 0.7
   },
   {
    "id": "attack",
@@ -242,7 +242,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 871,
-   "seconds": 0.5
+   "seconds": 2.6
   },
   {
    "id": "icsadv",
@@ -253,8 +253,8 @@
    "cadence": "weekly",
    "status": "ok",
    "expected": 3800,
-   "rows": 3895,
-   "seconds": 0.4
+   "rows": 3902,
+   "seconds": 1.0
   },
   {
    "id": "cissm",
@@ -276,7 +276,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 992,
-   "seconds": 0.4
+   "seconds": 0.2
   },
   {
    "id": "cve",
@@ -288,7 +288,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 319,
-   "seconds": 194.6
+   "seconds": 34.0
   },
   {
    "id": "reports",
