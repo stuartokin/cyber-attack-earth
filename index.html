@@ -407,9 +407,9 @@
         <label for="arcWindow">Missile trails</label>
         <select id="arcWindow">
           <option value="1">Only this month's attacks</option>
-          <option value="3" selected>Last three months</option>
+          <option value="3">Last three months</option>
           <option value="6">Last six months</option>
-          <option value="12">Last year</option>
+          <option value="12" selected>Last year</option>
           <option value="999">Every attack shown (may hide the map)</option>
         </select>
         <label for="densityMode">Missile density</label>
@@ -1212,7 +1212,11 @@ const endTimelineIndex=(_now.getFullYear()-startYear)*12+_now.getMonth();   // c
    densest and the story clearest; the slider still reaches back to 2000. */
 const DEFAULT_WINDOW_MONTHS=61;
 const defaultTimelineIndex=Math.max(0,endTimelineIndex-DEFAULT_WINDOW_MONTHS+1);
-let timelineIndex=defaultTimelineIndex,
+/* The five-year window sets the CHART range and where a replay begins. The timeline
+   itself must open at the present: opening it five years back, with "build up over
+   time" off, meant the map and every live chart showed a single month from 2021 -
+   a couple of hundred records out of tens of thousands, which reads as missing data. */
+let timelineIndex=endTimelineIndex,
     year=startYear+Math.floor(timelineIndex/12), month=(timelineIndex%12)+1,
     timer=null, mapMode="sphere", selectedAttack=null;
 /* Countries the user has picked in Controls (empty = whole world). Declared here
@@ -1595,7 +1599,7 @@ function update(){
  // Cumulative mode accumulates years of attacks. Drawing every one as an arc buries
  // the globe, so the flight paths show only a recent window while the counter, the
  // heat shading and every chart continue to use the full set.
- const trail=+(document.getElementById("arcWindow")||{}).value||3;
+ const trail=+(document.getElementById("arcWindow")||{}).value||12;
  const arcSet=(trail>=999)?data:data.filter(a=>{
    const i=(a._i!==undefined)?a._i:(a._i=idx(a.year,a.month));
    return i>timelineIndex-trail&&i<=timelineIndex;
@@ -1623,12 +1627,21 @@ function update(){
  globe.labelsData([...(citiesBox.checked?cities:[]),...anchorLabel]);
  visibleCount.textContent=(data.__capped?data.__capped:data.length).toLocaleString();
  const capNote=document.getElementById("capNote");
- if(capNote)capNote.textContent=data.__capped?`Showing a representative ${data.length.toLocaleString()} of ${data.__capped.toLocaleString()} on the map — narrow the years or filters to see them all.`:"";
+ if(capNote){
+   const bits=[];
+   if(data.__capped)bits.push(`Showing a representative ${data.length.toLocaleString()} of ${data.__capped.toLocaleString()} on the map — narrow the years or filters to see them all.`);
+   // A short trail window is the usual reason the map looks emptier than the count.
+   if(trail<999&&arcSet.length<data.length){
+     const word=trail===1?"this month":`the last ${trail} months`;
+     bits.push(`${arcSet.length.toLocaleString()} flight paths in the air — only ${word}. All ${(data.__capped||data.length).toLocaleString()} still count towards the totals, the shading and every chart. Change this with <b>Missile trails</b> in Controls.`);
+   }
+   capNote.innerHTML=bits.join("<br><br>");
+ }
  impactTotal.textContent=data.reduce((s,a)=>s+a.impact,0);
  renderRanks(originRanks,data,"originCountry");
  renderRanks(victimRanks,data,"victimCountry");
  if(mode!=="attacks") applyCountryView(data,mode);
- renderFlat(arcSet);
+ renderFlat(data,arcSet);
  status.textContent=(timer?"Playing • ":"Paused • ")+data.length.toLocaleString()+" visible";
  if(dataStatus && attacks.length>500){ dataStatus.textContent=`Multi-source data loaded • ${attacks.length.toLocaleString()} deduplicated mapped routes • ${data.length.toLocaleString()} currently visible`; }
 
@@ -2007,10 +2020,13 @@ function applySphereHeat(){
  const counts=heatCounts(),max=Math.max(1,...Object.values(counts));
  window.globe.polygonCapColor(f=>{if(!heatToggle||!heatToggle.checked)return "rgba(16,33,59,.72)";const id=String(f.id??f.properties?.iso_n3??"").padStart(3,"0"),n=counts[id]||0;if(!n)return "rgba(16,33,59,.72)";const c=d3.color(heatColor(n,max));return c?`rgba(${c.r},${c.g},${c.b},.88)`:"rgba(16,33,59,.72)"}).polygonSideColor(()=>"rgba(8,18,34,.20)").polygonStrokeColor(()=>"rgba(110,160,210,.22)");
 }
-function renderFlat(data){
- // Guard both globals: if the flat map has not finished building, drawing into it
- // throws and takes the whole update cycle down with it.
+/* `data` is everything currently visible - it drives the shading, the victim and
+   origin markers and the aggregated views. `arcData` is the smaller recent slice
+   drawn as flight paths. Passing the trail subset for both cut the map's markers
+   by the same 98% as its arcs, which made a fully loaded dataset look empty. */
+function renderFlat(data,arcData){
  if(!flatZoomLayer||typeof flatProjection!=="function") return;
+ if(!arcData)arcData=data;
  const hits=heatCounts(); const mx=Math.max(1,...Object.values(hits));
  flatZoomLayer.selectAll(".country").style("fill",d=>heatColor(hits[String(d.id).padStart(3,"0")]||0,mx));
  flatZoomLayer.selectAll(".flat-attack-layer").remove();
@@ -2018,7 +2034,7 @@ function renderFlat(data){
  const mode=viewMode.value;
  // Label the neutral ocean anchor used for attacks with no known origin, so it does
  // not read as "an attack from the middle of the Atlantic".
- const flatUnattr=(mode==="attacks")?data.filter(isUnattributed).length:0;
+ const flatUnattr=(mode==="attacks")?data.filter(isUnattributed).length:0;   // full set
  if(flatUnattr){
    const anc=flatProjection([-30,0]);
    if(anc){
@@ -2032,7 +2048,7 @@ function renderFlat(data){
  }
  if(mode==="attacks"){
    const flightMs=Math.min(850,Math.max(160,(+speed.value||1000)*0.82));
-   const paths=layer.selectAll("path.flat-arc").data(data).join("path")
+   const paths=layer.selectAll("path.flat-arc").data(arcData).join("path")
     .attr("class","flat-arc pulse-path")
     .attr("d",d=>{
       const a=flatProjection([d.startLng,d.startLat]), b=flatProjection([d.endLng,d.endLat]);
@@ -2050,7 +2066,7 @@ function renderFlat(data){
    // and dashoffset sweeps from +tail (just before the start) to -len (just past
    // the end), carrying that segment along the whole route. This is a pure SVG
    // transition, so it works for every arc rather than a capped few.
-   const many=data.length>1500;
+   const many=arcData.length>1500;
    const dur=many?Math.max(260,flightMs*0.6):flightMs;
    const delayFor=i=>many?(i%40)*8:0;
    paths
@@ -3370,8 +3386,13 @@ function setTlInfoOpen(open){
      .map(([s,n])=>`${s.replace(/ Global Dataset.*| leak-site monitoring| Community Database/,"")
        .replace("VERIS","VCDB").replace("Curated primary-source incidents","Curated")}: ${n.toLocaleString()}`);
    const lake=LAKE.manifest?` · data lake v${LAKE.manifest.schema}, built ${String(LAKE.manifest.generated).slice(0,10)}`:"";
+   const trailSel=document.getElementById("arcWindow");
+   const tw=trailSel?+trailSel.value:999;
+   const trailNote=(tw<999)
+     ? `<div style="margin-top:5px;color:#ffb37a">Flight paths are limited to ${tw===1?"the current month":`the last ${tw} months`} so the map stays readable. Every incident still counts towards the totals and the charts — change it with <b>Missile trails</b> in Controls.</div>`
+     : "";
    document.getElementById("dataStatusExtra").innerHTML=
-     `<div style="margin-top:5px">${attacks.length.toLocaleString()} incidents loaded — ${parts.join(" · ")}${lake}</div>`;
+     `<div style="margin-top:5px">${attacks.length.toLocaleString()} incidents loaded — ${parts.join(" · ")}${lake}</div>${trailNote}`;
  }
 }
 tlInfoBtn.addEventListener("click",()=>setTlInfoOpen(tlInfoPop.classList.contains("hidden")));
@@ -3480,6 +3501,7 @@ document.getElementById("resetDefaults").addEventListener("click",()=>{
  document.querySelectorAll(".atype").forEach(x=>x.checked=true); viewMode.value="attacks"; speed.value="3000";
  densityMode.value="full";      // matches the markup default, i.e. genuine first-load state
  document.getElementById("histoOverlay").value="";
+ const aw=document.getElementById("arcWindow"); if(aw)aw.value="12";
  document.getElementById("countryMode").value="between";
  document.getElementById("countrySearch").value="";
  document.getElementById("search").value="";
@@ -3502,7 +3524,7 @@ document.getElementById("resetDefaults").addEventListener("click",()=>{
  refreshOpenCharts();
  sigLocked=false; significantShown=null;
  renderCountryList(); renderCountrySelected(); markHistoDirty();
- setTimeline(defaultTimelineIndex);
+ setTimeline(playEnd());
 });
 document.getElementById("typeAll").addEventListener("click",()=>{typeOptOut.clear();document.querySelectorAll(".atype").forEach(x=>x.checked=true);markHistoDirty();update();updateBadges()});
 document.getElementById("typeNone").addEventListener("click",()=>{document.querySelectorAll(".atype").forEach(x=>{x.checked=false;typeOptOut.add(x.value)});markHistoDirty();update();updateBadges()});
@@ -4215,7 +4237,10 @@ const CHART_MODE={};                 // chartId -> "live" | "period"
 const CHART_LAST_RANK={};            // chartId -> {name: rank}
 const CHART_TOPONLY={};              // chartId -> true when collapsed to the top ten
 function topOnly(id){return CHART_TOPONLY[id]!==false}   // collapsed by default
-function chartMode(id){return CHART_MODE[id]||"live"}
+/* Whole period by default. "As it happens" is the more interesting mode once you
+   press play, but as an opening state it shows only the current month, which makes
+   a full dataset look empty. */
+function chartMode(id){return CHART_MODE[id]||"period"}
 function setChartMode(id,mode){
  CHART_MODE[id]=mode;
  chartsNeedFullRefresh=true;
@@ -4592,7 +4617,7 @@ function chartIsLive(d){
  if(d.live===true)return true;
  if(d.live===false)return false;
  // ranking tables move with the timeline only while in "as it happens" mode
- return d.group==="filtered"&&chartMode(d.id)!=="period";
+ return d.group==="filtered"&&chartMode(d.id)==="live";
 }
 let chartsNeedFullRefresh=true;
 function refreshOpenCharts(scope){
