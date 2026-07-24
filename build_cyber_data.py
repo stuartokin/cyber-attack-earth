@@ -1,9 +1,17 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.7.1 (2026-07-24) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.7.3 (2026-07-24) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.7.3  Fixed the CISSM connector registration: the @source decorator had been left
+        attached to a helper (_manual_rows) rather than to build_cissm, so the
+        registry called the wrong function. This was the real cause of both the
+        "missing argument: kind" and the "NoneType has no len()" failures.
+ 3.7.2  A connector returning None no longer poisons the run: results are validated
+        before being stored, writes refuse null, the partition step checks values
+        rather than keys, and any empty table left by an earlier build is removed.
+        One failing source can no longer bring down the whole build.
  3.7.1  Removed a dead function left by the manual-export refactor and gave
         _manual_rows a default argument, so a stale or partial copy cannot raise
         "missing 1 required positional argument" in place of the real message.
@@ -99,7 +107,7 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.7.1"
+BUILDER_VERSION = "3.7.3"
 BUILDER_DATE = "2026-07-24"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
@@ -160,6 +168,8 @@ def get_first(urls, desc):
 
 
 def write_json(path, obj):
+    if obj is None:
+        raise RuntimeError("refusing to write %s: nothing to write" % path.name)
     blob = json.dumps(obj, separators=(",", ":"))
     mb = len(blob.encode()) / 1e6
     if mb > MAX_MB:
@@ -738,10 +748,6 @@ def _cissm_fetch_remote():
     return None
 
 
-@source(id="cissm", table="incidents",
-        title="CISSM / GoTech Cyber Events Database",
-        licence="Access granted by CISSM on request - do not redistribute raw records",
-        cadence="manual export", homepage="https://cybereventsdatabase.org", expected=17169)
 def _manual_rows(kind="cissm", allow_any=False):
     """Read an export the user downloaded from a portal and committed to the repo.
 
@@ -887,6 +893,10 @@ def _cissm_manual_rows():
     return _manual_rows("cissm", allow_any=True)
 
 
+@source(id="cissm", table="incidents",
+        title="CISSM / GoTech Cyber Events Database",
+        licence="Access granted by CISSM on request - do not redistribute raw records",
+        cadence="manual export", homepage="https://cybereventsdatabase.org", expected=17169)
 def build_cissm():
     rows = _cissm_fetch_remote()
     if rows is None:
@@ -1127,6 +1137,8 @@ def build_reports():
 # ===========================================================================
 def count_rows(data):
     """Row count for the manifest. Handles the several shapes connectors return."""
+    if data is None:
+        return 0
     if isinstance(data, dict):
         if "rows" in data and isinstance(data["rows"], list):
             return len(data["rows"])
@@ -1137,7 +1149,10 @@ def count_rows(data):
         if data and all(isinstance(v, list) for v in data.values()):
             return sum(len(v) for v in data.values())   # month -> list (rwlive)
         return len(data)
-    return len(data)
+    try:
+        return len(data)
+    except TypeError:
+        return 0
 
 
 def main():
@@ -1169,6 +1184,13 @@ def main():
             import inspect
             data = (src.fn(out_dir=out_dir)
                     if "out_dir" in inspect.signature(src.fn).parameters else src.fn())
+            # A connector must return usable data or raise. Returning None used to be
+            # stored anyway, which wrote a null table and then crashed the whole build
+            # several steps later - a long way from the actual fault.
+            if data is None:
+                raise RuntimeError("connector returned no data (None) instead of raising")
+            if hasattr(data, "__len__") and len(data) == 0:
+                raise RuntimeError("connector returned an empty result")
             results[src.id] = data
             entries.append({"id": src.id, "title": src.title, "table": src.table,
                             "licence": src.licence, "homepage": src.homepage,
@@ -1186,11 +1208,11 @@ def main():
 
     # ---- incidents (partitioned) ----
     inc_files, inc_counts = {}, {}
-    if "eurepoc" in results:
+    if results.get("eurepoc"):
         write_json(out_dir / "incidents" / "eurepoc.json", results["eurepoc"])
         inc_files["eurepoc"] = "incidents/eurepoc.json"
         inc_counts["eurepoc"] = len(results["eurepoc"])
-    if "vcdb" in results:
+    if results.get("vcdb"):
         by_year = {}
         for row in results["vcdb"]:
             y = (row.get("timeline.incident.year") or "").strip()
@@ -1202,15 +1224,15 @@ def main():
             parts[y] = {"file": p, "rows": len(by_year[y])}
         inc_files["vcdb_partitions"] = parts
         inc_counts["vcdb"] = len(results["vcdb"])
-    if "rwlive" in results:
+    if results.get("rwlive"):
         write_json(out_dir / "incidents" / "rwlive.json", results["rwlive"])
         inc_files["rwlive"] = "incidents/rwlive.json"
         inc_counts["rwlive"] = sum(len(v) for v in results["rwlive"].values())
-    if "cissm" in results:
+    if results.get("cissm"):
         write_json(out_dir / "incidents" / "cissm.json", results["cissm"])
         inc_files["cissm"] = "incidents/cissm.json"
         inc_counts["cissm"] = len(results["cissm"])
-    if "eurepoc_live" in results:
+    if results.get("eurepoc_live"):
         write_json(out_dir / "incidents" / "eurepoc_live.json", results["eurepoc_live"])
         inc_files["eurepoc_live"] = "incidents/eurepoc_live.json"
         inc_counts["eurepoc_live"] = len(results["eurepoc_live"])
@@ -1220,14 +1242,14 @@ def main():
 
     # ---- vulns ----
     vulns = {}
-    if "kev" in results:
+    if results.get("kev"):
         write_json(out_dir / "vulns" / "kev.json", results["kev"])
         vulns["kev"] = {"file": "vulns/kev.json", "rows": len(results["kev"])}
-    if "epss" in results:
+    if results.get("epss"):
         write_json(out_dir / "vulns" / "epss.json", results["epss"])
         vulns["epss"] = {"file": "vulns/epss.json",
                          "rows": len(results["epss"]["rows"]), "min_score": EPSS_MIN}
-    if "cve" in results:
+    if results.get("cve"):
         write_json(out_dir / "vulns" / "cve.json", results["cve"])
         vulns["cve"] = {"file": "vulns/cve.json",
                         "months": len(results["cve"]["months"])}
@@ -1235,13 +1257,13 @@ def main():
         tables["vulns"] = {"files": vulns}
 
     # ---- advisories ----
-    if "icsadv" in results:
+    if results.get("icsadv"):
         write_json(out_dir / "advisories" / "ics.json", results["icsadv"])
         tables["advisories"] = {"files": {"ics": {"file": "advisories/ics.json",
                                                   "rows": len(results["icsadv"])}}}
 
     # ---- techniques ----
-    if "attack" in results:
+    if results.get("attack"):
         a = results["attack"]
         write_json(out_dir / "techniques" / "attack.json", a)
         tables["techniques"] = {"files": {"attack": {
@@ -1249,10 +1271,20 @@ def main():
             "techniques": len(a["techniques"]), "groups": len(a["groups"])}}}
 
     # ---- reports ----
-    if "reports" in results:
+    if results.get("reports"):
         write_json(out_dir / "reports" / "vendor.json", results["reports"])
         tables["reports"] = {"files": {"vendor": {"file": "reports/vendor.json",
                                                   "rows": len(results["reports"])}}}
+
+    # A previous version could leave a table containing "null" behind. Remove any
+    # such file so the app is never asked to parse it.
+    for stale in (out_dir / "incidents").glob("*.json") if (out_dir / "incidents").exists() else []:
+        try:
+            if stale.read_text(encoding="utf-8").strip() in ("null", "", "{}"):
+                print("  [tidy] removing empty table %s" % stale.name)
+                stale.unlink()
+        except Exception:                                  # noqa: BLE001
+            pass
 
     manifest = {
         "schema": SCHEMA_VERSION,
