@@ -29,9 +29,13 @@
     .tbBtn:hover{background:rgba(20,38,63,.7);color:var(--text);border-color:#2c4666}
     .tbBtn.on{background:rgba(20,38,63,.9);color:var(--text);border-color:var(--accent)}
     .tbIco{font-size:15px}
-    #narrOverlay{position:fixed;left:0;right:0;bottom:0;z-index:120;background:linear-gradient(180deg,rgba(4,9,18,0),rgba(4,9,18,.93) 22%);padding:34px 4vw 18px}
+    #narrOverlay{position:fixed;left:50%;transform:translateX(-50%);bottom:150px;z-index:120;
+      width:min(760px,92vw);background:rgba(5,12,25,.96);border:1px solid #34506f;border-radius:14px;
+      box-shadow:0 20px 60px rgba(0,0,0,.6);padding:10px 14px 14px}
+    #narrOverlay.moved{transform:none;left:auto}
     #narrOverlay.hidden{display:none}
-    .narrBar{display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap}
+    .narrBar{display:flex;align-items:center;gap:8px;margin-bottom:7px;flex-wrap:wrap;cursor:grab;touch-action:none;user-select:none}
+    .narrBar:active{cursor:grabbing}
     .narrBar button{background:rgba(10,22,38,.9);border:1px solid #2c4666;border-radius:8px;
       color:var(--text);font-size:13px;padding:6px 10px;line-height:1}
     .narrBar button:hover{border-color:var(--accent);color:var(--accent)}
@@ -47,8 +51,8 @@
     body.narrFull #timeline{padding:7px 16px 6px}
     body.narrFull #escalation{opacity:.85}
     @media(max-width:720px){
-      #narrOverlay{padding:26px 5vw 14px}
-      #narrCaption{font-size:13px;max-height:32vh;overflow:auto}
+      #narrOverlay{bottom:120px;width:94vw;padding:9px 12px 12px}
+      #narrCaption{font-size:13px;max-height:30vh;overflow:auto}
     }
     .tbCloseAll{color:var(--orange);border-color:#4a3520}
     .tbCloseAll:hover{background:rgba(255,157,60,.14);color:var(--orange);border-color:var(--orange)}
@@ -399,6 +403,14 @@
           <option value="1000">Fast (1 month / sec)</option>
           <option value="500">Very fast (2 months / sec)</option>
           <option value="250">Fastest (4 months / sec)</option>
+        </select>
+        <label for="arcWindow">Missile trails</label>
+        <select id="arcWindow">
+          <option value="1">Only this month's attacks</option>
+          <option value="3" selected>Last three months</option>
+          <option value="6">Last six months</option>
+          <option value="12">Last year</option>
+          <option value="999">Every attack shown (may hide the map)</option>
         </select>
         <label for="densityMode">Missile density</label>
         <select id="densityMode">
@@ -1113,15 +1125,54 @@ function sourceLayerName(a){ return RESEARCH_SOURCE_NAMES.has(a.source)?a.source
 let enrichmentCounts={mitre:null,kev:null};
 const severityColor = {Critical:"#ff4d66",High:"#ff9d3c",Medium:"#ffe374",Low:"#4ee6a5"};
 const globeEl = document.getElementById("globe");
+/* Best guess at where the viewer is, from the browser's time zone. No permission
+   prompt, no location request - just enough to open on a familiar part of the world
+   rather than the middle of the Pacific. */
+const TZ_POINT={
+ "Europe/London":[54,-2],"Europe/Dublin":[53,-8],"Europe/Paris":[47,2],"Europe/Berlin":[51,10],
+ "Europe/Madrid":[40,-4],"Europe/Rome":[42,13],"Europe/Amsterdam":[52,5],"Europe/Brussels":[51,4],
+ "Europe/Zurich":[47,8],"Europe/Vienna":[48,16],"Europe/Stockholm":[60,16],"Europe/Oslo":[61,9],
+ "Europe/Copenhagen":[56,10],"Europe/Helsinki":[62,25],"Europe/Warsaw":[52,20],"Europe/Prague":[50,15],
+ "Europe/Lisbon":[39,-8],"Europe/Athens":[39,22],"Europe/Kyiv":[49,32],"Europe/Moscow":[56,38],
+ "Europe/Istanbul":[39,35],"America/New_York":[40,-75],"America/Chicago":[41,-88],
+ "America/Denver":[39,-105],"America/Los_Angeles":[36,-119],"America/Toronto":[44,-79],
+ "America/Vancouver":[49,-123],"America/Sao_Paulo":[-23,-47],"America/Mexico_City":[19,-99],
+ "America/Bogota":[4,-74],"America/Argentina/Buenos_Aires":[-35,-58],
+ "Asia/Tokyo":[36,138],"Asia/Shanghai":[35,105],"Asia/Hong_Kong":[22,114],"Asia/Singapore":[1,104],
+ "Asia/Seoul":[36,128],"Asia/Kolkata":[21,79],"Asia/Dubai":[24,54],"Asia/Jerusalem":[31,35],
+ "Asia/Riyadh":[24,45],"Asia/Bangkok":[15,101],"Asia/Jakarta":[-2,118],"Asia/Manila":[13,122],
+ "Australia/Sydney":[-33,151],"Australia/Melbourne":[-37,145],"Australia/Perth":[-32,116],
+ "Pacific/Auckland":[-41,174],"Africa/Johannesburg":[-29,24],"Africa/Lagos":[9,8],
+ "Africa/Cairo":[26,30],"Africa/Nairobi":[-1,37]
+};
+function homeView(){
+ try{
+   const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||"";
+   if(TZ_POINT[tz])return {lat:TZ_POINT[tz][0],lng:TZ_POINT[tz][1]};
+   // fall back to the region, then to the UTC offset
+   const region=tz.split("/")[0];
+   const byRegion={Europe:[50,10],America:[38,-96],Asia:[30,100],Africa:[5,20],
+                   Australia:[-27,135],Pacific:[-20,170],Atlantic:[40,-30],Indian:[-10,75]};
+   if(byRegion[region])return {lat:byRegion[region][0],lng:byRegion[region][1]};
+   const offMin=-new Date().getTimezoneOffset();
+   return {lat:30,lng:Math.max(-180,Math.min(180,offMin/4))};
+ }catch(e){ return {lat:30,lng:0} }
+}
+const HOME=homeView();
 const globe = window.globe = Globe()(globeEl)
   .backgroundColor("rgba(0,0,0,0)")
   .globeImageUrl("https://cdn.jsdelivr.net/npm/three-globe@2.44.0/example/img/earth-night.jpg")
   .bumpImageUrl("https://cdn.jsdelivr.net/npm/three-globe@2.44.0/example/img/earth-topology.png")
   .showAtmosphere(true).atmosphereColor("#3f9dff").atmosphereAltitude(.18)
   .arcStartLat("startLat").arcStartLng("startLng").arcEndLat("endLat").arcEndLng("endLng")
-  .arcColor(d=>[severityColor[d.severity]+"aa",severityColor[d.severity]])
-  .arcAltitude(d=>0.12 + d.impact/260).arcStroke(d=>0.35+d.impact/95)
-  .arcDashLength(.45).arcDashGap(.12).arcDashAnimateTime(d=>Math.max(550,2200-d.impact*13))
+  // A missile, not a wire: a short bright head with a tail fading to nothing, and a
+  // long gap so only one segment is ever in flight along each route. The old
+  // settings drew a near-solid line thick enough to hide the globe underneath.
+  .arcColor(d=>[severityColor[d.severity]+"00",severityColor[d.severity]+"33",severityColor[d.severity]+"ff"])
+  .arcAltitude(d=>0.10 + d.impact/300).arcStroke(d=>0.14+d.impact/340)
+  .arcDashLength(d=>0.05+d.impact/1400).arcDashGap(3.2)
+  .arcDashInitialGap(()=>Math.random()*3.2)
+  .arcDashAnimateTime(d=>Math.max(900,2600-d.impact*11))
   .arcLabel(d=>`<b>${d.name}</b><br>${d.originCountry} → ${d.victimCountry}<br>Impact ${d.impact}`)
   .onArcClick(showDetail)
   .ringLat("lat").ringLng("lng").ringColor(d=>severityColor[d.severity]||"#ff4d66")
@@ -1134,9 +1185,22 @@ const globe = window.globe = Globe()(globeEl)
   .labelLat("lat").labelLng("lng").labelText("name").labelSize(d=>d.unknownAnchor?1.1:.65).labelColor(d=>d.unknownAnchor?"rgba(255,157,60,.95)":"rgba(182,200,226,.85)").labelDotRadius(d=>d.unknownAnchor?.5:.14)
   .labelResolution(2);
 
-globe.controls().autoRotate = false;
+/* The globe turns gently on its own, and stops the moment anyone touches it. It
+   resumes only after a spell of no interaction, so it never fights the user. */
+globe.controls().autoRotate = true;
+globe.controls().autoRotateSpeed = 0.32;
 globe.controls().enableDamping = true;
-globe.pointOfView({lat:25,lng:10,altitude:2.05},0);
+globe.pointOfView({lat:HOME.lat,lng:HOME.lng,altitude:2.05},0);
+let spinTimer=null;
+function pauseSpin(resumeAfter){
+ try{ globe.controls().autoRotate=false }catch(e){}
+ clearTimeout(spinTimer);
+ if(resumeAfter!==false){
+   spinTimer=setTimeout(()=>{try{globe.controls().autoRotate=true}catch(e){}},12000);
+ }
+}
+["mousedown","wheel","touchstart"].forEach(ev=>
+  globeEl.addEventListener(ev,()=>pauseSpin(true),{passive:true}));
 
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
@@ -1528,12 +1592,20 @@ function filtered(){
 function update(){
  if(heatLegend && heatToggle) heatLegend.classList.toggle("hidden",!heatToggle.checked);
  const data=filtered();
+ // Cumulative mode accumulates years of attacks. Drawing every one as an arc buries
+ // the globe, so the flight paths show only a recent window while the counter, the
+ // heat shading and every chart continue to use the full set.
+ const trail=+(document.getElementById("arcWindow")||{}).value||3;
+ const arcSet=(trail>=999)?data:data.filter(a=>{
+   const i=(a._i!==undefined)?a._i:(a._i=idx(a.year,a.month));
+   return i>timelineIndex-trail&&i<=timelineIndex;
+ });
  const dt=fromIdx(timelineIndex);year=dt.year;month=dt.month;
  yearLabel.textContent=`${mon(month)} ${year}`;yearBig.textContent=`${mon(month)} ${year}`;
  if(yearSlider.max!=String(endTimelineIndex))yearSlider.max=String(endTimelineIndex);
  if(yearSlider.step!=="any")yearSlider.step="any";
  const mode=viewMode.value;
- globe.arcsData(mode==="attacks"?data:[]);
+ globe.arcsData(mode==="attacks"?arcSet:[]);
  // Impact rings are expensive; with a large cumulative field, only pulse the freshest salvo (current month) plus the highest-impact strikes.
  const ringSrc=mode!=="attacks"?[]:(data.length>400
    ? [...new Map([...data.filter(a=>idx(a.year,a.month)===timelineIndex),
@@ -1556,7 +1628,7 @@ function update(){
  renderRanks(originRanks,data,"originCountry");
  renderRanks(victimRanks,data,"victimCountry");
  if(mode!=="attacks") applyCountryView(data,mode);
- renderFlat(data);
+ renderFlat(arcSet);
  status.textContent=(timer?"Playing • ":"Paused • ")+data.length.toLocaleString()+" visible";
  if(dataStatus && attacks.length>500){ dataStatus.textContent=`Multi-source data loaded • ${attacks.length.toLocaleString()} deduplicated mapped routes • ${data.length.toLocaleString()} currently visible`; }
 
@@ -1985,12 +2057,13 @@ function renderFlat(data){
      .attr("stroke-linecap","round")
      .attr("stroke-dasharray",function(){
        const len=this.getTotalLength?this.getTotalLength():100;
-       const tail=Math.max(14,Math.min(70,len*0.16));
+       const tail=Math.max(9,Math.min(34,len*0.09));
        this.__len=len; this.__tail=tail;
        return tail+" "+(len+tail);
      })
      .attr("stroke-dashoffset",function(){return this.__tail})
-     .attr("opacity",many?.85:1);
+     .attr("stroke-width",function(){return Math.max(1.6,(+d3.select(this).attr("stroke-width")||2))})
+     .attr("opacity",1);
    paths.transition("fly")
      .delay((d,i)=>delayFor(i))
      .duration(dur)
@@ -2008,7 +2081,7 @@ function renderFlat(data){
       .attr("stroke-dashoffset",null)
       .attr("opacity",0)
       .transition("settle").duration(320)
-      .attr("opacity",many?.12:.2);
+      .attr("opacity",many?.05:.09);
    });
    layer.selectAll("circle.flat-origin").data(data).join("circle").attr("class","flat-origin")
     .attr("cx",d=>flatProjection([d.startLng,d.startLat])[0]).attr("cy",d=>flatProjection([d.startLng,d.startLat])[1])
@@ -3200,6 +3273,7 @@ function dragBy(el,handle,onStart,onMove){
  const down=e=>{
    if(e.target.closest("button,input,select,a"))return;
    dragging=true;
+   if(el.id==="narrOverlay")el.classList.add("moved");
    const p=e.touches?e.touches[0]:e;
    const r=el.getBoundingClientRect();
    el.style.left=r.left+"px";el.style.top=r.top+"px";el.style.right="auto";
@@ -3498,9 +3572,15 @@ document.querySelectorAll("[data-present]").forEach(b=>b.addEventListener("click
  closeFrame("present");
  narrStart(mode);
 }));
+(function(){
+ const ov=document.getElementById("narrOverlay");
+ const bar=ov.querySelector(".narrBar");
+ dragBy(ov,bar,()=>ov.classList.add("moved"));
+ addResizeGrip(ov);
+})();
 document.getElementById("narrPlayPause").addEventListener("click",narrToggle);
-document.getElementById("narrPrev").addEventListener("click",()=>{clearTimeout(NARR.timer);narrGo(NARR.step-1)});
-document.getElementById("narrNext").addEventListener("click",()=>{clearTimeout(NARR.timer);narrGo(NARR.step+1)});
+document.getElementById("narrPrev").addEventListener("click",()=>{NARR.seq++;clearTimeout(NARR.timer);narrStopSpeech();narrGo(NARR.step-1)});
+document.getElementById("narrNext").addEventListener("click",()=>{NARR.seq++;clearTimeout(NARR.timer);narrStopSpeech();narrGo(NARR.step+1)});
 document.getElementById("narrExit").addEventListener("click",narrStop);
 function narrSetMuted(m){
  NARR.muted=!!m;
@@ -3515,8 +3595,8 @@ document.addEventListener("keydown",e=>{
  if(e.key==="Escape"&&document.body.classList.contains("narrating")){narrStop();return}
  if(!document.body.classList.contains("narrating"))return;
  if(e.key===" "){e.preventDefault();narrToggle()}
- if(e.key==="ArrowRight"){clearTimeout(NARR.timer);narrGo(NARR.step+1)}
- if(e.key==="ArrowLeft"){clearTimeout(NARR.timer);narrGo(NARR.step-1)}
+ if(e.key==="ArrowRight"){NARR.seq++;clearTimeout(NARR.timer);narrStopSpeech();narrGo(NARR.step+1)}
+ if(e.key==="ArrowLeft"){NARR.seq++;clearTimeout(NARR.timer);narrStopSpeech();narrGo(NARR.step-1)}
  if(e.key.toLowerCase()==="m")narrSetMuted(!NARR.muted);
 });
 document.getElementById("narrCopy").addEventListener("click",async()=>{
@@ -3851,67 +3931,94 @@ function groupRows(list,basis,limit){
 const NARR_SCRIPTS={
  presentation:{
   title:"Cyber Attack Earth",
-  blurb:"A guided tour of two decades of publicly documented cyber incidents.",
+  blurb:"Two decades of publicly documented cyber incidents, and what the record cannot tell you.",
   fullscreen:true, loop:false,
   steps:[
-   {title:"What you are looking at",dwell:11,
-    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2000,1],cumulative:false,play:false},
-    say:"Every missile on this globe is one publicly documented cyber attack. It flies from where the attack was attributed, to where it landed. We begin in the year two thousand, and we will move forward one month at a time."},
-   {title:"The quiet years",dwell:10,
-    do:{month:[2005,6],play:true,speed:250},
-    say:"For the first decade, incidents are sparse. Individually serious, but rare enough to name. This is not because the world was safe. It is because almost nobody was required to tell anyone."},
-   {title:"Ukraine, 2015 and 2016",dwell:12,
-    do:{play:false,month:[2015,12],countries:["Ukraine"],countryMode:"victim",severity:["Critical","High"]},
-    say:"December two thousand and fifteen. Attackers switch off power to a quarter of a million people in western Ukraine. They do it again the following year. This is the moment cyber attack stops being an information problem and becomes an engineering one."},
-   {title:"NotPetya, 2017",dwell:12,
-    do:{countries:[],month:[2017,6],severity:["Critical","High"],cumulative:true},
-    say:"June two thousand and seventeen. Malware released into Ukrainian accounting software escapes, and does around ten billion dollars of damage worldwide. Shipping lines, pharmaceutical firms and food producers with no connection to the conflict lose weeks of operations. Nobody targeted them. They were simply connected."},
-   {title:"The shape changes",dwell:11,
-    do:{month:[2021,5],play:true,speed:500,severity:["Critical","High","Medium"]},
-    say:"From twenty twenty, the picture thickens dramatically. Ransomware becomes an industry with leak sites, affiliates and brands. Colonial Pipeline halts fuel supply to the American east coast. The volume you now see is mostly criminal, mostly financially motivated, and mostly published by the attackers themselves."},
-   {title:"Energy and critical infrastructure",dwell:12,
-    do:{play:false,sectors:["Energy","Utilities","Water","Transport","Government","Healthcare","Telecoms","Manufacturing"],month:[2026,7],cumulative:true},
-    say:"Filtered to critical infrastructure, the pattern is harder to dismiss. These are the sectors where an outage is not an inconvenience but a public safety matter. In twenty twenty five, a group tracked as Electrum targeted Polish energy infrastructure, in what Dragos described as the first major coordinated attack against distributed energy resources at scale."},
-   {title:"What this map cannot show",dwell:14,
+   {title:"One missile, one documented attack",dwell:11,
+    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2000,1],cumulative:false,arcWindow:1,play:false},
+    say:"Every missile is one publicly documented cyber attack, flying from where it was attributed to where it landed. We start in the year two thousand and move forward a month at a time."},
+   {title:"A decade you can count",dwell:10,
+    do:{month:[2003,1],play:true,speed:250},
+    say:"Through the first decade, incidents are sparse enough to name individually. That is not evidence of safety. It is evidence that almost nobody was obliged to tell anyone."},
+   {title:"Ukraine, December 2015",dwell:12,
+    do:{play:false,month:[2015,12],countries:["Ukraine"],countryMode:"victim",severity:["Critical","High"],arcWindow:3},
+    say:"December two thousand and fifteen. Attackers open breakers at three Ukrainian distribution companies and a quarter of a million people lose power. Engineers restore supply by driving to substations and working them by hand. This is the moment cyber attack becomes an engineering problem."},
+   {title:"NotPetya, and the cost of being connected",dwell:13,
+    do:{countries:[],month:[2017,6],cumulative:true,arcWindow:3},
+    say:"June two thousand and seventeen. Malware hidden in a Ukrainian tax software update escapes its target and does around ten billion dollars of damage. Shipping lines, pharmaceutical firms and food producers lose weeks of operations. Nobody aimed at them. They were simply connected to something that was."},
+   {title:"The shape of the map changes",dwell:12,
+    do:{month:[2021,5],play:true,speed:500,severity:["Critical","High","Medium"],arcWindow:3},
+    say:"From twenty twenty the picture thickens. Ransomware becomes an industry, with brands, affiliates and leak sites. Colonial Pipeline halts fuel to the American east coast. Almost all of this new volume is criminal, financially motivated, and published by the attackers themselves."},
+   {title:"Who is actually being hit",dwell:12,
+    do:{play:false,month:[2026,7],chart:"targets"},
+    say:"Rank the victims and the table is led by the United States and the United Kingdom. Read carefully. That is substantially a statement about breach notification law and research attention, not about where risk is greatest."},
+   {title:"The same table, adjusted for population",dwell:12,
+    do:{chart:"percapita"},
+    say:"Adjust for population and the order changes. Neither ranking is the truth. One is distorted by country size, the other by who is required to report. Holding both in view at once is the honest position."},
+   {title:"Critical infrastructure",dwell:12,
+    do:{closeAll:true,sectors:["Energy","Utilities","Water","Transport","Government","Healthcare","Telecoms","Manufacturing"],map:"flat",arcWindow:6},
+    say:"Filtered to critical infrastructure, and shown flat. These are the sectors where an outage is not an inconvenience but a public safety matter. In twenty twenty five a group tracked as Electrum attacked Polish energy infrastructure, in what Dragos called the first major coordinated operation against distributed energy resources at scale."},
+   {title:"Attribution is thinner than it looks",dwell:13,
+    do:{map:"sphere",sectors:"all",chart:"dyads"},
+    say:"Now the uncomfortable part. Most attacks on this map have no named origin at all. Where a country is shown as a source it usually reflects an indictment, sanctions or a public accusation, rather than a verified launch point. The structure you can see is drawn from the minority where somebody was willing to point a finger."},
+   {title:"And the record itself is late",dwell:13,
+    do:{chart:"lag"},
+    say:"We can measure the delay rather than assume it. Ransomware crews publish within weeks, because publishing is the point. Expert-coded records enter the database quickly too. But the fully reviewed release still ends in December twenty twenty four, and most recent records are still being coded. The lag is in review, not in recording."},
+   {title:"What that means for the trend",dwell:12,
     do:{chart:"coverage"},
-    say:"Now the honest part. This is a map of what was documented, not of what happened. Growth in the chart reflects two things at once: more attacks, and far better recording. Only some sources ever assign the highest severity, and those sources lag reality by months. Any apparent fall in severe incidents recently is an artefact of who has finished coding, not a safer world."},
-   {title:"Attribution is thinner than it looks",dwell:12,
-    do:{chart:"dyads"},
-    say:"And attribution is rarer than the map implies. Most attacks here have no named origin at all. Where a country is shown as a source, it usually reflects a public accusation, an indictment or sanctions, rather than a verified launch location. The structure you can see is drawn from the minority where somebody was willing to point a finger."},
-   {title:"Where that leaves us",dwell:12,
-    do:{closeAll:true,map:"sphere",month:[2026,7],cumulative:true,sectors:"all"},
-    say:"So: measured escalation, uneven visibility, and attribution that thins the closer you look. The useful question is not how many attacks there were. It is how much of this we would have seen at all, without disclosure rules that compel someone to say so."}
+    say:"Which produces a trap. Only some sources ever assign the highest severity, and those sources are the ones still catching up. So severe incidents appear to fall away in the last two years. That is an artefact of who has finished coding. It is not a safer world."},
+   {title:"The question worth asking",dwell:12,
+    do:{closeAll:true,map:"sphere",month:[2026,7],cumulative:true,arcWindow:3,sectors:"all"},
+    say:"So: measured escalation, uneven visibility, and attribution that thins the closer you look. The useful question is not how many attacks there were. It is how much of this we would see at all, without rules that compel somebody to say so."}
   ]},
 
  demo:{
   title:"How to use this map",
-  blurb:"A short guided tour of the controls.",
+  blurb:"A full tour of the controls, charts and windows.",
   fullscreen:false, loop:false,
   steps:[
    {title:"The tool bar",dwell:9,
     do:{reset:true,closeAll:true,play:false},
-    say:"Everything opens from the tool bar. Drag the six dots to move it, or click them to fold it away. Each button opens a window you can move, resize from its corner, or maximise."},
-   {title:"Controls",dwell:11,
+    say:"Everything opens from the tool bar. Drag the six dots to move it, or click them to fold it away. Every window it opens can be moved by its title, resized from the bottom-right corner, or maximised."},
+   {title:"The globe",dwell:9,
+    do:{map:"sphere"},
+    say:"The globe turns on its own and stops as soon as you touch it, resuming after a pause. Drag to spin, scroll to zoom, and click any missile to open its details."},
+   {title:"Controls, and the filters",dwell:11,
     do:{frame:"controls"},
-    say:"Controls holds the filters, grouped into sections. Severity, sector, attack type and countries. Hover any option to see what it covers. Nothing here is permanent: Reset everything at the top puts the map back to how it started."},
+    say:"Controls holds the filters in collapsible sections: severity, sector, attack type and countries. Hover any option to see what it covers. Reset everything, at the top, returns the map to how it started."},
+   {title:"Missile trails",dwell:10,
+    do:{cumulative:true,arcWindow:1,month:[2024,6]},
+    say:"Missile trails decides how much flight path stays on screen. On this month only, the map is clear. Widen it and you see more at once, at the cost of hiding the globe underneath. The counter and the charts always use every attack regardless."},
    {title:"The timeline",dwell:10,
-    do:{month:[2021,1],play:true,speed:1000},
-    say:"The timeline runs along the bottom. Press play and the map advances a month at a time. Click any bar to jump straight to that month. The green line is a twelve month average, so you can see the shape of the trend without the noise."},
-   {title:"Narrowing the view",dwell:11,
-    do:{play:false,years:[2021,2026],sectors:["Energy","Utilities","Water"],month:[2026,7],cumulative:true},
-    say:"Narrow the years and the columns widen, which makes individual months readable. Filter to a few sectors and everything follows: the map, the counter, and every chart. Here we are looking only at energy, utilities and water since twenty twenty one."},
-   {title:"Charts",dwell:11,
-    do:{frame:"charts",chart:"targets"},
-    say:"Charts opens a gallery. Pick one and it opens in its own window, so you can put several side by side. League tables can run live as the timeline plays, with arrows showing who is climbing, or you can switch to the finished standings for the whole period."},
-   {title:"Search and details",dwell:10,
+    do:{arcWindow:3,play:true,speed:1000},
+    say:"The timeline runs along the bottom. Play advances a month at a time, and clicking any bar jumps straight there. The green line is a twelve-month average, and the trend menu can switch it to a long-run fit across the whole record."},
+   {title:"Narrowing the years",dwell:10,
+    do:{play:false,years:[2022,2026],month:[2026,7]},
+    say:"Narrow the year range and the columns widen, which makes individual months readable and easier to tap. Everything follows the filter: the map, the counter and every open chart."},
+   {title:"Charts open in their own windows",dwell:11,
+    do:{frame:"charts",chart:"sectors"},
+    say:"Charts opens a gallery of fifteen. Pick one and it opens in its own window, so you can put several side by side and compare them. Each can be resized, and the text redraws rather than stretching."},
+   {title:"League tables that move",dwell:11,
+    do:{chart:"targets",play:true,speed:500},
+    say:"The ranking tables can run live as the timeline plays, with arrows showing who is climbing and falling, or you can switch them to the finished standings for the whole selected period. Collapse them to the top ten or show every entry."},
+   {title:"Studying a pair of countries",dwell:11,
+    do:{play:false,closeAll:true,frame:"controls",countries:["Russia","Ukraine"],countryMode:"between",month:[2026,7]},
+    say:"Pick two or more countries and choose how to relate them: only attacks between them, any attack involving them, or one direction only. There are shortcuts for whole regions. The shading follows your selection too."},
+   {title:"Threat groups",dwell:11,
+    do:{countries:[],chart:"groups"},
+    say:"The threat group chart keeps two tables apart. Attributed groups, named by expert coding, and leak-site claims, which are the attacker's own branding. They are never added together, because the second always outnumbers the first."},
+   {title:"Search",dwell:9,
     do:{closeAll:true,frame:"search"},
-    say:"Search finds a specific attack, a threat group or a country. Picking a result opens its details, with the sources it came from. Clicking any missile on the map does the same."},
-   {title:"Compare and Help",dwell:12,
+    say:"Search finds a specific attack, a threat group or a country. Choosing a result opens its details with the sources behind it. Threat groups open a card you can page through."},
+   {title:"Checking the map against others",dwell:11,
     do:{closeAll:true,frame:"bench"},
-    say:"Compare checks this map against published findings from ENISA, Verizon, Dragos and EuRepoC, and says where it agrees and where it does not. Help explains the sources, the licences, and the limitations. Read the limitations before you quote anything from here."},
-   {title:"That is all of it",dwell:8,
-    do:{closeAll:true,reset:true},
-    say:"That is the whole tool. Close all windows returns you to a clean map, and Reset puts every setting back to where it began."}
+    say:"Compare tests this map against published findings from ENISA, Verizon, Dragos and EuRepoC, and says where it agrees and where it differs. Cards marked same data come from EuRepoC's own analysis of the database this map uses, so a disagreement there would mean a fault in this tool."},
+   {title:"Help, and the limitations",dwell:11,
+    do:{closeAll:true,frame:"help"},
+    say:"Help explains the sources, how healthy each one is, the licences, and the limitations. Read the limitations before quoting anything from here. The severity caveat in particular changes how the recent years should be read."},
+   {title:"Tidying up",dwell:9,
+    do:{frame:"charts"},
+    say:"When several windows are open, Close all appears in the tool bar with a count. Reset everything in Controls puts every setting back to first load. And the Present button holds this tour, a full presentation, and a sixty second loop for an unattended screen."}
   ]},
 
  kiosk:{
@@ -3920,40 +4027,53 @@ const NARR_SCRIPTS={
   fullscreen:true, loop:true,
   steps:[
    {title:"Two decades, one map",dwell:9,
-    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2000,1],cumulative:false,severity:["Critical","High"],play:false},
+    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2000,1],cumulative:false,arcWindow:1,severity:["Critical","High"],play:false},
     say:"Every missile is one publicly documented cyber attack, from the year two thousand to today."},
    {title:"The early years are quiet",dwell:9,
     do:{month:[2004,1],play:true,speed:250},
-    say:"For the first decade, incidents are rare. Not because the world was safe, but because almost nobody had to report anything."},
+    say:"For a decade, incidents are rare. Not because the world was safe, but because almost nobody had to report anything."},
    {title:"Then it changes",dwell:11,
-    do:{speed:250,severity:["Critical","High","Medium"]},
-    say:"From twenty twenty, the map fills. Ransomware becomes an industry, and its victims are published by the attackers themselves."},
+    do:{severity:["Critical","High","Medium"],arcWindow:3},
+    say:"From twenty twenty the map fills. Ransomware becomes an industry, and its victims are published by the attackers themselves."},
    {title:"Critical infrastructure",dwell:10,
     do:{play:false,sectors:["Energy","Utilities","Water","Transport","Healthcare","Government"],month:[2026,7],cumulative:true},
-    say:"Filtered to critical infrastructure: energy, water, transport, health and government. Sectors where an outage is a public safety matter."},
+    say:"Filtered to critical infrastructure: energy, water, transport, health and government. Sectors where an outage becomes a public safety matter."},
    {title:"But look again",dwell:11,
     do:{sectors:"all"},
-    say:"This shows what was documented, not what happened. Most attacks are never disclosed. Growth here is partly real, and partly better recording."},
+    say:"This is a map of what was documented, not what happened. Most attacks are never disclosed, and most of these have no named origin at all."},
    {title:"Cyber Attack Earth",dwell:10,
-    do:{closeAll:true,map:"sphere"},
+    do:{closeAll:true,map:"sphere",arcWindow:3},
     say:"Cyber Attack Earth. Built from public data as a personal project. Sources and limitations are in the Help window."}
   ]}
 };
 
-const NARR={running:false,mode:null,step:0,timer:null,muted:false,script:null,startedAt:0};
+const NARR={running:false,mode:null,step:0,timer:null,muted:false,script:null,startedAt:0,seq:0};
 
-function narrSpeak(text){
- if(NARR.muted||!("speechSynthesis" in window))return;
+/* The voice, not a stopwatch, decides when to move on. Previously a step advanced
+   after a fixed dwell while the voice ran at its own speed, so caption and audio
+   drifted apart within two or three steps. Now the utterance's own end event
+   triggers the next step, with the dwell kept only as a floor (so a short line
+   still leaves the visual on screen long enough to read) and as a fallback when
+   speech is muted or unavailable. */
+function narrSpeak(text,onDone){
+ if(NARR.muted||!("speechSynthesis" in window)){ if(onDone)onDone(false); return }
  try{
    speechSynthesis.cancel();
    const u=new SpeechSynthesisUtterance(String(text).replace(/\s+/g," ").trim());
-   u.rate=1.02; u.pitch=1; u.volume=1;
+   u.rate=0.98; u.pitch=1; u.volume=1;
    const vs=speechSynthesis.getVoices()||[];
    const pick=vs.find(v=>/en-GB/i.test(v.lang)&&/female|Sonia|Libby|Hazel/i.test(v.name))
             ||vs.find(v=>/en-GB/i.test(v.lang))||vs.find(v=>/^en/i.test(v.lang));
    if(pick)u.voice=pick;
+   let done=false;
+   const finish=ok=>{ if(done)return; done=true; if(onDone)onDone(ok) };
+   u.onend=()=>finish(true);
+   u.onerror=()=>finish(false);
    speechSynthesis.speak(u);
- }catch(e){}
+   // Some browsers never fire onend. Estimate from length and give up gracefully.
+   const words=String(text).split(/\s+/).length;
+   setTimeout(()=>finish(false),Math.max(4000,words/2.6*1000+2500));
+ }catch(e){ if(onDone)onDone(false) }
 }
 function narrStopSpeech(){try{if("speechSynthesis" in window)speechSynthesis.cancel()}catch(e){}}
 
@@ -3985,6 +4105,7 @@ function narrApply(d){
    if(d.cumulative!==undefined)document.getElementById("cumulative").checked=!!d.cumulative;
    if(d.heat!==undefined)document.getElementById("heatToggle").checked=!!d.heat;
    if(d.speed)document.getElementById("speed").value=String(d.speed);
+ if(d.arcWindow!==undefined){const aw=document.getElementById("arcWindow");if(aw)aw.value=String(d.arcWindow)}
    if(d.frame)openFrame(d.frame);
    if(d.chart)openChartFrame(d.chart);
    if(d.month)setTimeline(idx(d.month[0],d.month[1]));
@@ -4010,18 +4131,30 @@ function narrGo(i){
  const s=NARR.script.steps[NARR.step];
  narrApply(s.do);
  narrRenderCaption();
- narrSpeak(s.say.replace(/<[^>]+>/g," "));
  clearTimeout(NARR.timer);
- if(NARR.running){
-   const ms=(s.dwell||6)*1000;
-   NARR.timer=setTimeout(()=>{
-     if(NARR.step>=NARR.script.steps.length-1){
-       if(NARR.script.loop){narrGo(0)} else narrStop();
-     }else narrGo(NARR.step+1);
-   },ms);
- }
+ const startedAt=performance.now();
+ const minMs=Math.max(2600,(s.dwell||6)*1000*0.55);   // let the visual land
+ const advance=()=>{
+   if(!NARR.running)return;
+   if(NARR.step>=NARR.script.steps.length-1){
+     if(NARR.script.loop)narrGo(0); else narrStop();
+   }else narrGo(NARR.step+1);
+ };
+ const scheduleAfterSpeech=()=>{
+   const elapsed=performance.now()-startedAt;
+   const wait=Math.max(700,minMs-elapsed);
+   NARR.timer=setTimeout(advance,wait);
+ };
+ const seq=++NARR.seq;
+ narrSpeak(s.say.replace(/<[^>]+>/g," "),spoke=>{
+   if(seq!==NARR.seq)return;               // a later step already took over
+   if(!NARR.running)return;
+   if(spoke)scheduleAfterSpeech();
+   else NARR.timer=setTimeout(advance,Math.max(900,(s.dwell||6)*1000-(performance.now()-startedAt)));
+ });
 }
 function narrStart(mode){
+ if(typeof pauseSpin==="function")pauseSpin(false);
  const script=NARR_SCRIPTS[mode];
  if(!script)return;
  NARR.script=script;NARR.mode=mode;NARR.running=true;NARR.step=-1;NARR.startedAt=Date.now();
@@ -4032,6 +4165,7 @@ function narrStart(mode){
  narrGo(0);
 }
 function narrStop(){
+ try{ globe.controls().autoRotate=true }catch(e){}
  NARR.running=false;clearTimeout(NARR.timer);narrStopSpeech();
  document.body.classList.remove("narrating","narrFull");
  document.getElementById("narrOverlay").classList.add("hidden");
