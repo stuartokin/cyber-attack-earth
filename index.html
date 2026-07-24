@@ -54,6 +54,31 @@
       #narrOverlay{bottom:120px;width:94vw;padding:9px 12px 12px}
       #narrCaption{font-size:13px;max-height:30vh;overflow:auto}
     }
+    #splash{position:fixed;inset:0;z-index:400;display:flex;align-items:center;justify-content:center;
+      background:radial-gradient(ellipse at 50% 40%,rgba(12,26,48,.94),rgba(3,7,15,.985));backdrop-filter:blur(3px);padding:4vh 4vw}
+    #splash.gone{opacity:0;pointer-events:none;transition:opacity .55s ease}
+    .splashCard{width:min(560px,94vw);max-height:92vh;overflow:auto;background:rgba(6,13,26,.96);
+      border:1px solid #34506f;border-radius:16px;padding:20px 22px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
+    .splashCard h1{margin:0 0 6px;font-size:clamp(20px,3vw,27px);letter-spacing:-.02em}
+    .splashLead{margin:0 0 14px;font-size:13.5px;line-height:1.6;color:#c9d8ec}
+    .splashGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+    .splashGrid div{background:rgba(10,22,38,.8);border:1px solid #1e3350;border-radius:9px;padding:9px 6px;text-align:center}
+    .splashGrid b{display:block;font-size:19px;color:#fff;font-variant-numeric:tabular-nums}
+    .splashGrid span{font-size:10px;color:#7f95b4}
+    .splashNote{font-size:11.5px;line-height:1.55;color:#a8bcd6;border-left:2px solid var(--orange);padding-left:9px;margin:0 0 12px}
+    .splashAttrib{font-size:10.5px;line-height:1.5;color:#7f95b4;margin-bottom:12px}
+    .splashAttrib a{color:var(--accent)}
+    .splashLight{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;color:#c9d8ec;margin-bottom:12px}
+    .splashBarWrap{height:4px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden;margin-bottom:6px}
+    #splashBar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#4ee6a5);transition:width .35s ease}
+    .splashStatus{font-size:10.5px;color:#7f95b4;min-height:1.3em}
+    @media(max-width:620px){.splashCard{padding:16px}.splashGrid b{font-size:16px}}
+    .tbHealth{gap:6px}
+    .tbDot{width:9px;height:9px;border-radius:50%;background:#4a5f7d;flex:0 0 auto;
+      box-shadow:0 0 0 2px rgba(255,255,255,.06)}
+    .tbDot.green{background:#4ee6a5;box-shadow:0 0 8px rgba(78,230,165,.8)}
+    .tbDot.amber{background:var(--orange);box-shadow:0 0 8px rgba(255,157,60,.8)}
+    .tbDot.red{background:#ff4d66;box-shadow:0 0 8px rgba(255,77,102,.85)}
     .tbCloseAll{color:var(--orange);border-color:#4a3520}
     .tbCloseAll:hover{background:rgba(255,157,60,.14);color:var(--orange);border-color:var(--orange)}
     .tbCloseAll.hidden{display:none}
@@ -369,6 +394,7 @@
     <button class="tbBtn" data-frame="charts" type="button" title="Charts — incident, KEV, ICS advisory and EPSS charts" aria-label="Charts"><span class="tbIco">📊</span><span class="tbLabel">Charts</span></button>
     <button class="tbBtn" data-frame="bench" type="button" title="Compare against published findings from ENISA, Verizon and Dragos" aria-label="Compare"><span class="tbIco">⚖</span><span class="tbLabel">Compare</span></button>
     <button class="tbBtn" data-frame="present" type="button" title="Presentation, guided tour and kiosk mode — narrated, with a copyable script" aria-label="Present"><span class="tbIco">▶</span><span class="tbLabel">Present</span></button>
+    <button id="tbHealth" class="tbBtn tbHealth" type="button" title="Data status" aria-label="Data status"><span class="tbDot" id="tbHealthDot"></span><span class="tbLabel" id="tbHealthLabel">Data</span></button>
     <button id="tbCloseAll" class="tbBtn tbCloseAll hidden" type="button" title="Close every open window" aria-label="Close all windows"><span class="tbIco">&#10006;</span><span class="tbLabel">Close all</span></button>
     <button class="tbBtn" data-frame="help" type="button" title="Help — how to read this map, its limitations, sources and licences" aria-label="Help"><span class="tbIco">ⓘ</span><span class="tbLabel">Help</span></button>
   </div>
@@ -580,11 +606,13 @@
         <div class="miniLinks" style="margin:0 0 8px"><button id="helpExpandAll" type="button">Expand all</button><button id="helpCollapseAll" type="button">Collapse all</button></div>
         <details class="ctlSec" data-sec="about">
           <summary>About this map</summary>
-          <div class="ctlBody"><p class="demo"><b>Mapped incident sources:</b> a ~90-incident curated layer embedded in this file (works fully offline), plus — when hosted — EuRepoC (2000–2024), VCDB, and recent-months ransomware leak-site claims from Ransomware.live, deduplicated across sources. Incident actors link to a cited threat-group directory (MITRE ATT&amp;CK + Ransomware.live profiles). MITRE ATT&amp;CK and CISA KEV load as enrichment. Origins are attribution or ecosystem proxies — see each incident's note.</p>
-        <p>The strip above the timeline is an attacks-per-month histogram (2000&nbsp;→&nbsp;today) — click any bar to jump there. The on-map counter tracks documented attacks accumulated since the start of the selected period, with a tempo multiplier measured against that period’s opening months. The green line is a year-on-year trend of peak monthly activity. Press <b>⟲ Replay</b> to watch the monthly missile salvos escalate.</p>
-        <p class="small">AI built from primary sources as a personal project · no trackers or analytics.</p>
-
-        </div>
+          <div class="ctlBody">
+            <p><b>Cyber Attack Earth shows every cyber attack that somebody wrote down.</b> Each missile is one publicly documented incident, flying from where it was attributed to where it landed, from the year 2000 to today. Press play and two decades pass a month at a time.</p>
+            <p>It draws on roughly <b>37,000 incidents</b> from five independent sources &mdash; the European Repository of Cyber Incidents, the VERIS Community Database, ransomware leak sites, an academic events database and a hand-curated set with primary references &mdash; alongside vulnerability and industrial-advisory data used for context. Everything is rebuilt nightly and published as an open data pack.</p>
+            <p><b>What it is for.</b> Three questions it answers better than a table: has this kind of attack actually grown, or has recording simply improved; who is being hit, and does that change once you adjust for population; and how much of the picture rests on attribution that nobody has actually made.</p>
+            <p><b>What it is not.</b> It is not a live threat feed, not a risk score, and not a picture of what is happening now. It records what was disclosed, which is a small and uneven fraction of what occurred. The <b>Compare</b> window tests it against published findings from ENISA, Verizon, Dragos and EuRepoC, including where they disagree.</p>
+            <p>Built as a personal project from public data. No trackers, no analytics, no advertising. Nothing here represents the views of any employer or organisation.</p>
+          </div>
         </details>
         <details class="ctlSec" data-sec="severity">
           <summary>Reading severity &mdash; the most important caveat</summary>
@@ -680,6 +708,27 @@
       <span><i class="dot" style="background:#b6c8e2"></i>City</span>
     </div>
   </main>
+
+  <div id="splash" role="dialog" aria-label="Welcome">
+    <div class="splashCard">
+      <h1>Cyber Attack Earth</h1>
+      <p class="splashLead">Every missile is one publicly documented cyber attack, from 2000 to today. Press play and two decades pass a month at a time.</p>
+      <div class="splashGrid">
+        <div><b id="splashCount">&mdash;</b><span>documented incidents</span></div>
+        <div><b>5</b><span>independent sources</span></div>
+        <div><b>15</b><span>charts</span></div>
+      </div>
+      <p class="splashNote">It records what was <i>disclosed</i>, which is a small and uneven fraction of what happened. Growth over time reflects both real escalation and much better recording. The Help window explains the limitations before you quote anything from it.</p>
+      <div class="splashAttrib" id="splashAttrib"></div>
+      <label class="splashLight"><input id="splashLite" type="checkbox"> Reduce the load &mdash; fewer missiles and lighter filters, for an older or smaller device</label>
+      <div class="splashBarWrap"><div id="splashBar"></div></div>
+      <div class="splashStatus" id="splashStatus">Loading the data pack&hellip;</div>
+      <div class="btnrow" style="margin-top:12px">
+        <button id="splashGo" class="primary" type="button" disabled>Loading&hellip;</button>
+        <button id="splashTour" type="button">Show me how it works</button>
+      </div>
+    </div>
+  </div>
 
   <div id="heatLegend" class="heatLegend">
     <span>Lighter = fewer, milder</span>
@@ -1403,7 +1452,7 @@ const enrichmentStatus=document.getElementById("enrichmentStatus");
 const exportVisible=document.getElementById("exportVisible");
 const copySourceLinks=document.getElementById("copySourceLinks");
 
-let flatSvg, flatProjection, flatPath, flatZoomLayer, countriesGeo=null;
+let flatSvg, flatProjection, flatPath, flatZoomLayer, flatZoom=null, countriesGeo=null;
 
 async function initFlatMap(){
   const world = await d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json");
@@ -1420,7 +1469,8 @@ async function initFlatMap(){
   flatPath = d3.geoPath(flatProjection);
   flatZoomLayer = flatSvg.append("g");
   flatZoomLayer.append("g").selectAll("path").data(countries.features).join("path").attr("class","country").attr("data-id",d=>String(d.id).padStart(3,"0")).attr("d",flatPath);
-  flatSvg.call(d3.zoom().scaleExtent([1,8]).on("zoom",e=>flatZoomLayer.attr("transform",e.transform)));
+  flatZoom=d3.zoom().scaleExtent([1,8]).on("zoom",e=>flatZoomLayer.attr("transform",e.transform));
+  flatSvg.call(flatZoom);
   renderFlat(filtered());
 }
 function refreshFilterOptions(){
@@ -1545,6 +1595,8 @@ function passesFilters(a,st){
  const i=(a._i!==undefined)?a._i:(a._i=idx(a.year,a.month));
  const inTime=(st.when==="all")?true
    :(st.when==="period")?(i>=st.vs&&i<=st.ve)
+   // Shading is a running total across the selected period: empty when a run starts
+   // at the beginning, and reflecting everything up to wherever you jump.
    :(st.when==="heat")?(i>=st.vs&&i<=st.now)
    :(st.cumulative?i<=st.now:i===st.now);
  if(!inTime)return false;
@@ -2024,6 +2076,23 @@ function applySphereHeat(){
    origin markers and the aggregated views. `arcData` is the smaller recent slice
    drawn as flight paths. Passing the trail subset for both cut the map's markers
    by the same 98% as its arcs, which made a fully loaded dataset look empty. */
+/* Pan and zoom the flat map to a point, matching the globe's focus behaviour so a
+   narration reads the same in either view. */
+function flatFocus(lat,lng,scale){
+ if(!flatSvg||!flatZoom||typeof flatProjection!=="function")return;
+ try{
+   const p=flatProjection([lng,lat]); if(!p)return;
+   const w=flatSvg.node().clientWidth||flatSvg.node().parentNode.clientWidth||960;
+   const h=flatSvg.node().clientHeight||540;
+   const k=scale||2.2;
+   const t=d3.zoomIdentity.translate(w/2-k*p[0],h/2-k*p[1]).scale(k);
+   flatSvg.transition().duration(1600).call(flatZoom.transform,t);
+ }catch(e){}
+}
+function flatReset(){
+ if(!flatSvg||!flatZoom)return;
+ try{ flatSvg.transition().duration(1400).call(flatZoom.transform,d3.zoomIdentity) }catch(e){}
+}
 function renderFlat(data,arcData){
  if(!flatZoomLayer||typeof flatProjection!=="function") return;
  if(!arcData)arcData=data;
@@ -2066,23 +2135,32 @@ function renderFlat(data,arcData){
    // and dashoffset sweeps from +tail (just before the start) to -len (just past
    // the end), carrying that segment along the whole route. This is a pure SVG
    // transition, so it works for every arc rather than a capped few.
-   const many=arcData.length>1500;
-   const dur=many?Math.max(260,flightMs*0.6):flightMs;
-   const delayFor=i=>many?(i%40)*8:0;
+   // Launches must be STAGGERED. Previously every arc had a delay of zero unless
+   // there were more than fifteen hundred of them, so they all set off and landed
+   // in unison - one synchronised flash, which is why it read as "the lines just
+   // appear" rather than as missiles in flight. Each arc now leaves at its own
+   // moment, spread across a window, and flies at its own speed.
+   const many=arcData.length>1200;
+   const spread=many?2600:2000;                 // launches spread across this long
+   const hash=d=>{                              // stable per-arc, so it does not
+     const s=String(d.id||"");                  // jump about between renders
+     let h=0; for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;
+     return h;
+   };
    paths
      .attr("stroke-linecap","round")
+     .attr("stroke-width",d=>0.9+d.impact/70)
      .attr("stroke-dasharray",function(){
        const len=this.getTotalLength?this.getTotalLength():100;
-       const tail=Math.max(9,Math.min(34,len*0.09));
+       const tail=Math.max(8,Math.min(28,len*0.08));
        this.__len=len; this.__tail=tail;
        return tail+" "+(len+tail);
      })
      .attr("stroke-dashoffset",function(){return this.__tail})
-     .attr("stroke-width",function(){return Math.max(1.6,(+d3.select(this).attr("stroke-width")||2))})
      .attr("opacity",1);
    paths.transition("fly")
-     .delay((d,i)=>delayFor(i))
-     .duration(dur)
+     .delay((d,i)=>(hash(d)%spread))
+     .duration(d=>Math.max(700,1900-d.impact*8))
      .ease(d3.easeLinear)
      .attr("stroke-dashoffset",function(){return -(this.__len)});
    // Once it lands, leave the route behind very faintly so the picture builds up
@@ -2095,9 +2173,10 @@ function renderFlat(data,arcData){
      s.interrupt("settle")
       .attr("stroke-dasharray",null)
       .attr("stroke-dashoffset",null)
+      .attr("stroke-width",0.7)
       .attr("opacity",0)
-      .transition("settle").duration(320)
-      .attr("opacity",many?.05:.09);
+      .transition("settle").duration(400)
+      .attr("opacity",many?.05:.10);
    });
    layer.selectAll("circle.flat-origin").data(data).join("circle").attr("class","flat-origin")
     .attr("cx",d=>flatProjection([d.startLng,d.startLat])[0]).attr("cy",d=>flatProjection([d.startLng,d.startLat])[1])
@@ -2429,7 +2508,10 @@ async function loadEnrichmentLayers(){
   fetch("https://cdn.jsdelivr.net/gh/cisagov/kev-data@develop/known_exploited_vulnerabilities.json").then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{enrichmentCounts.kev=(j.vulnerabilities||[]).length}).catch(err=>{console.warn("KEV enrichment unavailable",err)}),
   fetch(RWLIVE_API+"/groups").then(r=>r.ok?r.json():Promise.reject(r.status)).then(gs=>{enrichmentCounts.rwGroups=ingestRwGroups(gs)}).catch(err=>{console.warn("Ransomware.live groups unavailable",err)})
  ];
+ if(typeof splashProgress==="function")splashProgress(88,"Merging and de-duplicating…");
  await Promise.allSettled(jobs); renderSourceMenu();
+ if(typeof dataHealth==="function")dataHealth();
+ if(typeof splashReady==="function")splashReady();
  if(selectedAttack)showDetail(selectedAttack);
 }
 function renderSourceMenu(){
@@ -2748,6 +2830,7 @@ async function loadRansomwareLiveProgressive(){
    if(!fresh.length)return;
    attacks=mergeAndDedupe([...attacks,...fresh]);
    refreshFilterOptions(); renderSourceMenu(); markHistoDirty(); update();
+   if(typeof dataHealth==="function")dataHealth();
  };
  try{
    // With a data pack, its claims were already merged in the main load; only stream months newer than the pack.
@@ -2965,7 +3048,9 @@ async function loadLake(){
  }));
  const rf=(T.reports&&T.reports.files)||{};
  if(rf.vendor)jobs.push(grabJSON(base+rf.vendor.file).then(r=>{if(Array.isArray(r))LAKE.reports=r}));
+ if(typeof splashProgress==="function")splashProgress(35,"Downloading incident tables…");
  await Promise.all(jobs);
+ if(typeof splashProgress==="function")splashProgress(72,"Reading "+(Object.keys(T).length)+" tables…");
  return out;
 }
 async function loadDataPack(){
@@ -2992,6 +3077,7 @@ async function loadDataPack(){
 let packRwl=null,packRwlLastIdx=-1;
 async function loadResearchDataset(){
  dataStatus.textContent="Checking for same-origin data lake…";
+ if(typeof splashProgress==="function")splashProgress(12,"Looking for the data pack…");
  const sources=[]; const failures=[]; let packUsed=[];
  const pack=(await loadLake())||(await loadDataPack());
  if(pack.lake)packUsed.push("lake v"+LAKE.manifest.schema);
@@ -3333,6 +3419,50 @@ let gripMoved=false;
    weight on a small screen. */
 const tbCloseAll=document.getElementById("tbCloseAll");
 function openFrameCount(){return document.querySelectorAll(".frame:not(.hidden)").length}
+/* A single light for the state of the data lake. Green when every source arrived at
+   the volume expected, amber when something is thin or a source is missing, red when
+   there is no lake at all and the map is running on its embedded fallback. Clicking
+   it opens the source health table rather than making you go looking. */
+function dataHealth(){
+ const dot=document.getElementById("tbHealthDot");
+ const lbl=document.getElementById("tbHealthLabel");
+ if(!dot)return {level:"red"};
+ const FALLBACK={eurepoc:4300,vcdb:10400,rwlive:21000,kev:1650,epss:17000,
+                 attack:870,icsadv:3800,cissm:17169,cve:320,reports:15,eurepoc_live:0};
+ let level="green",why="";
+ if(!LAKE.manifest){
+   level="red";
+   why="No hosted data lake. The map is running on its embedded set of about ninety curated incidents.";
+ }else{
+   const srcs=LAKE.manifest.sources||[];
+   const failed=srcs.filter(s=>s.status!=="ok");
+   const low=srcs.filter(s=>{
+     if(s.status!=="ok")return false;
+     const exp=+s.expected||FALLBACK[s.id]||0;
+     return exp&&(+s.rows||0)<exp*0.9;
+   });
+   const built=String(LAKE.manifest.generated||"").slice(0,10);
+   const ageDays=built?Math.round((Date.now()-new Date(built).getTime())/86400000):null;
+   if(failed.length||low.length){
+     level="amber";
+     const bits=[];
+     if(failed.length)bits.push(`${failed.length} source${failed.length>1?"s":""} did not load (${failed.map(s=>s.id).join(", ")})`);
+     if(low.length)bits.push(`${low.length} returned fewer rows than expected (${low.map(s=>s.id).join(", ")})`);
+     why=bits.join("; ")+".";
+   }else{
+     why=`All ${srcs.length} sources loaded at the volumes expected.`;
+   }
+   if(ageDays!=null&&ageDays>3){
+     if(level==="green")level="amber";
+     why+=` The pack was built ${ageDays} days ago.`;
+   }
+ }
+ dot.className="tbDot "+level;
+ if(lbl)lbl.textContent=level==="green"?"Data OK":level==="amber"?"Data check":"No lake";
+ const btn=document.getElementById("tbHealth");
+ if(btn)btn.title=why;
+ return {level,why};
+}
 function refreshCloseAll(){
  if(!tbCloseAll)return;
  const n=openFrameCount();
@@ -3341,6 +3471,68 @@ function refreshCloseAll(){
  if(lbl)lbl.textContent=`Close all (${n})`;
  tbCloseAll.title=`Close all ${n} open windows`;
 }
+/* ── Opening screen ────────────────────────────────────────────────────────
+   Explains what this is and what it is not, credits the sources, offers a lighter
+   load for a modest device, and shows real progress while the pack downloads. The
+   globe orients itself behind it, so the wait is doing something useful. */
+const SPLASH={done:false,pct:0};
+function splashProgress(pct,label){
+ SPLASH.pct=Math.max(SPLASH.pct,pct);
+ const bar=document.getElementById("splashBar"), st=document.getElementById("splashStatus");
+ if(bar)bar.style.width=SPLASH.pct+"%";
+ if(st&&label)st.textContent=label;
+}
+function splashReady(){
+ if(SPLASH.done)return;
+ SPLASH.done=true;
+ splashProgress(100,"Ready.");
+ const go=document.getElementById("splashGo");
+ const n=attacks.length;
+ document.getElementById("splashCount").textContent=n.toLocaleString();
+ // credit the sources actually loaded, drawn from the pack rather than hard-coded
+ const names=LAKE.manifest
+   ? (LAKE.manifest.sources||[]).filter(s=>s.status==="ok").map(s=>s.title.replace(/\s*\(.*\)/,""))
+   : ["an embedded curated set"];
+ document.getElementById("splashAttrib").innerHTML=
+   "Contains information from "+names.slice(0,8).join(", ")+
+   ". Licences and full attribution are in the Help window, and in ATTRIBUTION.md in the repository.";
+ if(go){go.disabled=false;go.textContent="Explore the map";}
+}
+function splashDismiss(then){
+ const s=document.getElementById("splash");
+ if(!s)return;
+ // honour the lighter-load choice before revealing the map
+ if(document.getElementById("splashLite").checked){
+   window.__perfCap=380;
+   densityMode.value="performance";
+   document.querySelectorAll(".severity").forEach(x=>{x.checked=(x.value==="Critical"||x.value==="High")});
+   const aw=document.getElementById("arcWindow"); if(aw)aw.value="3";
+   markHistoDirty();
+ }
+ s.classList.add("gone");
+ setTimeout(()=>{s.remove();update();if(then)then()},600);
+}
+document.getElementById("splashGo").addEventListener("click",()=>splashDismiss());
+document.getElementById("splashTour").addEventListener("click",()=>splashDismiss(()=>narrStart("demo")));
+// a gentle orbit while they read, so the wait is not a blank screen
+(function(){
+ try{
+   globe.pointOfView({lat:HOME.lat,lng:HOME.lng,altitude:3.1},0);
+   setTimeout(()=>{ if(!SPLASH.done||document.getElementById("splash"))
+     globe.pointOfView({lat:HOME.lat,lng:HOME.lng,altitude:2.05},2600) },400);
+ }catch(e){}
+})();
+// never strand anyone behind the screen if a source hangs
+setTimeout(()=>{splashProgress(100);splashReady()},20000);
+document.getElementById("tbHealth").addEventListener("click",()=>{
+ openFrame("help");
+ const sec=document.querySelector('#frame-help .ctlSec[data-sec="data"]');
+ if(sec){
+   document.querySelectorAll("#frame-help .ctlSec").forEach(d=>d.open=false);
+   sec.open=true;
+   setTimeout(()=>sec.scrollIntoView({block:"start",behavior:"smooth"}),120);
+ }
+});
 tbCloseAll.addEventListener("click",()=>{
  document.querySelectorAll(".frame:not(.hidden)").forEach(f=>{
    f.classList.add("hidden");
@@ -3957,19 +4149,19 @@ const NARR_SCRIPTS={
   fullscreen:true, loop:false,
   steps:[
    {title:"One missile, one documented attack",dwell:11,
-    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2000,1],cumulative:false,arcWindow:1,play:false},
+    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2000,1],cumulative:false,arcWindow:1,play:false,wide:true},
     say:"Every missile is one publicly documented cyber attack, flying from where it was attributed to where it landed. We start in the year two thousand and move forward a month at a time."},
    {title:"A decade you can count",dwell:10,
     do:{month:[2003,1],play:true,speed:250},
     say:"Through the first decade, incidents are sparse enough to name individually. That is not evidence of safety. It is evidence that almost nobody was obliged to tell anyone."},
    {title:"Ukraine, December 2015",dwell:12,
-    do:{play:false,month:[2015,12],countries:["Ukraine"],countryMode:"victim",severity:["Critical","High"],arcWindow:3},
+    do:{play:false,month:[2015,12],countries:["Ukraine"],countryMode:"victim",severity:["Critical","High"],arcWindow:3,focus:"Ukraine",altitude:1.35},
     say:"December two thousand and fifteen. Attackers open breakers at three Ukrainian distribution companies and a quarter of a million people lose power. Engineers restore supply by driving to substations and working them by hand. This is the moment cyber attack becomes an engineering problem."},
    {title:"NotPetya, and the cost of being connected",dwell:13,
-    do:{countries:[],month:[2017,6],cumulative:true,arcWindow:3},
+    do:{countries:[],month:[2017,6],cumulative:true,arcWindow:3,focus:{lat:50,lng:15},altitude:1.9},
     say:"June two thousand and seventeen. Malware hidden in a Ukrainian tax software update escapes its target and does around ten billion dollars of damage. Shipping lines, pharmaceutical firms and food producers lose weeks of operations. Nobody aimed at them. They were simply connected to something that was."},
    {title:"The shape of the map changes",dwell:12,
-    do:{month:[2021,5],play:true,speed:500,severity:["Critical","High","Medium"],arcWindow:3},
+    do:{month:[2021,5],play:true,speed:500,severity:["Critical","High","Medium"],arcWindow:3,focus:{lat:37,lng:-90},altitude:1.7},
     say:"From twenty twenty the picture thickens. Ransomware becomes an industry, with brands, affiliates and leak sites. Colonial Pipeline halts fuel to the American east coast. Almost all of this new volume is criminal, financially motivated, and published by the attackers themselves."},
    {title:"Who is actually being hit",dwell:12,
     do:{play:false,month:[2026,7],chart:"targets"},
@@ -3978,10 +4170,10 @@ const NARR_SCRIPTS={
     do:{chart:"percapita"},
     say:"Adjust for population and the order changes. Neither ranking is the truth. One is distorted by country size, the other by who is required to report. Holding both in view at once is the honest position."},
    {title:"Critical infrastructure",dwell:12,
-    do:{closeAll:true,sectors:["Energy","Utilities","Water","Transport","Government","Healthcare","Telecoms","Manufacturing"],map:"flat",arcWindow:6},
+    do:{closeAll:true,sectors:["Energy","Utilities","Water","Transport","Government","Healthcare","Telecoms","Manufacturing"],map:"flat",arcWindow:6,focus:"Poland"},
     say:"Filtered to critical infrastructure, and shown flat. These are the sectors where an outage is not an inconvenience but a public safety matter. In twenty twenty five a group tracked as Electrum attacked Polish energy infrastructure, in what Dragos called the first major coordinated operation against distributed energy resources at scale."},
    {title:"Attribution is thinner than it looks",dwell:13,
-    do:{map:"sphere",sectors:"all",chart:"dyads"},
+    do:{map:"sphere",sectors:"all",chart:"dyads",wide:true},
     say:"Now the uncomfortable part. Most attacks on this map have no named origin at all. Where a country is shown as a source it usually reflects an indictment, sanctions or a public accusation, rather than a verified launch point. The structure you can see is drawn from the minority where somebody was willing to point a finger."},
    {title:"And the record itself is late",dwell:13,
     do:{chart:"lag"},
@@ -3990,7 +4182,7 @@ const NARR_SCRIPTS={
     do:{chart:"coverage"},
     say:"Which produces a trap. Only some sources ever assign the highest severity, and those sources are the ones still catching up. So severe incidents appear to fall away in the last two years. That is an artefact of who has finished coding. It is not a safer world."},
    {title:"The question worth asking",dwell:12,
-    do:{closeAll:true,map:"sphere",month:[2026,7],cumulative:true,arcWindow:3,sectors:"all"},
+    do:{closeAll:true,map:"sphere",month:[2026,7],cumulative:true,arcWindow:3,sectors:"all",wide:true},
     say:"So: measured escalation, uneven visibility, and attribution that thins the closer you look. The useful question is not how many attacks there were. It is how much of this we would see at all, without rules that compel somebody to say so."}
   ]},
 
@@ -4124,6 +4316,28 @@ function narrApply(d){
      if(typeof renderCountryList==="function"){renderCountryList();renderCountrySelected()}}
    if(d.countryMode)document.getElementById("countryMode").value=d.countryMode;
    if(d.map)setMapMode(d.map);
+ // Move the camera to whatever the narration is talking about, slowly enough to
+ // read as a considered move rather than a jump cut.
+ if(d.focus){
+   const f=(typeof d.focus==="string")?centroidForCountry(d.focus):d.focus;
+   if(f&&isFinite(f.lat)&&isFinite(f.lng)){
+     const alt=d.altitude||1.5;
+     if(mapMode==="sphere"&&globe.pointOfView){
+       try{ globe.controls().autoRotate=false }catch(e){}
+       globe.pointOfView({lat:f.lat,lng:f.lng,altitude:alt},1800);
+       // resume the gentle spin once the move has settled
+       clearTimeout(window.__narrSpin);
+       window.__narrSpin=setTimeout(()=>{
+         if(NARR.running&&d.spin!==false){try{globe.controls().autoRotate=true}catch(e){}}
+       },2200);
+     }else if(typeof flatFocus==="function"){
+       flatFocus(f.lat,f.lng,d.altitude?1.6:2.2);
+     }
+   }
+ }else if(d.wide){
+   if(mapMode==="sphere"&&globe.pointOfView)globe.pointOfView({lat:HOME.lat,lng:HOME.lng,altitude:2.05},1600);
+   else if(typeof flatReset==="function")flatReset();
+ }
    if(d.cumulative!==undefined)document.getElementById("cumulative").checked=!!d.cumulative;
    if(d.heat!==undefined)document.getElementById("heatToggle").checked=!!d.heat;
    if(d.speed)document.getElementById("speed").value=String(d.speed);
@@ -4176,7 +4390,9 @@ function narrGo(i){
  });
 }
 function narrStart(mode){
- if(typeof pauseSpin==="function")pauseSpin(false);
+ // The globe keeps its gentle spin during a presentation; focus steps pause it
+ // only for the length of the camera move.
+ try{ globe.controls().autoRotate=true }catch(e){}
  const script=NARR_SCRIPTS[mode];
  if(!script)return;
  NARR.script=script;NARR.mode=mode;NARR.running=true;NARR.step=-1;NARR.startedAt=Date.now();
