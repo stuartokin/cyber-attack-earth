@@ -29,6 +29,12 @@
     .tbBtn:hover{background:rgba(20,38,63,.7);color:var(--text);border-color:#2c4666}
     .tbBtn.on{background:rgba(20,38,63,.9);color:var(--text);border-color:var(--accent)}
     .tbIco{font-size:15px}
+    .tbCloseAll{color:var(--orange);border-color:#4a3520}
+    .tbCloseAll:hover{background:rgba(255,157,60,.14);color:var(--orange);border-color:var(--orange)}
+    .tbCloseAll.hidden{display:none}
+    .projRow i{opacity:.45}
+    .projRow .lgName{color:#8fa6c4;font-style:italic}
+    .projNote{border-left:2px solid var(--orange);padding-left:9px;color:#c9d8ec}
     .frame{position:fixed;z-index:80;width:340px;max-width:calc(100vw - 20px);max-height:calc(100vh - 150px);
       display:flex;flex-direction:column;background:rgba(6,13,26,.975);backdrop-filter:blur(12px);
       border:1px solid #34506f;border-radius:14px;box-shadow:0 22px 60px rgba(0,0,0,.55);overflow:hidden}
@@ -88,10 +94,10 @@
     .hidden{display:none!important}
 .heatLegend{position:fixed;left:50%;bottom:190px;transform:translateX(-50%);z-index:25;display:flex;align-items:center;gap:8px;padding:6px 11px;border-radius:999px;background:rgba(5,12,25,.9);border:1px solid rgba(255,255,255,.14);font-size:10.5px;color:#a8bcd6;white-space:nowrap;pointer-events:none}.heatBar{width:150px;height:9px;border-radius:999px;background:linear-gradient(90deg,#fffdf0,#fff3b0,#ffe066,#ffc03d,#ff9433,#ff5f3c,#e01b24,#a4161a,#6a040f);border:1px solid rgba(255,255,255,.18)}
 .pulse-path{stroke-linecap:round}
-.detailDrawer{position:absolute;z-index:45;top:12px;right:12px;width:min(430px,calc(100% - 24px));max-height:calc(100% - 24px);overflow:auto;background:rgba(5,12,25,.97);border:1px solid #38506f;border-radius:14px;padding:16px;box-shadow:0 18px 55px rgba(0,0,0,.48)}
+.detailDrawer{z-index:88;width:min(430px,calc(100vw - 24px))}
+#attackDrawerBody{font-size:12.5px}
 .detailDrawer.hidden{display:none}
-.detailDrawerHead{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:8px}
-.detailDrawerHead h2{margin:0;font-size:18px}.detailClose{flex:0 0 auto;font-size:18px;line-height:1;padding:5px 9px}
+.detailDrawer .frameHead h2{font-size:13px}
 .missile-dot{filter:drop-shadow(0 0 4px currentColor)}
 .flat-ring{transform-box:fill-box;transform-origin:center;animation:flatBlast 6s ease-out forwards}@keyframes flatBlast{0%{transform:scale(.15);opacity:.95}100%{transform:scale(1);opacity:.08}}
     #timeline{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(5,12,25,.96);border-top:1px solid var(--line);padding:11px 16px}
@@ -335,6 +341,7 @@
     <button class="tbBtn" data-frame="search" type="button" title="Search — look up an attack or threat group and jump to it" aria-label="Search"><span class="tbIco">🔍</span><span class="tbLabel">Search</span></button>
     <button class="tbBtn" data-frame="charts" type="button" title="Charts — incident, KEV, ICS advisory and EPSS charts" aria-label="Charts"><span class="tbIco">📊</span><span class="tbLabel">Charts</span></button>
     <button class="tbBtn" data-frame="bench" type="button" title="Compare against published findings from ENISA, Verizon and Dragos" aria-label="Compare"><span class="tbIco">⚖</span><span class="tbLabel">Compare</span></button>
+    <button id="tbCloseAll" class="tbBtn tbCloseAll hidden" type="button" title="Close every open window" aria-label="Close all windows"><span class="tbIco">&#10006;</span><span class="tbLabel">Close all</span></button>
     <button class="tbBtn" data-frame="help" type="button" title="Help — how to read this map, its limitations, sources and licences" aria-label="Help"><span class="tbIco">ⓘ</span><span class="tbLabel">Help</span></button>
   </div>
   <div id="frames">
@@ -590,9 +597,9 @@
     <div id="globe"></div>
     <div id="flatMap" aria-label="Flat world map"></div>
     <button id="impactLabel" class="impact-label hidden" type="button"></button>
-    <section id="attackDrawer" class="detailDrawer hidden" aria-live="polite" aria-label="Attack details">
-      <div class="detailDrawerHead"><h2>Attack details</h2><button id="closeAttackDrawer" class="detailClose" type="button" aria-label="Close attack details">×</button></div>
-      <div id="attackDrawerBody"></div>
+    <section id="attackDrawer" class="detailDrawer frame hidden" aria-live="polite" aria-label="Attack details">
+      <div class="frameHead"><h2>Attack details</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise attack details" title="Maximise / restore">&#9713;</button><button id="closeAttackDrawer" class="frameClose" type="button" aria-label="Close attack details">&#215;</button></span></div>
+      <div class="frameBody"><div id="attackDrawerBody"></div></div>
     </section>
     <div id="yearBig">Jun 2026</div>
     <div id="escalation" aria-live="polite">
@@ -1146,15 +1153,79 @@ const TYPE_HELP=[
  [/exercise|test|simulat/i,"A drill or test, not a real attack. Off by default."],
  [/unknown|other|uncategor/i,"The source did not record a specific attack type."]
 ];
+/* Every canonical type has its own explanation. The old fallback ("as recorded by
+   the source dataset") told the reader nothing they could act on. */
+const TYPE_HELP_EXACT={
+ "Ransomware":"Systems or files locked, or data stolen, with a payment demanded. Leak-site entries are the attacker's own claim rather than a confirmed breach.",
+ "Destructive attack":"Intended to destroy data or damage systems rather than steal or extort \u2014 wipers and sabotage.",
+ "Disruption":"Aimed at stopping a service working, most often flooding it with traffic. Usually noisy and visible but shallow.",
+ "Data theft":"Information copied out of the organisation.",
+ "Data theft and leaking":"Information stolen and then published, often to pressure the victim or to embarrass them.",
+ "Espionage":"Quiet, persistent access to gather intelligence rather than cause damage. Usually state-linked, and typically discovered long after the event.",
+ "System hijacking (used)":"The attacker took control of systems and then used that access for something further.",
+ "System hijacking (not used)":"Control was gained but no follow-on activity was recorded \u2014 often pre-positioning.",
+ "Defacement":"Public-facing content altered, usually to make a political point.",
+ "Phishing and social engineering":"People were deceived into granting access or handing over credentials.",
+ "Supply chain compromise":"The victim was reached through a supplier, vendor or software update rather than directly.",
+ "Fraud":"Theft or manipulation for direct financial gain.",
+ "Exercise or test":"A drill or simulation, not a real attack. Excluded by default.",
+ "Vulnerability exploitation":"A software flaw was used to gain access.",
+ "Insider misuse":"Someone with legitimate access misused it.",
+ "Malware":"Malicious software installed on the victim's systems.",
+ "Industrial control system attack":"Reached the equipment that runs physical processes \u2014 plant, grid, water treatment. Far rarer than IT-side incidents, and far more consequential when it happens.",
+ "Supply chain compromise":"The victim was reached through a supplier, vendor or software update rather than directly.",
+ "Not categorised":"The source recorded an incident but no attack type. Common in older records and in datasets that focus on the victim rather than the method."
+};
 function typeHelp(t){
  const s=String(t||"");
+ if(TYPE_HELP_EXACT[s])return TYPE_HELP_EXACT[s];
+ const byStem=helpByPrefix(TYPE_HELP_EXACT,s);
+ if(byStem)return byStem;
  for(const [re,txt] of TYPE_HELP)if(re.test(s))return txt;
- return "Attack type as recorded by the source dataset.";
+ return "A description used by one source that did not map onto the shared categories. Treat it as that source's own wording.";
+}
+const SECTOR_HELP_EXTRA={
+ "Critical infrastructure (unspecified)":"Recorded as critical infrastructure, but the source did not say which part. Counts towards essential services without identifying the sector.",
+ "Not recorded":"No sector was recorded by the source. Common where reporting focused on the attacker or the method rather than the victim.",
+ "Digital Provider":"Cloud, hosting, managed service and platform providers \u2014 frequently the route into their customers.",
+ "Civil service / administration":"Central and local public administration. Critical infrastructure.",
+ "Government / ministries":"Ministries and central government bodies. Critical infrastructure.",
+ "Police":"Policing and law enforcement. Critical infrastructure.",
+ "Legislative":"Parliaments and legislatures. Critical infrastructure.",
+ "Judiciary":"Courts and the justice system. Critical infrastructure.",
+ "Political parties":"Party organisations and campaigns \u2014 a recurring espionage and interference target.",
+ "Research":"Research institutes and laboratories, often targeted for intellectual property.",
+ "Food":"Food production, processing and distribution. Critical infrastructure in most national frameworks.",
+ "Critical Manufacturing":"Manufacturing designated critical, including plant control systems.",
+ "Defence industry":"Defence suppliers and the industrial base. Critical infrastructure.",
+ "Social groups":"Civil society, communities and advocacy organisations.",
+ "Advocacy / activists":"Campaigning organisations and individual activists, often targeted for surveillance.",
+ "End user(s) / specially protected groups":"Individuals rather than organisations \u2014 including journalists, dissidents, lawyers and others at heightened risk. Usually surveillance or intimidation rather than commercial theft.",
+ "State institutions / political system":"The machinery of government taken as a whole, where the source did not narrow it further. Critical infrastructure.",
+ "International / supranational organizations":"Bodies such as the EU institutions, the UN and NATO, and their agencies.",
+ "Professional Services":"Law, accountancy, consultancy and similar firms \u2014 attractive because of the client data they hold.",
+ "Hospitality":"Hotels, travel and leisure operators.",
+ "Other":"Recorded by the source but not matching any of the groups above.",
+ "Industrial control system attack":"Attacks reaching the equipment that runs physical processes."
+};
+function helpByPrefix(table,s){
+ // Long labels are truncated with an ellipsis for display, so an exact key lookup
+ // misses. Fall back to matching on the part that survived.
+ const stem=String(s||"").replace(/\u2026$/,"").trim().toLowerCase();
+ if(!stem)return null;
+ for(const k in table){
+   const kk=k.toLowerCase();
+   if(kk.startsWith(stem)||stem.startsWith(kk.slice(0,Math.min(kk.length,stem.length))))return table[k];
+ }
+ return null;
 }
 function sectorHelp(s){
- return SECTOR_HELP[s]||(CNI_SECTORS.includes(s)
-   ? "Critical infrastructure sector."
-   : "Sector as normalised from the source dataset.");
+ if(SECTOR_HELP[s])return SECTOR_HELP[s];
+ if(SECTOR_HELP_EXTRA[s])return SECTOR_HELP_EXTRA[s];
+ const byStem=helpByPrefix(SECTOR_HELP_EXTRA,s)||helpByPrefix(SECTOR_HELP,s);
+ if(byStem)return byStem;
+ if(CNI_SECTORS.includes(s))return "Critical infrastructure sector.";
+ return "A sector label used by one source that did not map onto the shared groups. Treat it as that source's own wording rather than a standard category.";
 }
 /* Users opt individual types OUT. Anything new that appears later (the type list
    grows as more sources load) therefore arrives switched ON, rather than being
@@ -1427,8 +1498,12 @@ function update(){
  renderHisto();
  renderEscalation();
  updateSignificant(data);
- refreshOpenCharts();
- if(typeof renderContextualBenchmarks==="function")renderContextualBenchmarks();
+ // Deferred: chart work must not sit on the same frame as the timeline animation.
+ clearTimeout(window.__chartTick);
+ window.__chartTick=setTimeout(()=>{
+   refreshOpenCharts();
+   if(typeof renderContextualBenchmarks==="function")renderContextualBenchmarks();
+ },0);
  if(typeof updateBadges==="function")updateBadges();
  const cf=document.getElementById("frame-charts");
  if(cf&&!cf.classList.contains("hidden"))renderChartsMenu();
@@ -1473,7 +1548,7 @@ function computeHistoCounts(){
  for(let i=0;i<histoCounts.length;i++){run+=histoCounts[i];histoPrefix[i]=run}
  histoDirty=false;
 }
-function markHistoDirty(){_filterMemo.clear();histoDirty=true}
+function markHistoDirty(){_filterMemo.clear();histoDirty=true;chartsNeedFullRefresh=true}
 /* The bars are redrawn into a child container so the playhead element survives
    between renders. Recreating it every month was why it stepped instead of
    gliding: a brand-new element has nothing to transition from. */
@@ -1856,13 +1931,19 @@ function renderFlat(data){
      .ease(d3.easeLinear)
      .attr("stroke-dashoffset",function(){return -(this.__len)});
    // Once it lands, leave the route behind very faintly so the picture builds up
-   // over the month without competing with the missiles still in flight.
-   paths.transition("settle")
-     .delay((d,i)=>delayFor(i)+dur)
-     .duration(260)
-     .attr("stroke-dasharray",function(){return this.__len+" 0"})
-     .attr("stroke-dashoffset",0)
-     .attr("opacity",many?.12:.2);
+   // over the month. The dash pattern is swapped INSTANTLY at zero opacity and the
+   // faint line then fades in: animating the dash values instead made the trail
+   // appear to travel back towards its origin, because interpolating from a short
+   // dash to a full-length one grows the visible segment backwards from the head.
+   paths.transition("fly").on("end",function(){
+     const s=d3.select(this);
+     s.interrupt("settle")
+      .attr("stroke-dasharray",null)
+      .attr("stroke-dashoffset",null)
+      .attr("opacity",0)
+      .transition("settle").duration(320)
+      .attr("opacity",many?.12:.2);
+   });
    layer.selectAll("circle.flat-origin").data(data).join("circle").attr("class","flat-origin")
     .attr("cx",d=>flatProjection([d.startLng,d.startLat])[0]).attr("cy",d=>flatProjection([d.startLng,d.startLat])[1])
     .attr("r",4).on("click",(e,d)=>showDetail(d));
@@ -1950,8 +2031,14 @@ function sectorFromRow(r){
  const sub=firstPart(findField(r,[/receiver.*category.*subcode/i,/receiver.*subcode/i]));
  const cat=firstPart(findField(r,[/receiver.*category/i,/victim.*sector/i,/sector/i,/industry/i,/target.*category/i]));
  const look=s=>{
-   const k=String(s||"").trim().toLowerCase().replace(/\s*-\s*.*$/,"").trim();
-   if(!k||k==="not available")return "";
+   // "Civil service / administration;" and "Finance - Finance" both appear in the
+   // raw data; strip trailing separators and self-duplication before matching.
+   const k=String(s||"").trim()
+     .replace(/^(.*?)\s*[-\u2013]\s*\1$/i,"$1")
+     .replace(/\s*-\s*.*$/,"")
+     .replace(/[;,\s]+$/,"")
+     .toLowerCase().trim();
+   if(!k||/^(not available|n\/a|unknown|none|other|-)$/.test(k))return "";
    if(EUREPOC_SECTOR[k])return EUREPOC_SECTOR[k];
    for(const key in EUREPOC_SECTOR){if(k.indexOf(key)>=0)return EUREPOC_SECTOR[key]}
    return "";
@@ -1960,12 +2047,54 @@ function sectorFromRow(r){
  if(bySub)return bySub;
  const byCat=look(cat);
  if(byCat)return byCat;
- if(/critical infrastructure/i.test(cat||""))return "Other";   // no usable subcode
- return normText(cat)||"Other";
+ if(/critical infrastructure/i.test(cat||""))return "Critical infrastructure (unspecified)";
+ // EuRepoC concatenates every receiver's category, giving strings such as
+ // "Other - Other - Other - State institutions". Split on the joiners, discard the
+ // empty placeholders, and take the first fragment that actually says something.
+ const parts=String(cat||"").split(/\s*[-\u2013;|]\s*/).map(x=>x.trim()).filter(Boolean);
+ const meaningful=parts.filter(x=>!/^(not available|n\/a|unknown|none|other)$/i.test(x));
+ const pick=meaningful[0]||"";
+ if(!pick)return parts.length?"Other":"Not recorded";
+ const mapped=look(pick);
+ if(mapped)return mapped;
+ return pick.length>38?pick.slice(0,36)+"\u2026":pick;
+}
+/* Sources describe what happened in their own vocabulary, and several use compound
+   labels: EuRepoC records things like "Data theft; Hijacking with Misuse; Ransomware".
+   Taken literally that produces dozens of near-duplicate filter entries that nobody
+   can use. Each label is therefore mapped to one canonical type, highest consequence
+   first, so "…; Ransomware" files under Ransomware rather than under its own row. */
+const TYPE_RULES=[
+ [/\bics\b|scada|industrial control|\bot\b(?!her)/i,"Industrial control system attack"],
+ [/ransomware|extortion/i,"Ransomware"],
+ [/wiper|destructive|sabotage/i,"Destructive attack"],
+ [/disruption|denial of service|ddos|outage/i,"Disruption"],
+ [/data theft.*doxing|doxing/i,"Data theft and leaking"],
+ [/data theft|exfiltrat|breach|data disclosure/i,"Data theft"],
+ [/espionage|spying|surveillance/i,"Espionage"],
+ [/hijacking with misuse/i,"System hijacking (used)"],
+ [/hijacking without misuse/i,"System hijacking (not used)"],
+ [/defac/i,"Defacement"],
+ [/phish|social engineer/i,"Phishing and social engineering"],
+ [/supply.?chain|third.?party/i,"Supply chain compromise"],
+ [/fraud|financial/i,"Fraud"],
+ [/exercise|test|simulat|drill/i,"Exercise or test"],
+ [/vulnerab|exploit/i,"Vulnerability exploitation"],
+ [/insider|misuse/i,"Insider misuse"],
+ [/malware|trojan|backdoor/i,"Malware"]
+];
+function canonicalType(v){
+ const raw=normText(v);
+ if(!raw||/^(not available|n\/a|unknown|other|none|-)$/i.test(raw))return "";
+ for(const [re,label] of TYPE_RULES)if(re.test(raw))return label;
+ // tidy an unmapped label rather than passing through duplicated or trailing junk
+ const one=splitMulti(raw)[0]||raw;
+ const dedup=one.replace(/^(.*?)\s*[-\u2013]\s*\1$/i,"$1").replace(/[;,\s]+$/,"").trim();
+ return dedup.length>44?dedup.slice(0,42)+"\u2026":dedup;
 }
 function typeFromRow(r){
- const v=firstPart(findField(r,[/type.*incident/i,/incident.*type/i,/operation.*type/i,/cyber.*means/i,/technique/i,/action/i]));
- return v||"Cyber incident";
+ const v=findField(r,[/type.*incident/i,/incident.*type/i,/operation.*type/i,/cyber.*means/i,/technique/i,/action/i]);
+ return canonicalType(v)||"Not categorised";
 }
 function parseDateValue(v){
  const t=normText(v); if(!t)return null;
@@ -2282,6 +2411,10 @@ function canonNames(){
 function normaliseAttackCountries(list){
  (list||[]).forEach(a=>{
    if(!a)return;
+   // Types are canonicalised here rather than per-source, so the curated layer's
+   // "Botnet DDoS" and VCDB's "malware: Ransomware" land in the same buckets as
+   // everything else instead of each occupying their own filter row.
+   if(a.type){const t=canonicalType(a.type);if(t)a.type=t;}
    const v=canonicalCountry(a.victimCountry);
    if(v)a.victimCountry=v;
    const o=canonicalCountry(a.originCountry);
@@ -2868,12 +3001,14 @@ function openFrame(name){
  positionFrame(f); bringToFront(f);
  const b=tbBtn(name); if(b)b.classList.add("on");
  f.querySelector(".frameBody").scrollTop=0;
+ if(typeof refreshCloseAll==="function")refreshCloseAll();
  if(name==="search"){const li=document.getElementById("lookupInput");li.focus();runLookup(li.value)}
 }
 function closeFrame(name){
  const f=frameEl(name); if(!f)return;
  f.classList.add("hidden");
  const b=tbBtn(name); if(b)b.classList.remove("on");
+ if(typeof refreshCloseAll==="function")refreshCloseAll();
 }
 function toggleFrame(name){
  const f=frameEl(name); if(!f)return;
@@ -2898,6 +3033,13 @@ function registerFrame(f){
  dragBy(f,f.querySelector(".frameHead"),()=>{bringToFront(f);f.dataset.placed="1"});
 }
 document.querySelectorAll(".frame").forEach(registerFrame);
+/* The attack drawer sits outside the frames container but should behave like the
+   rest of the windows: draggable by its header, resizable from the corner and
+   maximisable. It keeps its own close-button id, which existing code relies on. */
+(function(){
+ const d=document.getElementById("attackDrawer");
+ if(d)registerFrame(d);
+})();
 /* Frames can be resized from the bottom-right corner in both directions. Charts
    re-render at the new pixel width rather than being scaled, so text stays crisp
    and never stretches. */
@@ -3018,6 +3160,27 @@ function dragBy(el,handle,onStart,onMove){
 })();
 const tbGrip=document.getElementById("tbGrip");
 let gripMoved=false;
+/* Appears only when there is something to close, so it never sits there as dead
+   weight on a small screen. */
+const tbCloseAll=document.getElementById("tbCloseAll");
+function openFrameCount(){return document.querySelectorAll(".frame:not(.hidden)").length}
+function refreshCloseAll(){
+ if(!tbCloseAll)return;
+ const n=openFrameCount();
+ tbCloseAll.classList.toggle("hidden",n<2);
+ const lbl=tbCloseAll.querySelector(".tbLabel");
+ if(lbl)lbl.textContent=`Close all (${n})`;
+ tbCloseAll.title=`Close all ${n} open windows`;
+}
+tbCloseAll.addEventListener("click",()=>{
+ document.querySelectorAll(".frame:not(.hidden)").forEach(f=>{
+   f.classList.add("hidden");
+   const b=tbBtn(f.id.replace("frame-",""));
+   if(b)b.classList.remove("on");
+ });
+ renderChartsMenu();
+ refreshCloseAll();
+});
 dragBy(toolbar,tbGrip,null,()=>{gripMoved=true});
 placeHeatLegend();
 tbGrip.addEventListener("click",()=>{
@@ -3547,6 +3710,7 @@ function topOnly(id){return CHART_TOPONLY[id]!==false}   // collapsed by default
 function chartMode(id){return CHART_MODE[id]||"live"}
 function setChartMode(id,mode){
  CHART_MODE[id]=mode;
+ chartsNeedFullRefresh=true;
  delete CHART_LAST_RANK[id];         // movement arrows are meaningless across a switch
  renderChartFrame(id);
 }
@@ -3606,7 +3770,7 @@ function leagueTable(id,key,opts){
     ${opts.note?`<p class="chartNote" style="margin-top:8px">${opts.note}</p>`:""}`;
 }
 const CHART_DEFS=[
- {id:"incidents",title:"Documented incidents / month",group:"filtered",
+ {id:"incidents",title:"Documented incidents / month",group:"filtered",live:false,
   blurb:"How many attacks per month match your filters.",
   ok:()=>true,
   build:W=>{
@@ -3708,7 +3872,7 @@ const CHART_DEFS=[
     return `<div class="covLegend">${legend}</div><div class="coverage">${rows}</div>
       <p class="chartNote"><b>Read this before reading any severity trend.</b> Only the curated layer and EuRepoC ever assign <i>Critical</i> (the EuRepoC provisional layer, if loaded, is their live TableView data and is not fully expert-reviewed); VCDB caps at High, and Ransomware.live entries are Medium unless widely reported. Those two Critical-capable sources supplied just <b>${pct}%</b> of incidents in ${recent[0]}\u2013${lastY}, because expert-coded datasets lag reality by a year or more. A fall in Critical and High over recent years therefore reflects <b>who has finished coding</b>, not a safer world.</p>`;
   }},
- {id:"kev",title:"Known-exploited vulnerabilities added / month",group:"reference",
+ {id:"kev",title:"Known-exploited vulnerabilities added / month",group:"reference",live:true,
   blurb:"Flaws attackers were seen using, over time.",
   ok:()=>!!kevMonthly(),
   build:W=>{
@@ -3725,7 +3889,32 @@ const CHART_DEFS=[
     if(!LAKE.ics.length)return "";
     const byYear={};LAKE.ics.forEach(a=>{if(a.year)byYear[a.year]=(byYear[a.year]||0)+1});
     const yrs=Object.keys(byYear).map(Number).sort((a,b)=>a-b);
-    return svgHBars(yrs.slice(-16).map(y=>[String(y),byYear[y]]),{color:"#4ee6a5"})+
+    const now=fromIdx(endTimelineIndex);
+    const thisYear=now.year, monthsSoFar=now.month;
+    // Straight-line projection: this year's rate so far, carried to December. It is
+    // deliberately naive - no seasonality, no trend - because a more elaborate model
+    // would imply a confidence the data does not support.
+    let proj=null;
+    if(byYear[thisYear]&&monthsSoFar>=2&&monthsSoFar<12){
+      const rate=byYear[thisYear]/monthsSoFar;
+      proj={sofar:byYear[thisYear],rate,est:Math.round(rate*12),
+            add:Math.round(rate*12)-byYear[thisYear],months:monthsSoFar};
+    }
+    const rows=yrs.slice(-16).map(y=>[String(y),byYear[y]]);
+    let bars=svgHBars(rows,{color:"#4ee6a5"});
+    if(proj){
+      // show the projected total as a separate, clearly-marked bar
+      const max=Math.max(...rows.map(r=>r[1]),proj.est);
+      bars+=`<div class="league" style="margin-top:4px">
+        <div class="lgRow projRow">
+          <span class="lgRank">\u2192</span>
+          <span class="lgName">${thisYear} projected full year</span>
+          <span class="lgVal">${proj.est.toLocaleString()}</span>
+          <i style="width:${(proj.est/max*100).toFixed(1)}%;background:repeating-linear-gradient(45deg,#4ee6a5,#4ee6a5 4px,transparent 4px,transparent 8px)"></i>
+        </div></div>`;
+    }
+    return bars+
+      (proj?`<p class="chartNote projNote"><b>Projection, not a forecast.</b> ${proj.sofar.toLocaleString()} advisories in the first ${proj.months} month${proj.months===1?"":"s"} of ${thisYear} is a rate of about ${proj.rate.toFixed(0)} a month, which would give roughly <b>${proj.est.toLocaleString()}</b> for the full year &mdash; about ${proj.add.toLocaleString()} more. This simply carries the current rate forward. It assumes the rest of the year looks like the start of it, which it may well not: CISA publishing is uneven, advisories arrive in batches, and a single vendor disclosure can move the total sharply. Treat it as an order of magnitude, nothing finer.</p>`:"")+
       `<p class="chartNote">${LAKE.ics.length.toLocaleString()} advisories about vulnerabilities in industrial control equipment. Source: ICS Advisory Project (ODbL v1.0), from CISA advisories.</p>`;
   }},
  {id:"icssector",title:"Industrial control advisories by sector",group:"reference",
@@ -3788,11 +3977,26 @@ function renderChartFrame(id){
    renderChartFrame(target);
  }));
 }
-function refreshOpenCharts(){
+/* Most charts do not move when the timeline does. Redrawing all of them on every
+   tick cost tens of milliseconds and, worse, blocked the animation frame driving
+   the timeline marker - which is what made the bar appear to stall. A tick now
+   redraws only the charts whose content genuinely depends on where the timeline
+   sits; everything else waits for a filter or data change. */
+function chartIsLive(d){
+ if(d.live===true)return true;
+ if(d.live===false)return false;
+ // ranking tables move with the timeline only while in "as it happens" mode
+ return d.group==="filtered"&&chartMode(d.id)!=="period";
+}
+let chartsNeedFullRefresh=true;
+function refreshOpenCharts(scope){
+ const full=(scope==="all")||chartsNeedFullRefresh;
  CHART_DEFS.forEach(d=>{
    const f=chartFrame(d.id);
-   if(f&&!f.classList.contains("hidden"))renderChartFrame(d.id);
+   if(!f||f.classList.contains("hidden"))return;
+   if(full||chartIsLive(d))renderChartFrame(d.id);
  });
+ if(full)chartsNeedFullRefresh=false;
 }
 function openChartFrame(id){
  const def=chartDef(id); if(!def)return;
