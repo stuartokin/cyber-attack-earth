@@ -72,6 +72,7 @@
     .splashBars{display:grid;gap:7px;margin-bottom:8px}
     .splashRow{display:grid;grid-template-columns:96px 1fr 34px;gap:8px;align-items:center;font-size:10.5px;color:#7f95b4}
     .splashRow i{font-style:normal;text-align:right;color:#a8bcd6;font-variant-numeric:tabular-nums}
+    .splashVer{font-size:9.5px;color:#5f7a9c;margin-top:3px;letter-spacing:.04em}
     .splashJoke{margin-top:10px;min-height:2.6em;font-size:11.5px;line-height:1.5;color:#8fa6c4;
       border-top:1px solid #1e3350;padding-top:9px;transition:opacity .4s}
     .splashJoke.fade{opacity:0}
@@ -753,6 +754,7 @@
         <div class="splashRow"><span>Map &amp; index</span><div class="splashBarWrap"><div id="bar3"></div></div><i id="bar3n">&mdash;</i></div>
       </div>
       <div class="splashStatus" id="splashStatus">Loading the data pack&hellip;</div>
+      <div class="splashVer" id="splashVer"></div>
       <div class="splashJoke" id="splashJoke"></div>
       <button id="splashMute" class="splashMute" type="button" aria-pressed="false" title="Mute or unmute the loading music">&#128266; Music</button>
       <div class="btnrow" style="margin-top:12px">
@@ -850,7 +852,7 @@ window.__LITE=/[?&]lite=1/.test(location.search);
  document.body.appendChild(overlay);
  function diagText(){
   const ds=document.getElementById("dataStatus");
-  return ["=== Cyber Attack Earth v32 diagnostics ===",
+  return ["=== Cyber Attack Earth "+APP_VERSION+" diagnostics ===",
    "UA: "+navigator.userAgent,
    "Screen: "+screen.width+"x"+screen.height+" dpr "+devicePixelRatio,
    "URL: "+location.href,
@@ -1284,6 +1286,10 @@ function pauseSpin(resumeAfter){
 ["mousedown","wheel","touchstart"].forEach(ev=>
   globeEl.addEventListener(ev,()=>pauseSpin(true),{passive:true}));
 
+/* Stamped so a diagnostics paste always says which build produced it. The old
+   label was hardcoded and stuck at v32 for twenty releases, which made it
+   impossible to tell whether a reported fault was already fixed. */
+const APP_VERSION="v53";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -1892,8 +1898,10 @@ function renderHisto(){
      n0++;sx+=i;sy+=y;sxy+=i*y;sxx+=i*i;
    }
    const denom=(n0*sxx-sx*sx)||1;
-   const slope=(n0*sxy-sx*sy)/denom, intercept=(sy-slope*sx)/n0;
-   const at=i=>Math.max(0,intercept+slope*i);
+   let slope=(n0*sxy-sx*sy)/denom, intercept=n0?(sy-slope*sx)/n0:0;
+   if(!isFinite(slope))slope=0;
+   if(!isFinite(intercept))intercept=0;
+   const at=i=>{const v=intercept+slope*i;return isFinite(v)?Math.max(0,v):0};
    let d="";
    for(let k=0;k<n;k++){
      const i=viewStartIdx+k;
@@ -1921,7 +1929,8 @@ function renderHisto(){
    }
    for(let k=0;k<n;k++){
      const i=viewStartIdx+k;
-     const tx=(k*bw+bw/2).toFixed(1), ty=((H-12)-(roll[i]/max)*(H-13)).toFixed(1);
+     const rv=roll[i]||0;   // the window may run past today; roll[] does not
+     const tx=(k*bw+bw/2).toFixed(1), ty=((H-12)-(rv/max)*(H-13)).toFixed(1);
      trend+=(k?"L":"M")+tx+","+ty;
    }
    // projection: carry the recent 6-month slope forward to December of the final year
@@ -1956,7 +1965,8 @@ function renderHisto(){
      let d="";
      for(let k=0;k<n;k++){
        const i=viewStartIdx+k;
-       const ox=(k*bw+bw/2).toFixed(1), oy=((H-12)-(series[i]/omax)*(H-13)).toFixed(1);
+       const sv=series[i]||0;
+       const ox=(k*bw+bw/2).toFixed(1), oy=((H-12)-(sv/omax)*(H-13)).toFixed(1);
        d+=(k?"L":"M")+ox+","+oy;
      }
      overlay=`<path d="${d}" fill="none" stroke="#ffd24d" stroke-width="1.3" opacity=".9" stroke-dasharray="3 2"/>`;
@@ -1964,6 +1974,10 @@ function renderHisto(){
      overlayLabel=`<text x="${W-6}" y="19" text-anchor="end" fill="#ffd24d" font-size="8">${ovName} (relative scale)</text>`;
    }
  }
+ // A single NaN makes the browser reject the entire path, so drop any that slipped through.
+ const safePath=d=>(d&&d.indexOf("NaN")<0&&d.indexOf("Infinity")<0)?d:"";
+ trend=safePath(trend); projection=safePath(projection);
+ longPath=safePath(longPath); longProj=safePath(longProj); overlay=safePath(overlay);
  histoSvgHost().innerHTML=`<svg width="${W}" height="${H}" aria-hidden="true">
   <defs><linearGradient id="hgrad" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ff9d3c"/><stop offset="1" stop-color="#ff4d66"/></linearGradient></defs>
   ${bars}${ticks}
@@ -3676,11 +3690,27 @@ function splashMusic(){
 }
 function splashMusicStop(){
  clearInterval(SPLASH.musicTimer);
+ SPLASH.musicTimer=null;
+ // AudioContext.close() returns a PROMISE, and that promise REJECTS if the context
+ // has already been closed. A synchronous try/catch never sees it, so the rejection
+ // surfaced as an unhandled error. Muting and then dismissing the splash closed it
+ // twice, which is exactly the sequence that produced it.
+ const ctx=SPLASH.audio, master=SPLASH.master;
+ SPLASH.audio=null;
+ SPLASH.master=null;
+ if(!ctx)return;
  try{
-   if(SPLASH.master&&SPLASH.audio){
-     SPLASH.master.gain.exponentialRampToValueAtTime(0.0001,SPLASH.audio.currentTime+0.8);
-     setTimeout(()=>{try{SPLASH.audio.close()}catch(e){}},1000);
+   if(ctx.state==="closed")return;
+   if(master&&ctx.currentTime!=null){
+     try{ master.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.7) }catch(e){}
    }
+   setTimeout(()=>{
+     try{
+       if(ctx.state==="closed")return;
+       const pr=ctx.close();
+       if(pr&&typeof pr.catch==="function")pr.catch(()=>{});   // swallow the rejection
+     }catch(e){}
+   },900);
  }catch(e){}
 }
 function splashReady(){
@@ -3696,6 +3726,8 @@ function splashReady(){
  splashBar(2,100,LAKE.manifest?((LAKE.manifest.sources||[]).filter(s=>s.status==="ok").length+" src"):"\u2014");
  splashBar(3,100,"\u2713");
  document.getElementById("splashStatus").textContent="Ready.";
+ const v=document.getElementById("splashVer");
+ if(v)v.textContent=APP_VERSION+(LAKE.manifest&&LAKE.manifest.builder?"  \u00b7  data pack "+LAKE.manifest.builder+", built "+String(LAKE.manifest.generated).slice(0,10):"  \u00b7  no data pack");
  const go=document.getElementById("splashGo");
  const n=attacks.length;
  document.getElementById("splashCount").textContent=n.toLocaleString();
