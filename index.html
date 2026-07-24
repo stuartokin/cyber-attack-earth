@@ -45,8 +45,10 @@
     #narrProgress{height:100%;width:0;background:var(--accent);transition:width .4s linear}
     #narrCaption{font-size:clamp(14px,1.5vw,19px);line-height:1.55;color:#eaf2ff;max-width:1100px;
       text-shadow:0 2px 12px rgba(0,0,0,.85)}
-    body.narrating #toolbar,body.narrating #escToggle{opacity:.25;transition:opacity .3s}
+    body.narrating #toolbar,body.narrating #escToggle{opacity:.82;transition:opacity .3s}
     body.narrating #toolbar:hover{opacity:1}
+    /* The tour talks about the tool bar, so it must be clearly visible while it does. */
+    body.narrating.demoing #toolbar{opacity:1}
     body.narrFull #timeline .timelineBottom,body.narrFull .histoHead{display:none}
     body.narrFull #timeline{padding:7px 16px 6px}
     body.narrFull #escalation{opacity:.85}
@@ -76,9 +78,6 @@
     .splashJoke{margin-top:10px;min-height:2.6em;font-size:11.5px;line-height:1.5;color:#8fa6c4;
       border-top:1px solid #1e3350;padding-top:9px;transition:opacity .4s}
     .splashJoke.fade{opacity:0}
-    .splashMute{position:absolute;top:14px;right:16px;font-size:10.5px;padding:5px 9px;
-      background:rgba(10,22,38,.85);border:1px solid #2c4666;border-radius:8px;color:#7f95b4}
-    .splashMute:hover{color:var(--accent);border-color:var(--accent)}
     .splashCard{position:relative}
     .splashBarWrap{height:4px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden;margin-bottom:6px}
     /* The three bars are #bar1..#bar3; the old single #splashBar id was left behind
@@ -160,7 +159,9 @@
       .tbBtn{padding:9px 10px}
       .tbIco{font-size:17px}
     }
+    #stars{position:absolute;inset:0;width:100%;height:100%;z-index:0;display:block;background:#000005}
     #globe,#flatMap{position:absolute;inset:0}
+    #globe{z-index:1}
     #flatMap{display:none;padding:12px}
     #flatMap svg{width:100%;height:100%;display:block}
     .country{fill:#10213b;stroke:#38506f;stroke-width:.35}
@@ -713,6 +714,7 @@
   <input id="search" type="text" class="hidden" />
 
   <main id="stage">
+    <canvas id="stars"></canvas>
     <div id="globe"></div>
     <div id="flatMap" aria-label="Flat world map"></div>
     <button id="impactLabel" class="impact-label hidden" type="button"></button>
@@ -756,7 +758,6 @@
       <div class="splashStatus" id="splashStatus">Loading the data pack&hellip;</div>
       <div class="splashVer" id="splashVer"></div>
       <div class="splashJoke" id="splashJoke"></div>
-      <button id="splashMute" class="splashMute" type="button" aria-pressed="false" title="Mute or unmute the loading music">&#128266; Music</button>
       <div class="btnrow" style="margin-top:12px">
         <button id="splashGo" class="primary" type="button" disabled>Loading&hellip;</button>
         <button id="splashTour" type="button">Show me how it works</button>
@@ -1243,8 +1244,51 @@ function homeView(){
  }catch(e){ return {lat:30,lng:0} }
 }
 const HOME=homeView();
+/* A field of stars behind the globe, so it reads as Earth seen from space. Pure
+   canvas, no assets: a few hundred points with a slow twinkle. */
+(function starfield(){
+ const cv=document.getElementById("stars");
+ if(!cv)return;
+ const ctx=cv.getContext("2d");
+ let stars=[],w=0,h=0,dpr=Math.min(2,window.devicePixelRatio||1);
+ function build(){
+   w=cv.clientWidth||cv.parentNode.clientWidth||window.innerWidth;
+   h=cv.clientHeight||cv.parentNode.clientHeight||window.innerHeight;
+   cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
+   ctx.setTransform(dpr,0,0,dpr,0,0);
+   const n=Math.round(Math.min(520,Math.max(160,w*h/5200)));
+   stars=[];
+   for(let i=0;i<n;i++){
+     stars.push({x:Math.random()*w,y:Math.random()*h,
+       r:Math.random()*Math.random()*1.5+0.2,
+       base:0.25+Math.random()*0.6,
+       tw:Math.random()*Math.PI*2,
+       sp:0.6+Math.random()*1.4,
+       warm:Math.random()<0.15});
+   }
+ }
+ function draw(t){
+   ctx.clearRect(0,0,w,h);
+   ctx.fillStyle="#000005"; ctx.fillRect(0,0,w,h);
+   for(const s of stars){
+     const a=s.base*(0.55+0.45*Math.sin(s.tw+t*0.001*s.sp));
+     ctx.globalAlpha=Math.max(0,Math.min(1,a));
+     ctx.fillStyle=s.warm?"#ffe9c8":"#eaf2ff";
+     ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,6.283); ctx.fill();
+     if(s.r>1.1){
+       ctx.globalAlpha=a*0.25;
+       ctx.beginPath(); ctx.arc(s.x,s.y,s.r*2.6,0,6.283); ctx.fill();
+     }
+   }
+   ctx.globalAlpha=1;
+   requestAnimationFrame(draw);
+ }
+ build();
+ requestAnimationFrame(draw);
+ let rz; window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(build,200)},{passive:true});
+})();
 const globe = window.globe = Globe()(globeEl)
-  .backgroundColor("rgba(0,0,0,0)")
+  .backgroundColor("#000005")
   .globeImageUrl("https://cdn.jsdelivr.net/npm/three-globe@2.44.0/example/img/earth-night.jpg")
   .bumpImageUrl("https://cdn.jsdelivr.net/npm/three-globe@2.44.0/example/img/earth-topology.png")
   .showAtmosphere(true).atmosphereColor("#3f9dff").atmosphereAltitude(.18)
@@ -1289,7 +1333,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v53";
+const APP_VERSION="v54";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -1304,8 +1348,10 @@ const defaultTimelineIndex=Math.max(0,endTimelineIndex-DEFAULT_WINDOW_MONTHS+1);
    itself must open at the present: opening it five years back, with "build up over
    time" off, meant the map and every live chart showed a single month from 2021 -
    a couple of hundred records out of tens of thousands, which reads as missing data. */
-let timelineIndex=endTimelineIndex,
-    year=startYear+Math.floor(timelineIndex/12), month=(timelineIndex%12)+1,
+/* Opens at the start of the record so a first-time viewer sees the whole story build
+   from 2000, rather than landing at the present with two decades already behind them. */
+let timelineIndex=0,          /* start of 2000; the range picker confirms it at startup */
+    year=startYear, month=1,
     timer=null, mapMode="sphere", selectedAttack=null;
 /* Countries the user has picked in Controls (empty = whole world). Declared here
    because the filter helpers run during the initial control build. */
@@ -2110,15 +2156,36 @@ function heatCounts(){
    finally dark red. Counts are very skewed - a handful of countries dominate - so
    the scale is logarithmic, otherwise everywhere but the top few stays pale. */
 const HEAT_RAMP=["#fffdf0","#fff3b0","#ffe066","#ffc03d","#ff9433","#ff5f3c","#e01b24","#a4161a","#6a040f"];
-function heatColor(n,max){
+/* Rank, not raw magnitude. The United States is so far ahead that any magnitude
+   scale - linear or log - paints it red almost from the first year and leaves
+   everyone else pale. Colour is assigned by where a country sits in the ORDER of
+   all currently-shaded countries, so the ramp always spans the full field and the
+   picture is about relative concentration rather than one runaway total. */
+let _heatRank={sig:"",map:null};
+function heatColor(n,max,counts){
  if(!n||!heatToggle||!heatToggle.checked)return "#10213b";
- const t=Math.log(1+n)/Math.log(1+Math.max(1.0001,max));
+ const src=counts||_lastHeatCounts||{};
+ const sig=Object.keys(src).length+":"+max;
+ if(_heatRank.sig!==sig){
+   const vals=Object.values(src).filter(v=>v>0).sort((a,b)=>a-b);
+   _heatRank={sig,vals};
+ }
+ const vals=_heatRank.vals||[];
+ if(!vals.length)return HEAT_RAMP[0];
+ // percentile of this count within the field, with a gentle floor so the very
+ // smallest still register above bare land
+ let lo=0,hi=vals.length;
+ while(lo<hi){const mid=(lo+hi)>>1; if(vals[mid]<n)lo=mid+1; else hi=mid;}
+ const pct=vals.length>1?lo/(vals.length-1):1;
+ const t=0.12+0.88*pct;
  return d3.interpolateRgbBasis(HEAT_RAMP)(Math.max(0,Math.min(1,t)));
 }
+let _lastHeatCounts=null;
 function applySphereHeat(){
  if(!window.globe||!countriesGeo||!countriesGeo.features)return;
  const counts=heatCounts(),max=Math.max(1,...Object.values(counts));
- window.globe.polygonCapColor(f=>{if(!heatToggle||!heatToggle.checked)return "rgba(16,33,59,.72)";const id=String(f.id??f.properties?.iso_n3??"").padStart(3,"0"),n=counts[id]||0;if(!n)return "rgba(16,33,59,.72)";const c=d3.color(heatColor(n,max));return c?`rgba(${c.r},${c.g},${c.b},.88)`:"rgba(16,33,59,.72)"}).polygonSideColor(()=>"rgba(8,18,34,.20)").polygonStrokeColor(()=>"rgba(110,160,210,.22)");
+ _lastHeatCounts=counts;
+ window.globe.polygonCapColor(f=>{if(!heatToggle||!heatToggle.checked)return "rgba(16,33,59,.72)";const id=String(f.id??f.properties?.iso_n3??"").padStart(3,"0"),n=counts[id]||0;if(!n)return "rgba(16,33,59,.72)";const c=d3.color(heatColor(n,max,counts));return c?`rgba(${c.r},${c.g},${c.b},.88)`:"rgba(16,33,59,.72)"}).polygonSideColor(()=>"rgba(8,18,34,.20)").polygonStrokeColor(()=>"rgba(110,160,210,.22)");
 }
 /* `data` is everything currently visible - it drives the shading, the victim and
    origin markers and the aggregated views. `arcData` is the smaller recent slice
@@ -2173,8 +2240,8 @@ function flatReset(animate){
 function renderFlat(data,arcData){
  if(!flatZoomLayer||typeof flatProjection!=="function") return;
  if(!arcData)arcData=data;
- const hits=heatCounts(); const mx=Math.max(1,...Object.values(hits));
- flatZoomLayer.selectAll(".country").style("fill",d=>heatColor(hits[String(d.id).padStart(3,"0")]||0,mx));
+ const hits=heatCounts(); const mx=Math.max(1,...Object.values(hits)); _lastHeatCounts=hits;
+ flatZoomLayer.selectAll(".country").style("fill",d=>heatColor(hits[String(d.id).padStart(3,"0")]||0,mx,hits));
  flatZoomLayer.selectAll(".flat-attack-layer").remove();
  const layer=flatZoomLayer.append("g").attr("class","flat-attack-layer");
  const mode=viewMode.value;
@@ -3593,7 +3660,7 @@ function refreshCloseAll(){
    Explains what this is and what it is not, credits the sources, offers a lighter
    load for a modest device, and shows real progress while the pack downloads. The
    globe orients itself behind it, so the wait is doing something useful. */
-const SPLASH={done:false,bars:{1:0,2:0,3:0},muted:false,audio:null,startedAt:Date.now()};
+const SPLASH={done:false,bars:{1:0,2:0,3:0},startedAt:Date.now()};
 /* Three bars rather than one, so a slow source is visibly slow rather than making
    the whole thing look stuck. */
 function splashBar(n,pct,count){
@@ -3651,68 +3718,6 @@ function splashJokes(){
 /* A short ambient phrase, generated rather than downloaded: this is a single file
    with no assets, and shipping an audio track would break that. Quiet, slow, and
    muted with one tap. */
-function splashMusic(){
- try{
-   const AC=window.AudioContext||window.webkitAudioContext;
-   if(!AC)return;
-   if(SPLASH.audio){
-     // already built - it was probably just suspended before a gesture
-     if(SPLASH.audio.state==="suspended"&&SPLASH.audio.resume)SPLASH.audio.resume().then(splashMuteLabel);
-     if(SPLASH.musicTimer)return;
-   }
-   const ctx=SPLASH.audio&&SPLASH.audio.state!=="closed"?SPLASH.audio:new AC();
-   if(ctx.state==="suspended"&&ctx.resume)ctx.resume().then(()=>{try{splashMuteLabel()}catch(e){}});
-   SPLASH.audio=ctx;
-   const master=ctx.createGain();
-   master.gain.value=0.0001;
-   master.connect(ctx.destination);
-   master.gain.exponentialRampToValueAtTime(0.055,ctx.currentTime+2.5);
-   SPLASH.master=master;
-   const chords=[[110,164.81,220],[98,146.83,196],[123.47,185,246.94],[87.31,130.81,174.61]];
-   let ci=0;
-   const play=()=>{
-     if(!SPLASH.audio||SPLASH.audio.state==="closed")return;
-     const t=ctx.currentTime, ch=chords[ci++%chords.length];
-     ch.forEach((f,i)=>{
-       const o=ctx.createOscillator(), g=ctx.createGain();
-       o.type=i===0?"sine":"triangle";
-       o.frequency.value=f;
-       g.gain.setValueAtTime(0.0001,t);
-       g.gain.exponentialRampToValueAtTime(0.16/(i+1.4),t+1.4);
-       g.gain.exponentialRampToValueAtTime(0.0001,t+4.6);
-       o.connect(g); g.connect(master);
-       o.start(t); o.stop(t+4.8);
-     });
-   };
-   play();
-   SPLASH.musicTimer=setInterval(play,4200);
- }catch(e){}
-}
-function splashMusicStop(){
- clearInterval(SPLASH.musicTimer);
- SPLASH.musicTimer=null;
- // AudioContext.close() returns a PROMISE, and that promise REJECTS if the context
- // has already been closed. A synchronous try/catch never sees it, so the rejection
- // surfaced as an unhandled error. Muting and then dismissing the splash closed it
- // twice, which is exactly the sequence that produced it.
- const ctx=SPLASH.audio, master=SPLASH.master;
- SPLASH.audio=null;
- SPLASH.master=null;
- if(!ctx)return;
- try{
-   if(ctx.state==="closed")return;
-   if(master&&ctx.currentTime!=null){
-     try{ master.gain.exponentialRampToValueAtTime(0.0001,ctx.currentTime+0.7) }catch(e){}
-   }
-   setTimeout(()=>{
-     try{
-       if(ctx.state==="closed")return;
-       const pr=ctx.close();
-       if(pr&&typeof pr.catch==="function")pr.catch(()=>{});   // swallow the rejection
-     }catch(e){}
-   },900);
- }catch(e){}
-}
 function splashReady(){
  if(SPLASH.done)return;
  // A cached pack loads in a few hundred milliseconds, which flashes the bars from
@@ -3744,7 +3749,6 @@ function splashDismiss(then){
  const s=document.getElementById("splash");
  if(!s)return;
  clearInterval(SPLASH.jokeTimer);
- splashMusicStop();
  // honour the lighter-load choice before revealing the map
  if(document.getElementById("splashLite").checked){
    window.__perfCap=380;
@@ -3756,35 +3760,6 @@ function splashDismiss(then){
  s.classList.add("gone");
  setTimeout(()=>{s.remove();update();if(then)then()},600);
 }
-function splashMuteLabel(){
- const b=document.getElementById("splashMute");
- if(!b)return;
- if(SPLASH.muted){b.innerHTML="&#128263; Music off";return}
- const blocked=!SPLASH.audio||SPLASH.audio.state!=="running";
- b.innerHTML=blocked?"&#128266; Tap for sound":"&#128266; Music on";
-}
-document.getElementById("splashMute").addEventListener("click",()=>{
- // If audio was simply blocked, the first press should start it rather than mute it.
- const blocked=!SPLASH.audio||SPLASH.audio.state!=="running";
- if(blocked&&!SPLASH.muted){ splashMusic(); splashMuteLabel(); return }
- SPLASH.muted=!SPLASH.muted;
- document.getElementById("splashMute").setAttribute("aria-pressed",String(SPLASH.muted));
- if(SPLASH.muted)splashMusicStop(); else splashMusic();
- splashMuteLabel();
-});
-splashJokes();
-// Try immediately - some contexts permit it - and otherwise start on the first
-// gesture of any kind, including the button itself.
-splashMusic();
-splashMuteLabel();
-["pointerdown","pointermove","keydown","touchstart"].forEach(ev=>{
- const once=()=>{
-   ["pointerdown","pointermove","keydown","touchstart"].forEach(e2=>window.removeEventListener(e2,once));
-   if(!SPLASH.muted)splashMusic();
-   splashMuteLabel();
- };
- window.addEventListener(ev,once,{passive:true});
-});
 document.getElementById("splashGo").addEventListener("click",()=>splashDismiss());
 document.getElementById("splashTour").addEventListener("click",()=>splashDismiss(()=>narrStart("demo")));
 // a gentle orbit while they read, so the wait is not a blank screen
@@ -3928,11 +3903,14 @@ function buildRangePickers(){
  }
  // Open on the same window the timeline starts in, so the chart is legible from
  // the first frame rather than showing 26 hair-thin years.
- s.value=String(fromIdx(defaultTimelineIndex).year);
+ // Full history by default, so the whole story is available from the first frame.
+ s.value=String(startYear);
  e.value=String(lastYear);
  viewStartIdx=Math.max(0,idx(+s.value,1));
  viewEndIdx=idx(+e.value,12);
  yearSlider.min=String(viewStartIdx); yearSlider.max=String(playEnd());
+ timelineIndex=viewStartIdx;                 // open at the beginning of the range
+ year=fromIdx(timelineIndex).year; month=fromIdx(timelineIndex).month;
  const apply=()=>{
    let a=+s.value,b=+e.value;
    if(a>b){ if(this===s)b=a; else a=b; s.value=String(a); e.value=String(b); }
@@ -4560,7 +4538,7 @@ const NARR_SCRIPTS={
   ]}
 };
 
-const NARR={running:false,mode:null,step:0,timer:null,muted:false,script:null,startedAt:0,seq:0};
+const NARR={running:false,mode:null,step:0,timer:null,muted:false,script:null,startedAt:0,seq:0,speaking:false};
 
 /* The voice, not a stopwatch, decides when to move on. Previously a step advanced
    after a fixed dwell while the voice ran at its own speed, so caption and audio
@@ -4712,17 +4690,20 @@ function narrGo(i){
  const scheduleAfterSpeech=()=>{
    const elapsed=performance.now()-startedAt;
    const wait=Math.max(700,minMs-elapsed);
-   NARR.timer=setTimeout(advance,wait);
+   NARR.timer=setTimeout(()=>{ if(!NARR.speaking)advance(); else NARR.timer=setTimeout(advance,900) },wait);
  };
  const seq=++NARR.seq;
+ NARR.speaking=true;
  narrSpeak(s.say.replace(/<[^>]+>/g," "),spoke=>{
-   if(seq!==NARR.seq)return;               // a later step already took over
+   if(seq!==NARR.seq)return;
+   NARR.speaking=false;
    if(!NARR.running)return;
    if(spoke)scheduleAfterSpeech();
    else NARR.timer=setTimeout(advance,Math.max(900,(s.dwell||6)*1000-(performance.now()-startedAt)));
  });
 }
 function narrStart(mode){
+ document.body.classList.toggle("demoing",mode==="demo");
  // The globe keeps its gentle spin during a presentation; focus steps pause it
  // only for the length of the camera move.
  try{ globe.controls().autoRotate=true }catch(e){}
@@ -4736,6 +4717,7 @@ function narrStart(mode){
  narrGo(0);
 }
 function narrStop(){
+ document.body.classList.remove("demoing");
  try{ globe.controls().autoRotate=true }catch(e){}
  if(typeof flatReset==="function")flatReset(true);      // never leave the map parked off-screen
  document.querySelectorAll(".narrFlash").forEach(x=>x.classList.remove("narrFlash"));
