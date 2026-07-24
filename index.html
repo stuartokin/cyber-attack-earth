@@ -69,8 +69,24 @@
     .splashAttrib{font-size:10.5px;line-height:1.5;color:#7f95b4;margin-bottom:12px}
     .splashAttrib a{color:var(--accent)}
     .splashLight{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;color:#c9d8ec;margin-bottom:12px}
+    .splashBars{display:grid;gap:7px;margin-bottom:8px}
+    .splashRow{display:grid;grid-template-columns:96px 1fr 34px;gap:8px;align-items:center;font-size:10.5px;color:#7f95b4}
+    .splashRow i{font-style:normal;text-align:right;color:#a8bcd6;font-variant-numeric:tabular-nums}
+    .splashJoke{margin-top:10px;min-height:2.6em;font-size:11.5px;line-height:1.5;color:#8fa6c4;
+      border-top:1px solid #1e3350;padding-top:9px;transition:opacity .4s}
+    .splashJoke.fade{opacity:0}
+    .splashMute{position:absolute;top:14px;right:16px;font-size:10.5px;padding:5px 9px;
+      background:rgba(10,22,38,.85);border:1px solid #2c4666;border-radius:8px;color:#7f95b4}
+    .splashMute:hover{color:var(--accent);border-color:var(--accent)}
+    .splashCard{position:relative}
     .splashBarWrap{height:4px;background:rgba(255,255,255,.12);border-radius:3px;overflow:hidden;margin-bottom:6px}
-    #splashBar{height:100%;width:0;background:linear-gradient(90deg,var(--accent),#4ee6a5);transition:width .35s ease}
+    /* The three bars are #bar1..#bar3; the old single #splashBar id was left behind
+       in the stylesheet, so the new ones had no height or colour and were invisible. */
+    #splashBar,#bar1,#bar2,#bar3{height:100%;width:0;border-radius:3px;
+      background:linear-gradient(90deg,var(--accent),#4ee6a5);
+      transition:width .5s cubic-bezier(.3,.9,.3,1)}
+    #bar2{background:linear-gradient(90deg,#8f9dff,var(--accent))}
+    #bar3{background:linear-gradient(90deg,#ffd24d,#4ee6a5)}
     .splashStatus{font-size:10.5px;color:#7f95b4;min-height:1.3em}
     @media(max-width:620px){.splashCard{padding:16px}.splashGrid b{font-size:16px}}
     .tbHealth{gap:6px}
@@ -110,6 +126,16 @@
     #toolbar.min .tbGrip{border-color:var(--accent);color:var(--accent)}
     .frameBody{overflow:auto;padding:13px 15px}
     .frame.front{z-index:86}
+    @keyframes frameAttention{
+      0%{box-shadow:0 22px 60px rgba(0,0,0,.55),0 0 0 0 rgba(77,216,255,.9);border-color:var(--accent)}
+      55%{box-shadow:0 22px 60px rgba(0,0,0,.55),0 0 0 12px rgba(77,216,255,0);border-color:var(--accent)}
+      100%{box-shadow:0 22px 60px rgba(0,0,0,.55),0 0 0 0 rgba(77,216,255,0)}
+    }
+    .frame.justOpened{animation:frameAttention 1.3s ease-out}
+    .frame.justOpened .frameHead{background:rgba(20,48,74,.95)}
+    @keyframes narrPoint{0%,100%{outline-color:rgba(77,216,255,0)}25%,75%{outline-color:rgba(77,216,255,.95)}}
+    .narrFlash{outline:2px solid rgba(77,216,255,0);outline-offset:3px;border-radius:12px;
+      animation:narrPoint 1.25s ease-in-out 2}
     /* ── Minimise states ──────────────────────────────────────────────────── */
     .tlIconBtn{background:transparent;border:1px solid #2c4666;color:var(--muted);
       border-radius:8px;padding:5px 8px;font-size:13px;line-height:1;min-width:30px}
@@ -721,8 +747,14 @@
       <p class="splashNote">It records what was <i>disclosed</i>, which is a small and uneven fraction of what happened. Growth over time reflects both real escalation and much better recording. The Help window explains the limitations before you quote anything from it.</p>
       <div class="splashAttrib" id="splashAttrib"></div>
       <label class="splashLight"><input id="splashLite" type="checkbox"> Reduce the load &mdash; fewer missiles and lighter filters, for an older or smaller device</label>
-      <div class="splashBarWrap"><div id="splashBar"></div></div>
+      <div class="splashBars">
+        <div class="splashRow"><span>Incidents</span><div class="splashBarWrap"><div id="bar1"></div></div><i id="bar1n">&mdash;</i></div>
+        <div class="splashRow"><span>Reference data</span><div class="splashBarWrap"><div id="bar2"></div></div><i id="bar2n">&mdash;</i></div>
+        <div class="splashRow"><span>Map &amp; index</span><div class="splashBarWrap"><div id="bar3"></div></div><i id="bar3n">&mdash;</i></div>
+      </div>
       <div class="splashStatus" id="splashStatus">Loading the data pack&hellip;</div>
+      <div class="splashJoke" id="splashJoke"></div>
+      <button id="splashMute" class="splashMute" type="button" aria-pressed="false" title="Mute or unmute the loading music">&#128266; Music</button>
       <div class="btnrow" style="margin-top:12px">
         <button id="splashGo" class="primary" type="button" disabled>Loading&hellip;</button>
         <button id="splashTour" type="button">Show me how it works</button>
@@ -743,6 +775,7 @@
       <button id="narrNext" type="button" title="Next step">&#9654;</button>
       <span id="narrTitle"></span>
       <span id="narrStepNo" class="small"></span>
+      <button id="narrScript" type="button" title="Download this script as text">&#8681; Script</button>
       <button id="narrMute2" type="button" title="Mute or unmute the voice">&#128266;</button>
       <button id="narrExit" type="button" title="Exit (Esc)">&#10006;</button>
     </div>
@@ -1471,6 +1504,7 @@ async function initFlatMap(){
   flatZoomLayer.append("g").selectAll("path").data(countries.features).join("path").attr("class","country").attr("data-id",d=>String(d.id).padStart(3,"0")).attr("d",flatPath);
   flatZoom=d3.zoom().scaleExtent([1,8]).on("zoom",e=>flatZoomLayer.attr("transform",e.transform));
   flatSvg.call(flatZoom);
+  flatSvg.on("dblclick.reset",()=>flatReset(true));      // double-click to get back
   renderFlat(filtered());
 }
 function refreshFilterOptions(){
@@ -2078,20 +2112,49 @@ function applySphereHeat(){
    by the same 98% as its arcs, which made a fully loaded dataset look empty. */
 /* Pan and zoom the flat map to a point, matching the globe's focus behaviour so a
    narration reads the same in either view. */
-function flatFocus(lat,lng,scale){
+/* Focus the flat map on a point.
+
+   This previously had a way of losing the map entirely. If it ran before the SVG
+   had been laid out - which happens when a narration step switches to the flat map
+   and focuses in the same breath - clientWidth and clientHeight were zero, the
+   fallback dimensions did not match the real projection, and the resulting
+   transform pushed everything off-screen with no visible way back. It now waits
+   for a real size, clamps the result so some of the map always remains in view,
+   and there is always a way home. */
+let flatFocusPending=null;
+function flatFocus(lat,lng,scale,attempt){
  if(!flatSvg||!flatZoom||typeof flatProjection!=="function")return;
  try{
-   const p=flatProjection([lng,lat]); if(!p)return;
-   const w=flatSvg.node().clientWidth||flatSvg.node().parentNode.clientWidth||960;
-   const h=flatSvg.node().clientHeight||540;
-   const k=scale||2.2;
-   const t=d3.zoomIdentity.translate(w/2-k*p[0],h/2-k*p[1]).scale(k);
-   flatSvg.transition().duration(1600).call(flatZoom.transform,t);
- }catch(e){}
+   const node=flatSvg.node();
+   const w=node.clientWidth||node.getBoundingClientRect().width||0;
+   const h=node.clientHeight||node.getBoundingClientRect().height||0;
+   if(w<40||h<40){
+     // not laid out yet - try again shortly, but do not loop for ever
+     if((attempt||0)<20){
+       clearTimeout(flatFocusPending);
+       flatFocusPending=setTimeout(()=>flatFocus(lat,lng,scale,(attempt||0)+1),120);
+     }
+     return;
+   }
+   const p=flatProjection([lng,lat]);
+   if(!p||!isFinite(p[0])||!isFinite(p[1]))return;
+   const k=Math.max(1,Math.min(8,scale||2.2));
+   let tx=w/2-k*p[0], ty=h/2-k*p[1];
+   // keep at least a third of the map on screen in each direction
+   tx=Math.max(-(k*w)+w/3,Math.min(w-w/3,tx));
+   ty=Math.max(-(k*h)+h/3,Math.min(h-h/3,ty));
+   if(!isFinite(tx)||!isFinite(ty))return;
+   flatSvg.transition().duration(1600).call(flatZoom.transform,
+     d3.zoomIdentity.translate(tx,ty).scale(k));
+ }catch(e){ console.warn("[flat] focus failed",e) }
 }
-function flatReset(){
+function flatReset(animate){
+ clearTimeout(flatFocusPending);
  if(!flatSvg||!flatZoom)return;
- try{ flatSvg.transition().duration(1400).call(flatZoom.transform,d3.zoomIdentity) }catch(e){}
+ try{
+   if(animate===false)flatSvg.call(flatZoom.transform,d3.zoomIdentity);
+   else flatSvg.transition().duration(900).call(flatZoom.transform,d3.zoomIdentity);
+ }catch(e){}
 }
 function renderFlat(data,arcData){
  if(!flatZoomLayer||typeof flatProjection!=="function") return;
@@ -2508,7 +2571,8 @@ async function loadEnrichmentLayers(){
   fetch("https://cdn.jsdelivr.net/gh/cisagov/kev-data@develop/known_exploited_vulnerabilities.json").then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{enrichmentCounts.kev=(j.vulnerabilities||[]).length}).catch(err=>{console.warn("KEV enrichment unavailable",err)}),
   fetch(RWLIVE_API+"/groups").then(r=>r.ok?r.json():Promise.reject(r.status)).then(gs=>{enrichmentCounts.rwGroups=ingestRwGroups(gs)}).catch(err=>{console.warn("Ransomware.live groups unavailable",err)})
  ];
- if(typeof splashProgress==="function")splashProgress(88,"Merging and de-duplicating…");
+ if(typeof splashBar==="function"){splashBar(1,100,attacks.length);splashBar(2,100);splashBar(3,55)}
+ document.getElementById("splashStatus").textContent="Merging and de-duplicating…";
  await Promise.allSettled(jobs); renderSourceMenu();
  if(typeof dataHealth==="function")dataHealth();
  if(typeof splashReady==="function")splashReady();
@@ -3048,9 +3112,11 @@ async function loadLake(){
  }));
  const rf=(T.reports&&T.reports.files)||{};
  if(rf.vendor)jobs.push(grabJSON(base+rf.vendor.file).then(r=>{if(Array.isArray(r))LAKE.reports=r}));
- if(typeof splashProgress==="function")splashProgress(35,"Downloading incident tables…");
+ if(typeof splashBar==="function"){splashBar(1,45);splashBar(2,20)}
+ document.getElementById("splashStatus").textContent="Downloading incident tables…";
  await Promise.all(jobs);
- if(typeof splashProgress==="function")splashProgress(72,"Reading "+(Object.keys(T).length)+" tables…");
+ if(typeof splashBar==="function"){splashBar(1,92);splashBar(2,85)}
+ document.getElementById("splashStatus").textContent="Read "+(Object.keys(T).length)+" tables…";
  return out;
 }
 async function loadDataPack(){
@@ -3077,7 +3143,8 @@ async function loadDataPack(){
 let packRwl=null,packRwlLastIdx=-1;
 async function loadResearchDataset(){
  dataStatus.textContent="Checking for same-origin data lake…";
- if(typeof splashProgress==="function")splashProgress(12,"Looking for the data pack…");
+ if(typeof splashBar==="function"){splashBar(1,8);splashBar(2,4);splashBar(3,2)}
+ if(typeof splashProgress==="function")document.getElementById("splashStatus").textContent="Looking for the data pack…";
  const sources=[]; const failures=[]; let packUsed=[];
  const pack=(await loadLake())||(await loadDataPack());
  if(pack.lake)packUsed.push("lake v"+LAKE.manifest.schema);
@@ -3130,6 +3197,7 @@ async function loadResearchDataset(){
 }
 
 function setMapMode(mode){
+ if(mode==="flat"&&typeof flatReset==="function")setTimeout(()=>flatReset(false),60);
  mapMode=mode;
  const sphere=mode==="sphere";
  globeEl.style.display=sphere?"block":"none";
@@ -3224,16 +3292,38 @@ function fitFrame(f){
    f.style.maxHeight=room+"px";
  }
 }
+/* Place a newly opened window. On a wide screen, tile into the free space beside
+   whatever is already open rather than cascading everything down from the tool bar:
+   with several windows up, a cascade buries each behind the last. */
 function positionFrame(f){
  if(f.dataset.placed){fitFrame(f);return}
  const tb=toolbar.getBoundingClientRect();
- const step=26*(frameSeq++%5);
- let left=window.innerWidth>900?tb.left+step:tb.left;
- let top=tb.bottom+10+step;
- const w=f.offsetWidth||340;
- left=Math.max(4,Math.min(window.innerWidth-w-4,left));
- top=Math.max(4,Math.min(Math.max(4,safeBottom()-160),top));
- f.style.left=left+"px";f.style.top=top+"px";
+ const w=f.offsetWidth||360, h=f.offsetHeight||320;
+ const gap=12;
+ const left0=Math.max(4,tb.left), top0=Math.max(4,tb.bottom+10);
+ const maxX=window.innerWidth-w-4, maxY=Math.max(4,safeBottom()-140);
+ let left=left0, top=top0;
+ if(window.innerWidth>900){
+   const open=[...document.querySelectorAll(".frame:not(.hidden)")].filter(x=>x!==f);
+   const taken=open.map(x=>x.getBoundingClientRect());
+   const overlaps=(x,y)=>taken.some(r=>!(x+w+gap<=r.left||x>=r.right+gap||y+h+gap<=r.top||y>=r.bottom+gap));
+   let found=false;
+   // sweep columns, then rows, for the first free slot
+   for(let y=top0;y<=maxY&&!found;y+=Math.max(120,Math.round(h*0.5))){
+     for(let x=left0;x<=maxX&&!found;x+=w+gap){
+       if(!overlaps(x,y)){left=x;top=y;found=true}
+     }
+   }
+   if(!found){                       // genuinely full: fall back to a small cascade
+     const step=24*(frameSeq++%6);
+     left=Math.min(maxX,left0+step); top=Math.min(maxY,top0+step);
+   }
+ }else{
+   const step=22*(frameSeq++%5);
+   left=Math.min(maxX,left0); top=Math.min(maxY,top0+step);
+ }
+ f.style.left=Math.max(4,Math.min(maxX,left))+"px";
+ f.style.top=Math.max(4,Math.min(maxY,top))+"px";
  f.dataset.placed="1";
  fitFrame(f);
 }
@@ -3251,8 +3341,16 @@ function openFrame(name){
    console.warn("[frame] refusing to open empty frame:",name);
    return;
  }
+ const wasHidden=f.classList.contains("hidden");
  f.classList.remove("hidden");
  positionFrame(f); bringToFront(f);
+ // A brief highlight, so a window opening behind the map is noticed rather than missed.
+ if(wasHidden){
+   f.classList.remove("justOpened");
+   void f.offsetWidth;
+   f.classList.add("justOpened");
+   setTimeout(()=>f.classList.remove("justOpened"),1400);
+ }
  const b=tbBtn(name); if(b)b.classList.add("on");
  f.querySelector(".frameBody").scrollTop=0;
  if(typeof refreshCloseAll==="function")refreshCloseAll();
@@ -3375,7 +3473,13 @@ function dragBy(el,handle,onStart,onMove){
  const down=e=>{
    if(e.target.closest("button,input,select,a"))return;
    dragging=true;
-   if(el.id==="narrOverlay")el.classList.add("moved");
+   if(el.id==="narrOverlay"){
+     // It is positioned from the bottom and centred by a transform. Both must go,
+     // or setting `top` fights `bottom` and the panel stretches rather than moves.
+     el.classList.add("moved");
+     el.style.bottom="auto";
+     el.style.transform="none";
+   }
    const p=e.touches?e.touches[0]:e;
    const r=el.getBoundingClientRect();
    el.style.left=r.left+"px";el.style.top=r.top+"px";el.style.right="auto";
@@ -3475,17 +3579,123 @@ function refreshCloseAll(){
    Explains what this is and what it is not, credits the sources, offers a lighter
    load for a modest device, and shows real progress while the pack downloads. The
    globe orients itself behind it, so the wait is doing something useful. */
-const SPLASH={done:false,pct:0};
+const SPLASH={done:false,bars:{1:0,2:0,3:0},muted:false,audio:null,startedAt:Date.now()};
+/* Three bars rather than one, so a slow source is visibly slow rather than making
+   the whole thing look stuck. */
+function splashBar(n,pct,count){
+ SPLASH.bars[n]=Math.max(SPLASH.bars[n]||0,Math.min(100,pct));
+ const el=document.getElementById("bar"+n);
+ if(el)el.style.width=SPLASH.bars[n]+"%";
+ const lab=document.getElementById("bar"+n+"n");
+ if(lab&&count!=null)lab.textContent=typeof count==="number"?count.toLocaleString():count;
+ else if(lab&&SPLASH.bars[n]>=100)lab.textContent="\u2713";
+}
 function splashProgress(pct,label){
- SPLASH.pct=Math.max(SPLASH.pct,pct);
- const bar=document.getElementById("splashBar"), st=document.getElementById("splashStatus");
- if(bar)bar.style.width=SPLASH.pct+"%";
+ // keep the old single-bar calls working, spread across the three
+ splashBar(1,Math.min(100,pct*1.6));
+ splashBar(2,Math.min(100,Math.max(0,(pct-30)*1.8)));
+ splashBar(3,Math.min(100,Math.max(0,(pct-60)*2.5)));
+ const st=document.getElementById("splashStatus");
  if(st&&label)st.textContent=label;
+}
+
+/* Jokes, because a loading screen is a captive audience and the subject matter is
+   otherwise unremittingly grim. */
+const SPLASH_JOKES=[
+ "There are two kinds of organisation: those that have been breached, and those that have been breached and have not noticed.",
+ "The most sophisticated attack in this dataset still began with somebody clicking something.",
+ "Every incident here was disclosed. Which makes this, strictly speaking, a map of honesty.",
+ "Attribution is the art of being confident in public about something you inferred in private.",
+ "Ransomware groups are the only threat actors with a marketing department and a press office.",
+ "The S in IoT stands for security.",
+ "A zero-day is a vulnerability nobody knew about, except the people who did.",
+ "Somewhere in this data is an organisation that budgeted for cyber security next quarter.",
+ "Defenders have to be right every time. Attackers have to be right once. Auditors have to be right retrospectively.",
+ "This map shows two decades of attacks. Your password is probably older than some of them.",
+ "Nation-state actors: like ordinary criminals, but with a pension.",
+ "The average dwell time in this data is long enough to have grown a beard about it.",
+ "Nothing focuses the mind on backups quite like discovering you do not have any.",
+ "Critical infrastructure was named by people who hoped the adjective would be enough."
+];
+function splashJokes(){
+ const el=document.getElementById("splashJoke");
+ if(!el)return;
+ const order=SPLASH_JOKES.map((t,i)=>i).sort(()=>Math.random()-0.5);
+ let n=0;
+ const show=()=>{
+   if(!document.getElementById("splashJoke"))return;
+   el.classList.add("fade");
+   setTimeout(()=>{
+     el.textContent=SPLASH_JOKES[order[n++%order.length]];
+     el.classList.remove("fade");
+   },380);
+ };
+ el.textContent=SPLASH_JOKES[order[n++]];
+ SPLASH.jokeTimer=setInterval(show,5200);
+}
+
+/* A short ambient phrase, generated rather than downloaded: this is a single file
+   with no assets, and shipping an audio track would break that. Quiet, slow, and
+   muted with one tap. */
+function splashMusic(){
+ try{
+   const AC=window.AudioContext||window.webkitAudioContext;
+   if(!AC)return;
+   if(SPLASH.audio){
+     // already built - it was probably just suspended before a gesture
+     if(SPLASH.audio.state==="suspended"&&SPLASH.audio.resume)SPLASH.audio.resume().then(splashMuteLabel);
+     if(SPLASH.musicTimer)return;
+   }
+   const ctx=SPLASH.audio&&SPLASH.audio.state!=="closed"?SPLASH.audio:new AC();
+   if(ctx.state==="suspended"&&ctx.resume)ctx.resume().then(()=>{try{splashMuteLabel()}catch(e){}});
+   SPLASH.audio=ctx;
+   const master=ctx.createGain();
+   master.gain.value=0.0001;
+   master.connect(ctx.destination);
+   master.gain.exponentialRampToValueAtTime(0.055,ctx.currentTime+2.5);
+   SPLASH.master=master;
+   const chords=[[110,164.81,220],[98,146.83,196],[123.47,185,246.94],[87.31,130.81,174.61]];
+   let ci=0;
+   const play=()=>{
+     if(!SPLASH.audio||SPLASH.audio.state==="closed")return;
+     const t=ctx.currentTime, ch=chords[ci++%chords.length];
+     ch.forEach((f,i)=>{
+       const o=ctx.createOscillator(), g=ctx.createGain();
+       o.type=i===0?"sine":"triangle";
+       o.frequency.value=f;
+       g.gain.setValueAtTime(0.0001,t);
+       g.gain.exponentialRampToValueAtTime(0.16/(i+1.4),t+1.4);
+       g.gain.exponentialRampToValueAtTime(0.0001,t+4.6);
+       o.connect(g); g.connect(master);
+       o.start(t); o.stop(t+4.8);
+     });
+   };
+   play();
+   SPLASH.musicTimer=setInterval(play,4200);
+ }catch(e){}
+}
+function splashMusicStop(){
+ clearInterval(SPLASH.musicTimer);
+ try{
+   if(SPLASH.master&&SPLASH.audio){
+     SPLASH.master.gain.exponentialRampToValueAtTime(0.0001,SPLASH.audio.currentTime+0.8);
+     setTimeout(()=>{try{SPLASH.audio.close()}catch(e){}},1000);
+   }
+ }catch(e){}
 }
 function splashReady(){
  if(SPLASH.done)return;
+ // A cached pack loads in a few hundred milliseconds, which flashes the bars from
+ // nothing to full and reads as "there is no progress bar". Hold briefly so the
+ // fill is actually visible, and so the globe has time to grow into place.
+ const since=Date.now()-(SPLASH.startedAt||Date.now());
+ const MIN=2600;
+ if(since<MIN){ setTimeout(splashReady,MIN-since); return }
  SPLASH.done=true;
- splashProgress(100,"Ready.");
+ splashBar(1,100,attacks.length);
+ splashBar(2,100,LAKE.manifest?((LAKE.manifest.sources||[]).filter(s=>s.status==="ok").length+" src"):"\u2014");
+ splashBar(3,100,"\u2713");
+ document.getElementById("splashStatus").textContent="Ready.";
  const go=document.getElementById("splashGo");
  const n=attacks.length;
  document.getElementById("splashCount").textContent=n.toLocaleString();
@@ -3501,6 +3711,8 @@ function splashReady(){
 function splashDismiss(then){
  const s=document.getElementById("splash");
  if(!s)return;
+ clearInterval(SPLASH.jokeTimer);
+ splashMusicStop();
  // honour the lighter-load choice before revealing the map
  if(document.getElementById("splashLite").checked){
    window.__perfCap=380;
@@ -3512,15 +3724,59 @@ function splashDismiss(then){
  s.classList.add("gone");
  setTimeout(()=>{s.remove();update();if(then)then()},600);
 }
+function splashMuteLabel(){
+ const b=document.getElementById("splashMute");
+ if(!b)return;
+ if(SPLASH.muted){b.innerHTML="&#128263; Music off";return}
+ const blocked=!SPLASH.audio||SPLASH.audio.state!=="running";
+ b.innerHTML=blocked?"&#128266; Tap for sound":"&#128266; Music on";
+}
+document.getElementById("splashMute").addEventListener("click",()=>{
+ // If audio was simply blocked, the first press should start it rather than mute it.
+ const blocked=!SPLASH.audio||SPLASH.audio.state!=="running";
+ if(blocked&&!SPLASH.muted){ splashMusic(); splashMuteLabel(); return }
+ SPLASH.muted=!SPLASH.muted;
+ document.getElementById("splashMute").setAttribute("aria-pressed",String(SPLASH.muted));
+ if(SPLASH.muted)splashMusicStop(); else splashMusic();
+ splashMuteLabel();
+});
+splashJokes();
+// Try immediately - some contexts permit it - and otherwise start on the first
+// gesture of any kind, including the button itself.
+splashMusic();
+splashMuteLabel();
+["pointerdown","pointermove","keydown","touchstart"].forEach(ev=>{
+ const once=()=>{
+   ["pointerdown","pointermove","keydown","touchstart"].forEach(e2=>window.removeEventListener(e2,once));
+   if(!SPLASH.muted)splashMusic();
+   splashMuteLabel();
+ };
+ window.addEventListener(ev,once,{passive:true});
+});
 document.getElementById("splashGo").addEventListener("click",()=>splashDismiss());
 document.getElementById("splashTour").addEventListener("click",()=>splashDismiss(()=>narrStart("demo")));
 // a gentle orbit while they read, so the wait is not a blank screen
 (function(){
+ // Grow the globe into position first, then dim it a little as the card arrives -
+ // so the world is still visible behind the words rather than replaced by them.
+ const card=document.querySelector(".splashCard");
+ const shell=document.getElementById("splash");
+ if(card){card.style.opacity="0";card.style.transform="translateY(14px) scale(.985)";}
+ if(shell)shell.style.background="radial-gradient(ellipse at 50% 45%,rgba(12,26,48,.35),rgba(3,7,15,.6))";
  try{
-   globe.pointOfView({lat:HOME.lat,lng:HOME.lng,altitude:3.1},0);
-   setTimeout(()=>{ if(!SPLASH.done||document.getElementById("splash"))
-     globe.pointOfView({lat:HOME.lat,lng:HOME.lng,altitude:2.05},2600) },400);
+   globe.pointOfView({lat:HOME.lat,lng:HOME.lng,altitude:5.4},0);
+   setTimeout(()=>globe.pointOfView({lat:HOME.lat,lng:HOME.lng,altitude:2.35},2400),120);
  }catch(e){}
+ setTimeout(()=>{
+   if(shell){
+     shell.style.transition="background 1.1s ease";
+     shell.style.background="radial-gradient(ellipse at 50% 40%,rgba(12,26,48,.86),rgba(3,7,15,.94))";
+   }
+   if(card){
+     card.style.transition="opacity .8s ease, transform .8s cubic-bezier(.2,.8,.2,1)";
+     card.style.opacity="1";card.style.transform="none";
+   }
+ },1500);
 })();
 // never strand anyone behind the screen if a source hangs
 setTimeout(()=>{splashProgress(100);splashReady()},20000);
@@ -3796,6 +4052,17 @@ document.getElementById("narrPlayPause").addEventListener("click",narrToggle);
 document.getElementById("narrPrev").addEventListener("click",()=>{NARR.seq++;clearTimeout(NARR.timer);narrStopSpeech();narrGo(NARR.step-1)});
 document.getElementById("narrNext").addEventListener("click",()=>{NARR.seq++;clearTimeout(NARR.timer);narrStopSpeech();narrGo(NARR.step+1)});
 document.getElementById("narrExit").addEventListener("click",narrStop);
+document.getElementById("narrScript").addEventListener("click",()=>{
+ const s=NARR.script||NARR_SCRIPTS.presentation;
+ const blob=new Blob([narrScriptText()],{type:"text/plain;charset=utf-8"});
+ const a=document.createElement("a");
+ a.href=URL.createObjectURL(blob);
+ a.download="cyber-attack-earth-"+s.title.toLowerCase().replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"")+"-script.txt";
+ document.body.appendChild(a);a.click();
+ setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},2000);
+ const btn=document.getElementById("narrScript");
+ btn.textContent="\u2713 Saved"; setTimeout(()=>{btn.innerHTML="&#8681; Script"},1800);
+});
 function narrSetMuted(m){
  NARR.muted=!!m;
  document.getElementById("narrMute").checked=NARR.muted;
@@ -4164,22 +4431,22 @@ const NARR_SCRIPTS={
     do:{month:[2021,5],play:true,speed:500,severity:["Critical","High","Medium"],arcWindow:3,focus:{lat:37,lng:-90},altitude:1.7},
     say:"From twenty twenty the picture thickens. Ransomware becomes an industry, with brands, affiliates and leak sites. Colonial Pipeline halts fuel to the American east coast. Almost all of this new volume is criminal, financially motivated, and published by the attackers themselves."},
    {title:"Who is actually being hit",dwell:12,
-    do:{play:false,month:[2026,7],chart:"targets"},
+    do:{play:false,month:[2026,7],closeAll:true,chart:"targets",flash:"#frame-chart-targets"},
     say:"Rank the victims and the table is led by the United States and the United Kingdom. Read carefully. That is substantially a statement about breach notification law and research attention, not about where risk is greatest."},
    {title:"The same table, adjusted for population",dwell:12,
-    do:{chart:"percapita"},
+    do:{closeAll:true,chart:"percapita",flash:"#frame-chart-percapita"},
     say:"Adjust for population and the order changes. Neither ranking is the truth. One is distorted by country size, the other by who is required to report. Holding both in view at once is the honest position."},
    {title:"Critical infrastructure",dwell:12,
     do:{closeAll:true,sectors:["Energy","Utilities","Water","Transport","Government","Healthcare","Telecoms","Manufacturing"],map:"flat",arcWindow:6,focus:"Poland"},
     say:"Filtered to critical infrastructure, and shown flat. These are the sectors where an outage is not an inconvenience but a public safety matter. In twenty twenty five a group tracked as Electrum attacked Polish energy infrastructure, in what Dragos called the first major coordinated operation against distributed energy resources at scale."},
    {title:"Attribution is thinner than it looks",dwell:13,
-    do:{map:"sphere",sectors:"all",chart:"dyads",wide:true},
+    do:{map:"sphere",sectors:"all",closeAll:true,chart:"dyads",wide:true,flash:"#frame-chart-dyads"},
     say:"Now the uncomfortable part. Most attacks on this map have no named origin at all. Where a country is shown as a source it usually reflects an indictment, sanctions or a public accusation, rather than a verified launch point. The structure you can see is drawn from the minority where somebody was willing to point a finger."},
    {title:"And the record itself is late",dwell:13,
-    do:{chart:"lag"},
+    do:{closeAll:true,chart:"lag",flash:"#frame-chart-lag"},
     say:"We can measure the delay rather than assume it. Ransomware crews publish within weeks, because publishing is the point. Expert-coded records enter the database quickly too. But the fully reviewed release still ends in December twenty twenty four, and most recent records are still being coded. The lag is in review, not in recording."},
    {title:"What that means for the trend",dwell:12,
-    do:{chart:"coverage"},
+    do:{closeAll:true,chart:"coverage",flash:"#frame-chart-coverage"},
     say:"Which produces a trap. Only some sources ever assign the highest severity, and those sources are the ones still catching up. So severe incidents appear to fall away in the last two years. That is an artefact of who has finished coding. It is not a safer world."},
    {title:"The question worth asking",dwell:12,
     do:{closeAll:true,map:"sphere",month:[2026,7],cumulative:true,arcWindow:3,sectors:"all",wide:true},
@@ -4192,46 +4459,46 @@ const NARR_SCRIPTS={
   fullscreen:false, loop:false,
   steps:[
    {title:"The tool bar",dwell:9,
-    do:{reset:true,closeAll:true,play:false},
+    do:{reset:true,closeAll:true,play:false,flash:"#toolbar"},
     say:"Everything opens from the tool bar. Drag the six dots to move it, or click them to fold it away. Every window it opens can be moved by its title, resized from the bottom-right corner, or maximised."},
    {title:"The globe",dwell:9,
-    do:{map:"sphere"},
+    do:{map:"sphere",wide:true,flash:"#globe"},
     say:"The globe turns on its own and stops as soon as you touch it, resuming after a pause. Drag to spin, scroll to zoom, and click any missile to open its details."},
    {title:"Controls, and the filters",dwell:11,
-    do:{frame:"controls"},
+    do:{frame:"controls",open:["sector"],flash:"#frame-controls"},
     say:"Controls holds the filters in collapsible sections: severity, sector, attack type and countries. Hover any option to see what it covers. Reset everything, at the top, returns the map to how it started."},
    {title:"Missile trails",dwell:10,
-    do:{cumulative:true,arcWindow:1,month:[2024,6]},
+    do:{cumulative:true,arcWindow:1,month:[2024,6],open:["display"],flash:"#arcWindow"},
     say:"Missile trails decides how much flight path stays on screen. On this month only, the map is clear. Widen it and you see more at once, at the cost of hiding the globe underneath. The counter and the charts always use every attack regardless."},
    {title:"The timeline",dwell:10,
-    do:{arcWindow:3,play:true,speed:1000},
+    do:{arcWindow:12,play:true,speed:1000,closeAll:true,flash:"#timeline"},
     say:"The timeline runs along the bottom. Play advances a month at a time, and clicking any bar jumps straight there. The green line is a twelve-month average, and the trend menu can switch it to a long-run fit across the whole record."},
    {title:"Narrowing the years",dwell:10,
-    do:{play:false,years:[2022,2026],month:[2026,7]},
+    do:{play:false,years:[2022,2026],month:[2026,7],flash:"#rangeStart"},
     say:"Narrow the year range and the columns widen, which makes individual months readable and easier to tap. Everything follows the filter: the map, the counter and every open chart."},
    {title:"Charts open in their own windows",dwell:11,
-    do:{frame:"charts",chart:"sectors"},
+    do:{frame:"charts",chart:"sectors",flash:"#frame-chart-sectors"},
     say:"Charts opens a gallery of fifteen. Pick one and it opens in its own window, so you can put several side by side and compare them. Each can be resized, and the text redraws rather than stretching."},
    {title:"League tables that move",dwell:11,
-    do:{chart:"targets",play:true,speed:500},
+    do:{closeAll:true,chart:"targets",chartMode:{targets:"live"},play:true,speed:500,flash:"#frame-chart-targets"},
     say:"The ranking tables can run live as the timeline plays, with arrows showing who is climbing and falling, or you can switch them to the finished standings for the whole selected period. Collapse them to the top ten or show every entry."},
    {title:"Studying a pair of countries",dwell:11,
-    do:{play:false,closeAll:true,frame:"controls",countries:["Russia","Ukraine"],countryMode:"between",month:[2026,7]},
+    do:{play:false,closeAll:true,frame:"controls",open:["countries"],countries:["Russia","Ukraine"],countryMode:"between",month:[2026,7],flash:"#countryChecks"},
     say:"Pick two or more countries and choose how to relate them: only attacks between them, any attack involving them, or one direction only. There are shortcuts for whole regions. The shading follows your selection too."},
    {title:"Threat groups",dwell:11,
-    do:{countries:[],chart:"groups"},
+    do:{countries:[],closeAll:true,chart:"groups",flash:"#frame-chart-groups"},
     say:"The threat group chart keeps two tables apart. Attributed groups, named by expert coding, and leak-site claims, which are the attacker's own branding. They are never added together, because the second always outnumbers the first."},
    {title:"Search",dwell:9,
-    do:{closeAll:true,frame:"search"},
+    do:{closeAll:true,frame:"search",search:"lockbit",flash:"#frame-search"},
     say:"Search finds a specific attack, a threat group or a country. Choosing a result opens its details with the sources behind it. Threat groups open a card you can page through."},
    {title:"Checking the map against others",dwell:11,
-    do:{closeAll:true,frame:"bench"},
+    do:{closeAll:true,frame:"bench",flash:"#frame-bench"},
     say:"Compare tests this map against published findings from ENISA, Verizon, Dragos and EuRepoC, and says where it agrees and where it differs. Cards marked same data come from EuRepoC's own analysis of the database this map uses, so a disagreement there would mean a fault in this tool."},
    {title:"Help, and the limitations",dwell:11,
-    do:{closeAll:true,frame:"help"},
+    do:{closeAll:true,frame:"help",open:["severity"],flash:"#frame-help"},
     say:"Help explains the sources, how healthy each one is, the licences, and the limitations. Read the limitations before quoting anything from here. The severity caveat in particular changes how the recent years should be read."},
    {title:"Tidying up",dwell:9,
-    do:{frame:"charts"},
+    do:{frame:"charts",chart:"incidents",flash:"#tbCloseAll"},
     say:"When several windows are open, Close all appears in the tool bar with a count. Reset everything in Controls puts every setting back to first load. And the Present button holds this tour, a full presentation, and a sixty second loop for an unattended screen."}
   ]},
 
@@ -4342,11 +4609,45 @@ function narrApply(d){
    if(d.heat!==undefined)document.getElementById("heatToggle").checked=!!d.heat;
    if(d.speed)document.getElementById("speed").value=String(d.speed);
  if(d.arcWindow!==undefined){const aw=document.getElementById("arcWindow");if(aw)aw.value=String(d.arcWindow)}
-   if(d.frame)openFrame(d.frame);
-   if(d.chart)openChartFrame(d.chart);
+   if(d.search!==undefined){
+   const si=document.getElementById("lookupInput");
+   if(si){si.value=d.search;if(typeof runLookup==="function")runLookup(d.search)}
+ }
+ if(d.chartMode)Object.keys(d.chartMode).forEach(k=>{CHART_MODE[k]=d.chartMode[k]});
+ if(d.frame)openFrame(d.frame);
+ if(d.open)d.open.forEach(sec=>{
+   const el=document.querySelector('.ctlSec[data-sec="'+sec+'"]');
+   if(el)el.open=true;
+ });
+   if(d.chart){
+   openChartFrame(d.chart);
+   // give a discussed chart real space rather than the default panel size
+   const cf=document.getElementById("frame-chart-"+d.chart);
+   if(cf&&window.innerWidth>900){
+     cf.style.width=Math.min(560,Math.round(window.innerWidth*0.42))+"px";
+     cf.style.maxWidth=cf.style.width;
+     cf.style.left=Math.round(window.innerWidth*0.55)+"px";
+     cf.style.top="90px";
+     cf.dataset.placed="1"; cf.dataset.sized="1";
+     fitFrame(cf);
+     if(typeof renderChartFrame==="function")renderChartFrame(d.chart);
+   }
+ }
    if(d.month)setTimeline(idx(d.month[0],d.month[1]));
    markHistoDirty();update();
    if(d.play)play(); else if(d.play===false)pausePlayback();
+   // Point at whatever is being described, so the words and the screen agree.
+   if(d.flash){
+     setTimeout(()=>{
+       const t=document.querySelector(d.flash);
+       if(!t)return;
+       // only ever one thing highlighted, or a quick run leaves a trail of them
+       document.querySelectorAll(".narrFlash").forEach(x=>x.classList.remove("narrFlash"));
+       void t.offsetWidth;
+       t.classList.add("narrFlash");
+       setTimeout(()=>t.classList.remove("narrFlash"),2600);
+     },300);
+   }
  }catch(e){console.warn("[narrative] step failed",e)}
 }
 function narrRenderCaption(){
@@ -4404,6 +4705,8 @@ function narrStart(mode){
 }
 function narrStop(){
  try{ globe.controls().autoRotate=true }catch(e){}
+ if(typeof flatReset==="function")flatReset(true);      // never leave the map parked off-screen
+ document.querySelectorAll(".narrFlash").forEach(x=>x.classList.remove("narrFlash"));
  NARR.running=false;clearTimeout(NARR.timer);narrStopSpeech();
  document.body.classList.remove("narrating","narrFull");
  document.getElementById("narrOverlay").classList.add("hidden");
