@@ -77,3 +77,44 @@ change-healthcare-2024,data,3,scale-0-3,https://www.hhs.gov/hipaa/for-profession
 change-healthcare-2024,novelty,2,scale-0-3,https://www.hhs.gov/hipaa/for-professionals/breach-notification/change-healthcare-cybersecurity-incident-frequently-asked-questions/index.html,2026-07,coded,figure taken from the incident's cited source
 change-healthcare-2024,financial,2900000000,usd,https://www.hhs.gov/hipaa/for-professionals/breach-notification/change-healthcare-cybersecurity-incident-frequently-asked-questions/index.html,2026-07,reported,
 change-healthcare-2024,people,190000000,count,https://www.hhs.gov/hipaa/for-professionals/breach-notification/change-healthcare-cybersecurity-incident-frequently-asked-questions/index.html,2026-07,reported,
+jlr-2025,financial,2500000000,usd,https://cybermonitoringcentre.com/2025/10/22/cyber-monitoring-centre-statement-on-the-jaguar-land-rovercyber-incident-october-2025/,2025-10,reported,"CMC modelled GBP 1.9bn UK-wide impact, range 1.6-2.1bn, converted at approximately 1.32. Scenario analysis, not audited accounting."
+jlr-2025,disruption,4,scale-0-4,https://cybermonitoringcentre.com/2025/10/22/cyber-monitoring-centre-statement-on-the-jaguar-land-rovercyber-incident-october-2025/,2025-10,reported,Production halted about five weeks; full supply-chain recovery ran into January 2026.
+jlr-2025,novelty,2,scale-0-3,https://cybermonitoringcentre.com/2025/10/22/cyber-monitoring-centre-statement-on-the-jaguar-land-rovercyber-incident-october-2025/,2025-10,coded,First single-company cyber event to cause economic damage on this scale in the UK.
+marks-spencer-2025,disruption,3,scale-0-4,https://cybermonitoringcentre.com/,2025-06,reported,Online ordering and some in-store systems disrupted for weeks.
+marks-spencer-2025,data,3,scale-0-3,https://cybermonitoringcentre.com/,2025-06,reported,Customer data confirmed taken.
+co-op-2025,disruption,3,scale-0-4,https://cybermonitoringcentre.com/,2025-06,reported,Logistics and stock systems disrupted for weeks.
+co-op-2025,data,3,scale-0-3,https://cybermonitoringcentre.com/,2025-06,reported,Member data confirmed taken.
+triton-trisis-2017,novelty,3,scale-0-3,https://www.cisa.gov/news-events/ics-advisories,2026-07,coded,First malware written to manipulate a safety instrumented system.
+triton-trisis-2017,disruption,2,scale-0-4,https://www.cisa.gov/news-events/ics-advisories,2026-07,reported,Plant tripped to a safe shutdown.
+shamoon-aramco-2012,disruption,3,scale-0-4,https://www.cisa.gov/news-events/ics-advisories,2026-07,reported,Corporate IT unusable for weeks; oil production itself continued.
+shamoon-aramco-2012,novelty,3,scale-0-3,https://www.cisa.gov/news-events/ics-advisories,2026-07,coded,Destructive wiper used at scale against a national energy company.
+norsk-hydro-2019,financial,70000000,usd,https://www.hydro.com/en/media/on-the-agenda/cyber-attack/,2019-10,reported,"NOK 550-650m for the first half of 2019, per Hydro's own quarterly reporting."
+norsk-hydro-2019,disruption,3,scale-0-4,https://www.hydro.com/en/media/on-the-agenda/cyber-attack/,2019-10,reported,Production continued manually; several weeks to restore systems.
+norsk-hydro-2019,novelty,1,scale-0-3,https://www.hydro.com/en/media/on-the-agenda/cyber-attack/,2019-10,coded,Notable for the response model rather than the technique.
+synnovis-nhs-2024,disruption,4,scale-0-4,https://www.england.nhs.uk/synnovis-cyber-incident/,2025-06,reported,Services restored by end of 2024; some backlogs persisted far longer.
+synnovis-nhs-2024,data,3,scale-0-3,https://www.england.nhs.uk/synnovis-cyber-incident/,2025-06,reported,Patient data including NHS numbers and test details published.
+synnovis-nhs-2024,novelty,2,scale-0-3,https://www.england.nhs.uk/synnovis-cyber-incident/,2025-06,coded,A patient death formally linked to a ransomware attack - among the first anywhere.
+british-library-2023,disruption,4,scale-0-4,https://www.bl.uk/,2024-03,reported,Catalogue and digital services degraded for months.
+british-library-2023,data,2,scale-0-3,https://www.bl.uk/,2024-03,reported,Staff data published after refusal to pay.
+royal-mail-2023,disruption,3,scale-0-4,https://www.ncsc.gov.uk/,2023-03,reported,International export services halted for several weeks.
+vastaamo-2020,data,3,scale-0-3,https://poliisi.fi/en/,2024-04,reported,Psychotherapy notes - among the most sensitive categories of personal data.
+vastaamo-2020,novelty,3,scale-0-3,https://poliisi.fi/en/,2024-04,coded,Individual patients extorted directly with their own clinical records.
+maersk-notpetya-2017,financial,300000000,usd,https://www.cisa.gov/news-events/cybersecurity-advisories/aa20-099a,2018-02,reported,Company reporting indicated USD 250-300m; upper bound recorded.
+maersk-notpetya-2017,disruption,3,scale-0-4,https://www.cisa.gov/news-events/cybersecurity-advisories/aa20-099a,2018-02,reported,Global terminal operations halted; network rebuilt in about ten days.
+merck-notpetya-2017,financial,1400000000,usd,https://www.cisa.gov/news-events/cybersecurity-advisories/aa20-099a,2024-01,reported,Loss claimed in insurance litigation; contested for years before settlement.
+merck-notpetya-2017,disruption,3,scale-0-4,https://www.cisa.gov/news-events/cybersecurity-advisories/aa20-099a,2024-01,reported,Manufacturing and research disrupted for weeks.
+exchange-hafnium-2021,novelty,3,scale-0-3,https://www.cisa.gov/news-events/cybersecurity-advisories,2026-07,coded,Mass exploitation of a zero-day chain immediately after disclosure.
+exchange-hafnium-2021,data,3,scale-0-3,https://www.cisa.gov/news-events/cybersecurity-advisories,2026-07,reported,Mailbox contents accessible across tens of thousands of organisations.
+salt-typhoon-2024,novelty,3,scale-0-3,https://www.cisa.gov/news-events/cybersecurity-advisories,2026-07,coded,Compromise of lawful-interception infrastructure.
+salt-typhoon-2024,data,3,scale-0-3,https://www.cisa.gov/news-events/cybersecurity-advisories,2026-07,reported,Communications metadata and content of high-value targets.
+volt-typhoon-2023,novelty,3,scale-0-3,https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-038a,2026-07,coded,Pre-positioning inside critical infrastructure with no observed effect.
+volt-typhoon-2023,disruption,0,scale-0-4,https://www.cisa.gov/news-events/cybersecurity-advisories/aa24-038a,2026-07,coded,No disruption observed - deliberately recorded as zero.
+optus-2022,people,9800000,count,https://www.oaic.gov.au/,2023-11,reported,Current and former customers; confirm against the regulator's filing.
+optus-2022,data,3,scale-0-3,https://www.oaic.gov.au/,2023-11,reported,"Identity documents exposed, prompting national reissue."
+kojima-toyota-2022,disruption,1,scale-0-4,https://global.toyota/en/newsroom/,2022-03,reported,All Japanese production stopped for one day.
+kojima-toyota-2022,novelty,2,scale-0-3,https://global.toyota/en/newsroom/,2022-03,coded,A single small supplier halting a global manufacturer.
+aiims-delhi-2022,disruption,4,scale-0-4,https://www.cert-in.org.in/,2022-12,reported,Core hospital systems offline for weeks; paper fallback.
+aiims-delhi-2022,data,3,scale-0-3,https://www.cert-in.org.in/,2022-12,reported,Patient records affected; scale not independently confirmed.
+albania-2022,novelty,3,scale-0-3,https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-264a,2022-09,coded,First cyber attack to result in a NATO member severing diplomatic relations.
+albania-2022,disruption,3,scale-0-4,https://www.cisa.gov/news-events/cybersecurity-advisories/aa22-264a,2022-09,reported,Government online services down for an extended period.
+transunion-sa-2022,data,3,scale-0-3,https://www.transunion.co.za/,2022-04,reported,Credit and identity data; claimed record count not independently confirmed.
