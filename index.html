@@ -266,6 +266,13 @@
     .lookupScope{font-size:10.5px;color:#8fa6c4;background:rgba(16,32,57,.4);border:1px solid #223a58;border-radius:8px;padding:6px 9px;margin-bottom:6px;line-height:1.5}
     .histoHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:3px}
     .chartBox{background:#0a1626;border:1px solid #1e3350;border-radius:9px;padding:6px 4px 2px;margin:5px 0}
+    .impDimRow{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 8px}
+    .impDimBtn{font-size:10.5px;padding:4px 8px;border-radius:999px;border:1px solid #2c4666;background:#0e2036;color:#a8bcd6;cursor:pointer;white-space:nowrap}
+    .impDimBtn:hover{border-color:#4dd8ff;color:#dbe8f7}
+    .impDimBtn.on{background:#173a54;border-color:var(--accent);color:#eaf6ff}
+    .impChartBox{overflow:hidden;border-radius:8px}
+    .impSvg .impDot{cursor:pointer;transition:fill-opacity .12s}
+    .impSvg .impDot:hover{fill-opacity:1}
     .chartNote{font-size:10.5px;color:#7f95b4;margin:3px 0 12px;line-height:1.5}
     .chartFrame{width:420px}
     .chartHost{min-height:60px}
@@ -1338,7 +1345,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v56";
+const APP_VERSION="v57";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -2515,6 +2522,7 @@ function rowToAttacks(r,i){
    originChoices.forEach((o,oi)=>{
      const unknownOrigin=!o.c;
      routes.push({_lagMonths:_lagM,_lagKind:"coded",
+       imp:(r.imp&&typeof r.imp==="object")?r.imp:undefined,   // EuRepoC-coded impact, from the builder
        id:`eurepoc-${i}-${vi}-${oi}`,incidentId:firstPart(findField(r,[/^incident.*id/i,/^id$/i]))||`eurepoc-${i}`,
        year:date.getFullYear(),month:date.getMonth()+1,name,actor,
        leader:"See EuRepoC attribution fields",originCountry:o.name,originCity:unknownOrigin?"Unknown origin":"Country centroid",
@@ -4882,6 +4890,341 @@ function leagueTable(id,key,opts){
     ${toggle}
     ${opts.note?`<p class="chartNote" style="margin-top:8px">${opts.note}</p>`:""}`;
 }
+/* ── Impact layer ───────────────────────────────────────────────────────────
+   Two things power the impact view. First, EuRepoC already scores every incident
+   it reviews on intensity, functional disruption, data impact, economic loss and
+   entities affected; the builder now carries those onto the incident as `imp`.
+   Second, EuRepoC deliberately excludes most criminally-motivated ransomware and
+   many large breaches, so a small CURATED landmark set fills those in from primary
+   or official sources. Both are honestly provenanced, and every figure carries a
+   source URL so it can be checked.
+
+   IMPORTANT: the curated figures below are a STARTER SET for review. Financial
+   losses in particular are best-available public estimates, often contested and
+   frequently an order-of-magnitude judgement rather than an audited number. They
+   are here to make the chart real and useful, not to assert precision. Verify and
+   extend the set (or move it into impact_overlay.csv for the builder to merge).
+
+   Impact dimensions, each normalised 0..1 for plotting but shown raw on click:
+     intensity   EuRepoC weighted cyber-intensity (0..8+) / 8, or editorial
+     financial   direct + estimated loss, USD  (log scale)
+     people      individuals / records affected (log scale)
+     disruption  operational downtime: none/hours/days/weeks/months (0..4)
+     data        breach severity: none/minor/major/critical (0..3)
+     novelty     editorial: first-of-kind technique or target (0..3)
+   The composite is the mean of whichever dimensions are present, so it never
+   invents a value for a missing one - and the chart always states the coverage. */
+
+const IMPACT_DIMS=[
+  {id:"composite",label:"Composite (blended)",kind:"composite",
+   help:"The mean of whichever dimensions are recorded for an incident, each normalised to a common 0-100 scale. Incidents with more measured dimensions are scored more confidently; the note states how many dimensions each point blends."},
+  {id:"intensity",label:"Cyber intensity (EuRepoC)",kind:"scale",max:8,fmt:v=>v.toFixed(0)+" / 8",
+   help:"EuRepoC's weighted intensity score: duration of the incident and its effects, weighted by the criticality of the target. Expert-coded and peer-reviewed."},
+  {id:"financial",label:"Financial loss (USD)",kind:"log",fmt:v=>fmtMoney(v),
+   help:"Direct and estimated loss in US dollars. Best-available public estimates - often contested, and better read as orders of magnitude than exact figures."},
+  {id:"people",label:"People / records affected",kind:"log",fmt:v=>fmtCount(v),
+   help:"Individuals or records exposed. Where an official count exists (regulator, breach notification) it is used; otherwise the best-reported figure."},
+  {id:"disruption",label:"Operational disruption",kind:"scale",max:4,fmt:v=>["none","hours","days","weeks","months"][Math.round(v)]||v,
+   help:"How long operations were degraded: none, hours, days, weeks, months. From EuRepoC functional-impact coding or the cited source."},
+  {id:"data",label:"Data / breach severity",kind:"scale",max:3,fmt:v=>["none","minor","major","critical"][Math.round(v)]||v,
+   help:"Severity of data compromise: none, minor, major, critical. From EuRepoC intelligence-impact coding or the cited source."},
+  {id:"novelty",label:"Novelty (editorial)",kind:"scale",max:3,fmt:v=>["routine","notable","significant","landmark"][Math.round(v)]||v,
+   help:"An editorial judgement, not a measurement: how far the incident broke new ground in technique or target (e.g. first grid takedown, first destructive supply-chain worm). Shown separately precisely because it is a judgement."}
+];
+
+function fmtMoney(v){
+  if(v>=1e9)return "$"+(v/1e9).toFixed(v>=1e10?0:1)+"bn";
+  if(v>=1e6)return "$"+(v/1e6).toFixed(v>=1e8?0:0)+"m";
+  if(v>=1e3)return "$"+(v/1e3).toFixed(0)+"k";
+  return "$"+Math.round(v);
+}
+function fmtCount(v){
+  if(v>=1e9)return (v/1e9).toFixed(1)+"bn";
+  if(v>=1e6)return (v/1e6).toFixed(v>=1e8?0:1)+"m";
+  if(v>=1e3)return (v/1e3).toFixed(0)+"k";
+  return String(Math.round(v));
+}
+
+/* Landmark incidents, mostly the big criminal-ransomware and breach events that
+   EuRepoC excludes. Compact form; `imp` holds raw dimension values + per-figure
+   sources. Dates are start month. These are plotted alongside EuRepoC-scored
+   incidents and are clickable like any other. */
+const CURATED_IMPACT=[
+ {name:"Stuxnet",year:2010,month:6,victimCountry:"Iran",sector:"Energy",type:"ICS malware",severity:"Critical",
+  summary:"First known cyber weapon to cause physical damage, degrading roughly a thousand uranium-enrichment centrifuges at Natanz.",
+  source:"CISA / ICS-CERT",sourceUrl:"https://www.cisa.gov/news-events/ics-advisories",
+  imp:{novelty:3,disruption:3,intensity:7,src:{novelty:"https://www.cisa.gov/news-events/ics-advisories"}}},
+ {name:"Sony Pictures breach",year:2014,month:11,victimCountry:"United States",sector:"Media",type:"Destructive malware",severity:"Critical",
+  summary:"Destructive intrusion and mass data leak attributed by the FBI to North Korea; wiped systems and exposed employee data and unreleased films.",
+  source:"FBI",sourceUrl:"https://www.fbi.gov/news/press-releases/update-on-sony-investigation",
+  imp:{financial:35e6,data:2,disruption:2,novelty:2,src:{financial:"https://www.fbi.gov/news/press-releases/update-on-sony-investigation"}}},
+ {name:"Anthem breach",year:2015,month:2,victimCountry:"United States",sector:"Healthcare",type:"Data breach",severity:"Critical",
+  summary:"Health insurer breach exposing personal data of 78.8 million people; settled with US regulators.",
+  source:"US HHS OCR",sourceUrl:"https://www.hhs.gov/hipaa/for-professionals/compliance-enforcement/agreements/anthem/index.html",
+  imp:{people:78.8e6,data:3,src:{people:"https://www.hhs.gov/hipaa/for-professionals/compliance-enforcement/agreements/anthem/index.html"}}},
+ {name:"OPM breach",year:2015,month:4,victimCountry:"United States",sector:"Government",type:"Data breach",severity:"Critical",
+  summary:"US Office of Personnel Management breach exposing security-clearance records of 21.5 million people, including fingerprints.",
+  source:"US GAO",sourceUrl:"https://www.gao.gov/products/gao-17-614",
+  imp:{people:21.5e6,data:3,novelty:2,src:{people:"https://www.gao.gov/products/gao-17-614"}}},
+ {name:"Ukraine power grid (2015)",year:2015,month:12,victimCountry:"Ukraine",sector:"Energy",type:"ICS attack",severity:"Critical",
+  summary:"First confirmed cyberattack to take down an electricity grid, cutting power to about 230,000 people in western Ukraine.",
+  source:"CISA",sourceUrl:"https://www.cisa.gov/news-events/ics-alerts/ir-alert-h-16-056-01",
+  imp:{people:230000,disruption:1,novelty:3,intensity:7,src:{people:"https://www.cisa.gov/news-events/ics-alerts/ir-alert-h-16-056-01"}}},
+ {name:"Bangladesh Bank heist",year:2016,month:2,victimCountry:"Bangladesh",sector:"Finance",type:"Financial theft",severity:"Critical",
+  summary:"Fraudulent SWIFT transfers stole US$81 million from Bangladesh Bank's account at the New York Fed; attributed to the Lazarus Group.",
+  source:"US DOJ",sourceUrl:"https://www.justice.gov/opa/pr/north-korean-regime-backed-programmer-charged-conspiracy-conduct-multiple-cyber-attacks-and",
+  imp:{financial:81e6,novelty:2,src:{financial:"https://www.justice.gov/opa/pr/north-korean-regime-backed-programmer-charged-conspiracy-conduct-multiple-cyber-attacks-and"}}},
+ {name:"Ukraine grid / Industroyer (2016)",year:2016,month:12,victimCountry:"Ukraine",sector:"Energy",type:"ICS attack",severity:"Critical",
+  summary:"Purpose-built grid malware (Industroyer/CrashOverride) cut power in Kyiv; the first malware designed specifically to attack electricity infrastructure.",
+  source:"CISA",sourceUrl:"https://www.cisa.gov/news-events/alerts/2017/06/12/crashoverride-malware",
+  imp:{disruption:1,novelty:3,intensity:7,src:{novelty:"https://www.cisa.gov/news-events/alerts/2017/06/12/crashoverride-malware"}}},
+ {name:"WannaCry",year:2017,month:5,victimCountry:"United Kingdom",sector:"Healthcare",type:"Ransomware",severity:"Critical",
+  summary:"Self-propagating ransomworm hit ~200,000 computers across 150 countries; forced cancellation of thousands of NHS appointments. Global cost estimates run into the billions.",
+  source:"UK NAO",sourceUrl:"https://www.nao.org.uk/reports/investigation-wannacry-cyber-attack-and-the-nhs/",
+  imp:{financial:4e9,people:200000,disruption:2,novelty:3,intensity:8,
+       src:{financial:"https://www.nao.org.uk/reports/investigation-wannacry-cyber-attack-and-the-nhs/",disruption:"https://www.nao.org.uk/reports/investigation-wannacry-cyber-attack-and-the-nhs/"}}},
+ {name:"NotPetya",year:2017,month:6,victimCountry:"Ukraine",sector:"Transport",type:"Destructive malware",severity:"Critical",
+  summary:"Destructive wiper disguised as ransomware, spread via a Ukrainian tax-software update; the most financially damaging cyberattack on record, with global losses estimated around US$10 billion.",
+  source:"US White House / CISA",sourceUrl:"https://www.cisa.gov/news-events/cybersecurity-advisories/aa20-099a",
+  imp:{financial:10e9,disruption:3,novelty:3,intensity:8,
+       src:{financial:"https://www.cisa.gov/news-events/cybersecurity-advisories/aa20-099a"}}},
+ {name:"Equifax breach",year:2017,month:9,victimCountry:"United States",sector:"Finance",type:"Data breach",severity:"Critical",
+  summary:"Credit bureau breach exposing personal and financial data of ~147 million people; led to a settlement of up to US$700 million.",
+  source:"US FTC",sourceUrl:"https://www.ftc.gov/enforcement/refunds/equifax-data-breach-settlement",
+  imp:{people:147e6,financial:1.4e9,data:3,src:{people:"https://www.ftc.gov/enforcement/refunds/equifax-data-breach-settlement",financial:"https://www.ftc.gov/enforcement/refunds/equifax-data-breach-settlement"}}},
+ {name:"Marriott / Starwood breach",year:2018,month:11,victimCountry:"United States",sector:"Hospitality",type:"Data breach",severity:"High",
+  summary:"Long-running intrusion in the Starwood reservation system exposed up to ~339 million guest records; fined £18.4m by the UK ICO.",
+  source:"UK ICO",sourceUrl:"https://ico.org.uk/action-weve-taken/enforcement/marriott-international-inc/",
+  imp:{people:339e6,financial:24e6,data:3,src:{people:"https://ico.org.uk/action-weve-taken/enforcement/marriott-international-inc/"}}},
+ {name:"Capital One breach",year:2019,month:3,victimCountry:"United States",sector:"Finance",type:"Data breach",severity:"High",
+  summary:"Misconfigured cloud storage exposed ~106 million credit-card applicants; US$80m regulatory penalty plus a US$190m settlement.",
+  source:"US OCC",sourceUrl:"https://www.occ.gov/news-issuances/news-releases/2020/nr-occ-2020-101.html",
+  imp:{people:106e6,financial:270e6,data:3,novelty:1,src:{people:"https://www.occ.gov/news-issuances/news-releases/2020/nr-occ-2020-101.html"}}},
+ {name:"Baltimore ransomware",year:2019,month:5,victimCountry:"United States",sector:"Government",type:"Ransomware",severity:"High",
+  summary:"RobbinHood ransomware disrupted City of Baltimore services for weeks; recovery and lost revenue estimated at over US$18 million.",
+  source:"US GAO / city reporting",sourceUrl:"https://www.gao.gov/products/gao-22-104766",
+  imp:{financial:18e6,disruption:3,src:{financial:"https://www.gao.gov/products/gao-22-104766"}}},
+ {name:"SolarWinds / SUNBURST",year:2020,month:3,victimCountry:"United States",sector:"Technology",type:"Supply-chain attack",severity:"Critical",
+  summary:"Compromised SolarWinds Orion updates reached ~18,000 organisations and were used to breach nine US federal agencies; a landmark software supply-chain espionage campaign.",
+  source:"US CISA / GAO",sourceUrl:"https://www.gao.gov/products/gao-22-104746",
+  imp:{people:18000,disruption:1,data:3,novelty:3,intensity:8,src:{people:"https://www.gao.gov/products/gao-22-104746",novelty:"https://www.gao.gov/products/gao-22-104746"}}},
+ {name:"Colonial Pipeline",year:2021,month:5,victimCountry:"United States",sector:"Energy",type:"Ransomware",severity:"Critical",
+  summary:"DarkSide ransomware forced the shutdown of the largest US fuel pipeline, triggering regional shortages; US$4.4m ransom paid, much later recovered.",
+  source:"US DOJ / CISA",sourceUrl:"https://www.justice.gov/opa/pr/department-justice-seizes-23-million-cryptocurrency-paid-ransomware-extortionists-darkside",
+  imp:{financial:4.4e6,disruption:2,novelty:2,intensity:7,src:{financial:"https://www.justice.gov/opa/pr/department-justice-seizes-23-million-cryptocurrency-paid-ransomware-extortionists-darkside"}}},
+ {name:"HSE Ireland ransomware",year:2021,month:5,victimCountry:"Ireland",sector:"Healthcare",type:"Ransomware",severity:"Critical",
+  summary:"Conti ransomware crippled Ireland's national health service IT for weeks; the independent review put the cost at over €80 million.",
+  source:"HSE / PwC review",sourceUrl:"https://www.hse.ie/eng/services/publications/conti-cyber-attack-on-the-hse-full-report.pdf",
+  imp:{financial:90e6,disruption:4,data:2,src:{financial:"https://www.hse.ie/eng/services/publications/conti-cyber-attack-on-the-hse-full-report.pdf",disruption:"https://www.hse.ie/eng/services/publications/conti-cyber-attack-on-the-hse-full-report.pdf"}}},
+ {name:"Kaseya VSA supply-chain",year:2021,month:7,victimCountry:"United States",sector:"Technology",type:"Supply-chain attack",severity:"Critical",
+  summary:"REvil exploited Kaseya's remote-management software to push ransomware to ~1,500 downstream businesses in one weekend; a US$70m universal ransom was demanded.",
+  source:"US CISA",sourceUrl:"https://www.cisa.gov/news-events/alerts/2021/07/02/kaseya-vsa-supply-chain-ransomware-attack",
+  imp:{people:1500,financial:70e6,disruption:2,novelty:2,src:{people:"https://www.cisa.gov/news-events/alerts/2021/07/02/kaseya-vsa-supply-chain-ransomware-attack"}}},
+ {name:"Viasat KA-SAT wiper",year:2022,month:2,victimCountry:"Ukraine",sector:"Telecoms",type:"Destructive malware",severity:"Critical",
+  summary:"AcidRain wiper knocked out Viasat KA-SAT modems at the start of the invasion of Ukraine, with spillover disabling remote monitoring of thousands of European wind turbines.",
+  source:"EU Council",sourceUrl:"https://www.consilium.europa.eu/en/press/press-releases/2022/05/10/russian-cyber-operations-against-ukraine-declaration-by-the-high-representative-on-behalf-of-the-european-union/",
+  imp:{disruption:2,novelty:3,intensity:7,src:{novelty:"https://www.consilium.europa.eu/en/press/press-releases/2022/05/10/russian-cyber-operations-against-ukraine-declaration-by-the-high-representative-on-behalf-of-the-european-union/"}}},
+ {name:"Costa Rica / Conti",year:2022,month:4,victimCountry:"Costa Rica",sector:"Government",type:"Ransomware",severity:"Critical",
+  summary:"Conti ransomware paralysed Costa Rican government systems and tax and customs services; the president declared a national emergency - a first for a cyberattack.",
+  source:"US State Dept",sourceUrl:"https://www.state.gov/reward-offers-for-information-on-conti-ransomware-associates/",
+  imp:{disruption:4,novelty:3,intensity:7,src:{novelty:"https://www.state.gov/reward-offers-for-information-on-conti-ransomware-associates/"}}},
+ {name:"Medibank breach",year:2022,month:10,victimCountry:"Australia",sector:"Healthcare",type:"Data breach",severity:"Critical",
+  summary:"Breach of Australia's largest health insurer exposed data of 9.7 million current and former customers, including sensitive health claims.",
+  source:"Australian OAIC",sourceUrl:"https://www.oaic.gov.au/news/media-centre/oaic-takes-civil-penalty-action-against-medibank",
+  imp:{people:9.7e6,data:3,src:{people:"https://www.oaic.gov.au/news/media-centre/oaic-takes-civil-penalty-action-against-medibank"}}},
+ {name:"MOVEit / Cl0p",year:2023,month:5,victimCountry:"United States",sector:"Technology",type:"Supply-chain attack",severity:"Critical",
+  summary:"Cl0p exploited a zero-day in MOVEit Transfer to steal data from thousands of organisations, with tens of millions of individuals affected downstream.",
+  source:"US CISA",sourceUrl:"https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-158a",
+  imp:{people:90e6,data:3,novelty:2,intensity:7,src:{people:"https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-158a"}}},
+ {name:"23andMe credential-stuffing",year:2023,month:10,victimCountry:"United States",sector:"Healthcare",type:"Data breach",severity:"High",
+  summary:"Credential-stuffing exposed genetic and profile data of ~6.9 million people via the DNA-testing service.",
+  source:"UK ICO / company",sourceUrl:"https://ico.org.uk/action-weve-taken/enforcement/23andme/",
+  imp:{people:6.9e6,data:3,src:{people:"https://ico.org.uk/action-weve-taken/enforcement/23andme/"}}},
+ {name:"Change Healthcare",year:2024,month:2,victimCountry:"United States",sector:"Healthcare",type:"Ransomware",severity:"Critical",
+  summary:"ALPHV/BlackCat ransomware crippled the largest US medical-claims clearinghouse, disrupting payments nationwide for months; ~190 million people affected, the largest US healthcare breach on record. Parent company costs ran into the billions.",
+  source:"US HHS OCR",sourceUrl:"https://www.hhs.gov/hipaa/for-professionals/breach-notification/change-healthcare-cybersecurity-incident-frequently-asked-questions/index.html",
+  imp:{people:190e6,financial:2.9e9,disruption:4,data:3,novelty:2,intensity:8,
+       src:{people:"https://www.hhs.gov/hipaa/for-professionals/breach-notification/change-healthcare-cybersecurity-incident-frequently-asked-questions/index.html",financial:"https://www.hhs.gov/hipaa/for-professionals/breach-notification/change-healthcare-cybersecurity-incident-frequently-asked-questions/index.html"}}}
+];
+
+/* Turn the compact curated rows into full incident-shaped objects so they filter
+   and open exactly like any mapped incident. They are not added to the globe; they
+   live in the impact layer only. */
+let _curatedImpactCache=null;
+function curatedImpactIncidents(){
+  if(_curatedImpactCache)return _curatedImpactCache;
+  _curatedImpactCache=CURATED_IMPACT.map((c,i)=>({
+    id:"impact-"+i, year:c.year, month:c.month, name:c.name,
+    victimCountry:c.victimCountry, originCountry:"", actor:"",
+    sector:c.sector, type:c.type, severity:c.severity, impact:severityToImpact(c.severity),
+    summary:c.summary, source:c.source, sourceUrl:c.sourceUrl,
+    confidence:"Curated landmark \u2014 impact layer",
+    leader:"", attribution:"Curated from the cited primary or official source.",
+    imp:Object.assign({notable:true},c.imp), _impProvenance:"curated"
+  }));
+  return _curatedImpactCache;
+}
+function severityToImpact(s){return {Critical:96,High:80,Medium:58,Low:35}[s]||60;}
+
+/* Normalise one incident's impact dimensions to 0..1. Missing dimensions stay
+   missing - they are never treated as zero, or the composite would punish a
+   well-documented incident for a gap in coverage. */
+function impDimValue(a,dimId){
+  const im=a.imp; if(!im)return null;
+  const raw=im[dimId];
+  if(raw===undefined||raw===null||raw==="")return null;
+  const n=+raw; if(!isFinite(n))return null;
+  return n;
+}
+function impDimNorm(a,dimId){
+  const v=impDimValue(a,dimId); if(v===null)return null;
+  const d=IMPACT_DIMS.find(x=>x.id===dimId);
+  if(!d)return null;
+  if(d.kind==="scale")return Math.max(0,Math.min(1,v/(d.max||1)));
+  if(d.kind==="log"){
+    // map a wide range onto 0..1: $1k..$100bn, or 100..1bn people
+    const lo=(dimId==="financial")?3:2, hi=(dimId==="financial")?11:9;
+    if(v<=0)return 0;
+    const L=Math.log10(v);
+    return Math.max(0,Math.min(1,(L-lo)/(hi-lo)));
+  }
+  return null;
+}
+function impComposite(a){
+  const parts=["intensity","financial","people","disruption","data","novelty"]
+    .map(id=>impDimNorm(a,id)).filter(v=>v!==null);
+  if(!parts.length)return null;
+  return {value:parts.reduce((x,y)=>x+y,0)/parts.length, n:parts.length};
+}
+/* Y value (0..1) for the selected dimension, or null if this incident lacks it. */
+function impY(a,dimId){
+  if(dimId==="composite"){const c=impComposite(a);return c?c.value:null;}
+  return impDimNorm(a,dimId);
+}
+/* The pool of incidents that carry ANY impact data: curated landmarks plus lake
+   incidents the builder has enriched with `imp`. Filtered by the same predicate as
+   every other chart, so it honours Controls. */
+/* Curated landmarks are not in `attacks`, so the sector/type checkbox lists (built
+   from lake data) may not contain their categories. passesFilters would then drop a
+   landmark for a control that does not exist. This mirror keeps the time / severity /
+   country / search / source tests, but only applies the sector or type test when that
+   value is actually an option the user could have unchecked. */
+function curatedPasses(a,st){
+  const i=(a._i!==undefined)?a._i:(a._i=idx(a.year,a.month));
+  const inTime=(st.when==="all")?true
+    :(st.when==="period")?(i>=st.vs&&i<=st.ve)
+    :(st.when==="heat")?(i>=st.vs&&i<=st.now)
+    :(st.cumulative?i<=st.now:i===st.now);
+  if(!inTime)return false;
+  if(!st.sources.has(sourceLayerName(a)))return false;
+  if(!st.sev.has(a.severity))return false;
+  if(st.sec&&st.sec.size&&_impKnownSectors().has(a.sector)&&!st.sec.has(a.sector))return false;
+  if(st.types&&st.types.size&&_impKnownTypes().has(a.type)&&!st.types.has(a.type))return false;
+  if(!countryPassSt(a,st))return false;
+  if(st.q){const hay=(a.name+" "+a.summary+" "+a.victimCountry+" "+a.sector+" "+a.type).toLowerCase();
+    if(!hay.includes(st.q))return false;}
+  return true;
+}
+function _impKnownSectors(){return new Set([...document.querySelectorAll(".sector")].map(x=>x.value));}
+function _impKnownTypes(){return new Set([...document.querySelectorAll(".atype")].map(x=>x.value));}
+function impactPool(when){
+  const st=filterState(when);
+  const lake=filterPass(when).filter(a=>a.imp);
+  const cur=curatedImpactIncidents().filter(a=>curatedPasses(a,st));
+  // de-dupe a curated landmark against a lake record of the same event
+  const seen=new Set(lake.map(a=>(a.name||"").toLowerCase().slice(0,14)+a.year));
+  const extra=cur.filter(a=>!seen.has((a.name||"").toLowerCase().slice(0,14)+a.year));
+  return lake.concat(extra);
+}
+
+/* The scatter itself. X = time (mapped across the current view window), Y = the
+   selected dimension (0..1). Bubble radius encodes a second reading - people
+   affected where present, else the composite confidence. Notable incidents are
+   labelled. Every dot carries its incident id for click-through. */
+function impactChartHTML(W){
+  const cm=chartMode("impact");
+  const dimId=IMPACT_DIMS.some(d=>d.id===cm)?cm:"composite";  // period/live default -> composite
+  const dim=IMPACT_DIMS.find(d=>d.id===dimId)||IMPACT_DIMS[0];
+  const pool=impactPool("period");
+  const pts=pool.map(a=>({a,y:impY(a,dimId)})).filter(p=>p.y!==null);
+
+  const chooser=`<div class="impDimRow">${IMPACT_DIMS.map(d=>
+    `<button type="button" class="impDimBtn${d.id===dimId?" on":""}" data-dim="${d.id}">${d.label}</button>`).join("")}</div>`;
+
+  const total=pool.length;
+  if(!pts.length){
+    return chooser+`<p class="chartNote">No incidents in the current view carry a <b>${dim.label.toLowerCase()}</b> figure yet. ${
+      total?`${total.toLocaleString()} filtered incidents have some impact data, but none this dimension.`:
+      "Impact data comes from EuRepoC's coded records (after the data pack rebuilds) and the curated landmark set."}</p>`;
+  }
+
+  const H=260, padL=44, padR=14, padT=14, padB=40;
+  const innerW=Math.max(120,W-padL-padR), innerH=H-padT-padB;
+  const vs=filterState("period").vs, ve=Math.max(vs+1,filterState("period").ve);
+  const xOf=i=>padL+((i-vs)/(ve-vs))*innerW;
+  const yOf=v=>padT+(1-v)*innerH;
+
+  // radius: people affected if the dimension isn't already people; else composite n
+  const rOf=a=>{
+    const ppl=impDimNorm(a,"people");
+    const base=(dimId==="people")?(impComposite(a)?impComposite(a).value:0.4):(ppl!==null?ppl:0.35);
+    return 3+base*7;
+  };
+
+  const gridY=[0,.25,.5,.75,1].map(g=>{
+    const y=yOf(g);
+    const lab=(dim.kind==="composite")?Math.round(g*100)
+             :(dim.kind==="scale")?dim.fmt(g*(dim.max||1))
+             :(dim.kind==="log")? (dimId==="financial"?fmtMoney(Math.pow(10,3+g*8)):fmtCount(Math.pow(10,2+g*7)))
+             :Math.round(g*100);
+    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${(W-padR).toFixed(1)}" y2="${y.toFixed(1)}" stroke="#1b3350" stroke-width="1"/>
+            <text x="${padL-6}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="9" fill="#6f8bad">${lab}</text>`;
+  }).join("");
+
+  const xticks=yearTicks().map(t=>{
+    const x=xOf(t.i); if(x<padL-1||x>W-padR+1)return "";
+    return `<text x="${x.toFixed(1)}" y="${H-padB+16}" text-anchor="middle" font-size="9" fill="#6f8bad">${t.label}</text>`;
+  }).join("");
+
+  // draw the smallest last so notable big dots sit on top; label the top few
+  const ordered=pts.slice().sort((p,q)=>rOf(q.a)-rOf(p.a));
+  const labelled=ordered.filter(p=>p.a.imp&&p.a.imp.notable).slice(0,7);
+  const dots=ordered.map(p=>{
+    const x=xOf(p.a._i!==undefined?p.a._i:idx(p.a.year,p.a.month));
+    const y=yOf(p.y), r=rOf(p.a);
+    const col=severityColor[p.a.severity]||"#4dd8ff";
+    const notable=p.a.imp&&p.a.imp.notable;
+    return `<circle class="impDot" data-aid="${p.a.id}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}"
+      fill="${col}" fill-opacity="${notable?0.92:0.5}" stroke="${notable?"#fff":col}" stroke-width="${notable?1.1:0.5}"><title>${escapeHtml(p.a.name)}</title></circle>`;
+  }).join("");
+
+  const labels=labelled.map(p=>{
+    const x=xOf(p.a._i!==undefined?p.a._i:idx(p.a.year,p.a.month));
+    const y=yOf(p.y);
+    const anchor=x>W*0.7?"end":"start";
+    const dx=x>W*0.7?-8:8;
+    const nm=p.a.name.length>22?p.a.name.slice(0,21)+"\u2026":p.a.name;
+    return `<text x="${(x+dx).toFixed(1)}" y="${(y+3).toFixed(1)}" text-anchor="${anchor}" font-size="9.5" fill="#dbe8f7" pointer-events="none" style="paint-order:stroke;stroke:#0a1526;stroke-width:2.4px">${escapeHtml(nm)}</text>`;
+  }).join("");
+
+  const svg=`<svg width="${W}" height="${H}" class="impSvg" role="img" aria-label="Impact of incidents over time">
+    ${gridY}${xticks}${dots}${labels}</svg>`;
+
+  // coverage honesty
+  const covLine=(dimId==="composite")
+    ? `${pts.length.toLocaleString()} of ${total.toLocaleString()} filtered incidents with impact data are plotted; each blends the dimensions it has (mean ${(pts.reduce((s,p)=>s+(impComposite(p.a)?impComposite(p.a).n:0),0)/pts.length).toFixed(1)} of 6).`
+    : `${pts.length.toLocaleString()} of ${total.toLocaleString()} filtered incidents with impact data carry a ${dim.label.toLowerCase()} figure. The rest are not plotted for this dimension rather than shown as zero.`;
+
+  return chooser+
+    `<div class="impChartBox">${svg}</div>
+     <p class="chartNote" style="margin-top:2px">${dim.help}</p>
+     <p class="chartNote">${covLine} Larger dots carry more weight (people affected, where known); brighter, outlined dots are landmark incidents. Click any dot for the incident.</p>
+     <p class="chartNote"><b>Read with care.</b> Impact data is sparse and uneven: only EuRepoC-reviewed incidents and the curated landmarks are scored, so this is a view of the <i>documented</i> heavy hitters, not a complete ranking. Financial figures are best-available public estimates, often contested. Novelty is an editorial judgement, shown separately for that reason.</p>`;
+}
+
+function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+
 const CHART_DEFS=[
  {id:"incidents",title:"Documented incidents / month",group:"filtered",live:false,
   blurb:"How many attacks per month match your filters.",
@@ -4904,6 +5247,10 @@ const CHART_DEFS=[
   build:W=>leagueTable("origins","originCountry",{color:"#4dd8ff",
     only:a=>!isUnattributed(a),
     note:"Only where an origin has been publicly named. These are attribution or ecosystem proxies, not verified launch locations, and attacks with no known origin are excluded."})},
+ {id:"impact",title:"Impact over time",group:"filtered",live:false,
+  blurb:"Plot incidents by how much they mattered \u2014 blended, or one dimension at a time.",
+  ok:()=>true,
+  build:W=>impactChartHTML(W)},
  {id:"sectors",title:"Sectors hit",group:"filtered",
   blurb:"Full league table of affected sectors.",
   ok:()=>attacks.length>0,
@@ -5186,6 +5533,16 @@ function renderChartFrame(id){
    const target=b.dataset.for;
    CHART_TOPONLY[target]=!topOnly(target);
    renderChartFrame(target);
+ }));
+ // Impact chart: dimension chooser + click-through on each dot.
+ host.querySelectorAll(".impDimBtn").forEach(b=>b.addEventListener("click",()=>{
+   setChartMode("impact",b.dataset.dim);
+ }));
+ host.querySelectorAll(".impDot").forEach(c=>c.addEventListener("click",()=>{
+   const aid=c.dataset.aid;
+   let a=attacks.find(x=>String(x.id)===aid);
+   if(!a)a=curatedImpactIncidents().find(x=>String(x.id)===aid);
+   if(a)showDetail(a);
  }));
 }
 /* Most charts do not move when the timeline does. Redrawing all of them on every

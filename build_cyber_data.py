@@ -107,8 +107,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.7.3"
-BUILDER_DATE = "2026-07-24"
+BUILDER_VERSION = "3.8.0"
+BUILDER_DATE = "2026-07-25"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -202,6 +202,66 @@ LONG_TEXT = re.compile(r"description|summary", re.I)
 @source(id="eurepoc", table="incidents", title="EuRepoC Global Dataset",
         licence="See Zenodo record terms", cadence="on release",
         homepage="https://eurepoc.eu/", expected=4300)
+# ── EuRepoC impact extraction ───────────────────────────────────────────────
+# EuRepoC already scores each reviewed incident on intensity, functional
+# disruption, data impact and economic loss. We map those coded fields onto the
+# clean 0..N dimensions the app plots, and attach them as `imp`. Nothing is
+# invented: a field that EuRepoC left blank or "Not available" stays absent, so
+# the app's composite never counts a gap as a zero.
+def _eurepoc_impact(row):
+    def val(*names):
+        for n in names:
+            for k, v in row.items():
+                if k and k.strip().lower() == n:
+                    s = str(v or "").strip()
+                    if s and s.lower() != "not available" and s.lower() != "none":
+                        return s
+        return None
+    imp = {}
+    # weighted cyber intensity: an integer 0..8+ (already a score)
+    wi = val("weighted_cyber_intensity", "unweighted_cyber_intensity")
+    if wi is not None:
+        m = re.search(r"-?\d+", wi)
+        if m:
+            n = int(m.group(0))
+            if n > 0:
+                imp["intensity"] = min(8, n)
+    # functional impact -> operational disruption duration ordinal
+    fi = (val("functional_impact") or "").lower()
+    if fi:
+        if "no system" in fi or "no interference" in fi:
+            imp["disruption"] = 0
+        elif "month" in fi:
+            imp["disruption"] = 4
+        elif "week" in fi:
+            imp["disruption"] = 3
+        elif "day" in fi and "< 24" not in fi and "<24" not in fi:
+            imp["disruption"] = 2
+        elif "day" in fi or "24h" in fi or "< 24" in fi:
+            imp["disruption"] = 1
+    # intelligence impact -> data / breach severity ordinal
+    ii = (val("intelligence_impact") or "").lower()
+    if ii:
+        if "major data breach" in ii:
+            imp["data"] = 3
+        elif "minor data breach" in ii:
+            imp["data"] = 1
+        elif "no data breach" in ii or "no data corruption" in ii:
+            imp["data"] = 0
+    # economic impact -> financial loss in USD (euro converted at a fixed, rough rate;
+    # this is an order-of-magnitude view, not an audited figure)
+    ev = val("economic_impact_exact_value")
+    if ev is not None:
+        m = re.search(r"-?\d+(?:\.\d+)?", ev.replace(",", ""))
+        if m:
+            amt = float(m.group(0))
+            if amt > 0:
+                cur = (val("economic_impact_currency") or "dollar").lower()
+                if "eur" in cur:
+                    amt *= 1.08          # rough EUR->USD; documented as approximate
+                imp["financial"] = round(amt)
+    return imp or None
+
 def build_eurepoc():
     r = get_first(EUREPOC_URLS, "EuRepoC")
     rows = list(csv.DictReader(io.StringIO(r.content.decode("utf-8", "replace"))))
@@ -218,6 +278,9 @@ def build_eurepoc():
             if v:
                 s[c] = v[:600] if LONG_TEXT.search(c) else v[:200]
         if s:
+            imp = _eurepoc_impact(row)   # same coded fields as the TableView export, if present
+            if imp:
+                s["imp"] = imp
             out.append(s)
     return out
 
@@ -820,6 +883,7 @@ EUREPOC_STATIC_END = "2024-12-31"
         licence="CC BY-NC 4.0 - non-commercial use only",
         cadence="manual export", expected=0,
         homepage="https://eurepoc.eu/table-view/")
+
 def build_eurepoc_live():
     rows = _manual_rows("eurepoc")
     if rows is None:
@@ -871,6 +935,9 @@ def build_eurepoc_live():
                 break
         if st:
             slim["_status"] = st[:40]
+        imp = _eurepoc_impact(row)
+        if imp:
+            slim["imp"] = imp          # EuRepoC-coded impact dimensions for the impact chart
         out.append(slim)
     finished = sum(1 for r in out if str(r.get("_status", "")).lower().startswith("coding finished"))
     print("  [eurepoc_live] %d rows -> %d after %s (%d already in the static release)"
