@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.7.3 (2026-07-24) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.8.0 (2026-07-25) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.8.0  EuRepoC impact coding captured. The TableView and static releases already
+        score each reviewed incident on weighted cyber-intensity, functional
+        disruption duration, data-breach severity and economic loss; the builder now
+        maps those fields onto a clean `imp` dimension object per incident (a blank
+        or "Not available" field stays absent, never a zero) to drive the app's new
+        "Impact over time" chart. About 950 of the provisional records carry at least
+        intensity; the richer dimensions follow the reviewed subset.
  3.7.3  Fixed the CISSM connector registration: the @source decorator had been left
         attached to a helper (_manual_rows) rather than to build_cissm, so the
         registry called the wrong function. This was the real cause of both the
