@@ -310,10 +310,10 @@
     .czReset{font-size:10px;min-width:40px;font-variant-numeric:tabular-nums}
     .czHint{color:#5f7a9c;font-size:10px;margin-left:4px}
     .chartScope{margin:8px 0 0;padding-top:7px;border-top:1px solid #1e3350;opacity:.85}
-    .modeSwitch{display:flex;gap:0;border:1px solid #2c4666;border-radius:8px;overflow:hidden;margin-bottom:4px}
-    .modeSwitch button{flex:1;background:transparent;border:0;border-radius:0;color:var(--muted);font-size:11px;padding:6px 8px}
-    .modeSwitch button.on{background:rgba(77,216,255,.16);color:var(--text);font-weight:600}
-    .modeSwitch button:not(.on):hover{background:rgba(20,38,63,.7);color:var(--text)}
+    .modeSwitch,.impTimeSwitch{display:flex;gap:0;border:1px solid #2c4666;border-radius:8px;overflow:hidden;margin-bottom:4px}
+    .modeSwitch button,.impTimeSwitch button{flex:1;background:transparent;border:0;border-radius:0;color:var(--muted);font-size:11px;padding:6px 8px}
+    .modeSwitch button.on,.impTimeSwitch button.on{background:rgba(77,216,255,.16);color:var(--text);font-weight:600}
+    .modeSwitch button:not(.on):hover,.impTimeSwitch button:not(.on):hover{background:rgba(20,38,63,.7);color:var(--text)}
     .league{display:grid;gap:3px;max-height:none}
     .lgRow{position:relative;display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;
       background:#0a1626;border:1px solid #1e3350;border-radius:6px;padding:4px 8px;font-size:11.5px;overflow:hidden}
@@ -1378,7 +1378,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v59";
+const APP_VERSION="v60";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -1490,6 +1490,7 @@ const TYPE_HELP_EXACT={
  "Not categorised":"The source recorded an incident but no attack type. Common in older records and in datasets that focus on the victim rather than the method."
 };
 function typeHelp(t){
+ if(t===UNCAT)return "Incidents whose source did not record an attack type, or recorded one too vague to map. Missing detail, not a distinct kind of attack.";
  const s=String(t||"");
  if(TYPE_HELP_EXACT[s])return TYPE_HELP_EXACT[s];
  const byStem=helpByPrefix(TYPE_HELP_EXACT,s);
@@ -1533,6 +1534,7 @@ function helpByPrefix(table,s){
  return null;
 }
 function sectorHelp(s){
+ if(s===UNCAT)return "Incidents whose source did not record a sector, or recorded one too vague to map. Switch it off to see only incidents with a stated sector \u2014 but remember these are missing labels, not harmless events.";
  if(SECTOR_HELP[s])return SECTOR_HELP[s];
  if(SECTOR_HELP_EXTRA[s])return SECTOR_HELP_EXTRA[s];
  const byStem=helpByPrefix(SECTOR_HELP_EXTRA,s)||helpByPrefix(SECTOR_HELP,s);
@@ -1607,11 +1609,26 @@ async function initFlatMap(){
   flatSvg.on("dblclick.reset",()=>flatReset(true));      // double-click to get back
   renderFlat(filtered());
 }
+const UNCAT="Uncategorised";
+/* Anything a source left blank becomes a real category rather than an empty string.
+   An empty value has no checkbox, so it could never be switched on or off - it would
+   simply vanish from every view with no way to bring it back. */
+function normCategory(v){const s=(v==null?"":String(v)).trim();return s?s:UNCAT;}
 function refreshFilterOptions(){
  const priorSectors=new Set(checked("sector"));
 
- const sectors=[...new Set(attacks.map(a=>a.sector).filter(Boolean))].sort();
- const types=[...new Set(attacks.map(a=>a.type).filter(Boolean))].sort();
+ // Normalise in place so the incidents and the checkboxes can never disagree.
+ attacks.forEach(a=>{a.sector=normCategory(a.sector);a.type=normCategory(a.type);});
+ // Include the curated landmark layer's categories: it is plotted on the impact
+ // chart, so it must be controllable from here like everything else. Guarded because
+ // this runs once at startup, before the curated table further down has initialised.
+ let curated=[];
+ try{ curated=(typeof curatedImpactIncidents==="function")?curatedImpactIncidents():[] }
+ catch(e){ curated=[] }
+ const sortCats=arr=>[...new Set(arr)].sort((x,y)=>
+   x===UNCAT?1:y===UNCAT?-1:x.localeCompare(y));      // Uncategorised always last
+ const sectors=sortCats(attacks.map(a=>a.sector).concat(curated.map(a=>a.sector)));
+ const types=sortCats(attacks.map(a=>a.type).concat(curated.map(a=>a.type)));
  sectorChecks.innerHTML=sectors.map(s=>`<label title="${sectorHelp(s).replace(/"/g,"&quot;")}"><input class="sector" type="checkbox" value="${s}" ${sectorOptOut.has(s)?"":"checked"}> ${s}</label>`).join("");
  typeChecks.innerHTML=types.map(t=>{
    const on=!typeOptOut.has(t);
@@ -5103,7 +5120,9 @@ function curatedImpactIncidents(){
   _curatedImpactCache=CURATED_IMPACT.map((c,i)=>({
     id:"impact-"+i, year:c.year, month:c.month, name:c.name,
     victimCountry:c.victimCountry, originCountry:"", actor:"",
-    sector:c.sector, type:c.type, severity:c.severity, impact:severityToImpact(c.severity),
+    sector:normCategory(c.sector),
+    type:normCategory((typeof canonicalType==="function"&&canonicalType(c.type))||c.type),
+    severity:c.severity, impact:severityToImpact(c.severity),
     summary:c.summary, source:c.source, sourceUrl:c.sourceUrl,
     confidence:"Curated landmark \u2014 impact layer",
     leader:"", attribution:"Curated from the cited primary or official source.",
@@ -5165,15 +5184,17 @@ function curatedPasses(a,st){
   if(!inTime)return false;
   if(!st.sources.has(sourceLayerName(a)))return false;
   if(!st.sev.has(a.severity))return false;
-  if(st.sec&&st.sec.size&&_impKnownSectors().has(a.sector)&&!st.sec.has(a.sector))return false;
-  if(st.types&&st.types.size&&_impKnownTypes().has(a.type)&&!st.types.has(a.type))return false;
+  // Same strictness as passesFilters. Previously this skipped the test when the set
+  // was empty (so unchecking every sector still showed the landmarks) and exempted
+  // any category missing from Controls. Both are fixed by listing every curated
+  // category in Controls - see refreshFilterOptions - so the tests can be strict.
+  if(st.sec&&!st.sec.has(a.sector))return false;
+  if(st.types&&!st.types.has(a.type))return false;
   if(!countryPassSt(a,st))return false;
   if(st.q){const hay=(a.name+" "+a.summary+" "+a.victimCountry+" "+a.sector+" "+a.type).toLowerCase();
     if(!hay.includes(st.q))return false;}
   return true;
 }
-function _impKnownSectors(){return new Set([...document.querySelectorAll(".sector")].map(x=>x.value));}
-function _impKnownTypes(){return new Set([...document.querySelectorAll(".atype")].map(x=>x.value));}
 function impactPool(when){
   const st=filterState(when);
   const lake=filterPass(when).filter(a=>a.imp);
@@ -5188,26 +5209,40 @@ function impactPool(when){
    selected dimension (0..1). Bubble radius encodes a second reading - people
    affected where present, else the composite confidence. Notable incidents are
    labelled. Every dot carries its incident id for click-through. */
+/* "Whole period" shows everything in the selected years at once. "Build with the
+   timeline" accumulates from the start of the range up to the playhead, so pressing
+   Play draws the story in as it happens. It deliberately accumulates regardless of
+   the Build-up switch in Controls - a single month of impact points would be a bare
+   vertical line rather than a developing picture. */
+let IMPACT_LIVE=false;
+function impactWhen(){return IMPACT_LIVE?"heat":"period";}
+function impTimeSwitch(){
+  return `<div class="impTimeSwitch">
+    <button type="button" data-imp="period" class="${IMPACT_LIVE?"":"on"}">Whole period</button>
+    <button type="button" data-imp="live" class="${IMPACT_LIVE?"on":""}">Build with the timeline</button>
+  </div>`;
+}
 function impactChartHTML(W){
   const cm=chartMode("impact");
   const dimId=IMPACT_DIMS.some(d=>d.id===cm)?cm:"composite";  // period/live default -> composite
   const dim=IMPACT_DIMS.find(d=>d.id===dimId)||IMPACT_DIMS[0];
-  const pool=impactPool("period");
+  const pool=impactPool(impactWhen());
   const pts=pool.map(a=>({a,y:impY(a,dimId)})).filter(p=>p.y!==null);
 
-  const chooser=`<div class="impDimRow">${IMPACT_DIMS.map(d=>
+  const chooser=impTimeSwitch()+`<div class="impDimRow">${IMPACT_DIMS.map(d=>
     `<button type="button" class="impDimBtn${d.id===dimId?" on":""}" data-dim="${d.id}">${d.label}</button>`).join("")}</div>`;
 
   const total=pool.length;
   if(!pts.length){
-    return chooser+`<p class="chartNote">No incidents in the current view carry a <b>${dim.label.toLowerCase()}</b> figure yet. ${
+    return chooser+`<p class="chartNote">${IMPACT_LIVE?"Nothing has been reached yet \u2014 press Play, or drag the timeline, to build the picture up. ":""}No incidents in the current view carry a <b>${dim.label.toLowerCase()}</b> figure yet. ${
       total?`${total.toLocaleString()} filtered incidents have some impact data, but none this dimension.`:
       "Impact data comes from EuRepoC's coded records (after the data pack rebuilds) and the curated landmark set."}</p>`;
   }
 
   const H=260, padL=44, padR=14, padT=14, padB=40;
   const innerW=Math.max(120,W-padL-padR), innerH=H-padT-padB;
-  const vs=filterState("period").vs, ve=Math.max(vs+1,filterState("period").ve);
+  const fs=filterState("period");                 // axis always spans the whole range
+  const vs=fs.vs, ve=Math.max(vs+1,fs.ve);
   const xOf=i=>padL+((i-vs)/(ve-vs))*innerW;
   const yOf=v=>padT+(1-v)*innerH;
 
@@ -5274,10 +5309,19 @@ function impactChartHTML(W){
     return `<text x="${(x+dx).toFixed(1)}" y="${(y+3).toFixed(1)}" text-anchor="${anchor}" font-size="9.5" fill="#dbe8f7" pointer-events="none" style="paint-order:stroke;stroke:#0a1526;stroke-width:2.4px">${escapeHtml(nm)}</text>`;
   }).join("");
 
+  // a marker showing where the timeline has reached, while building
+  const playhead=IMPACT_LIVE?(()=>{
+    const px=xOf(Math.max(vs,Math.min(ve,timelineIndex)));
+    return `<line x1="${px.toFixed(1)}" y1="${padT}" x2="${px.toFixed(1)}" y2="${(padT+innerH).toFixed(1)}"
+      stroke="#4dd8ff" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.8"/>
+      <text x="${px.toFixed(1)}" y="${(padT-3).toFixed(1)}" text-anchor="middle" font-size="9" fill="#4dd8ff">${mon(fromIdx(timelineIndex).month)} ${fromIdx(timelineIndex).year}</text>`;
+  })():"";
+
   const svg=`<svg width="${W}" height="${H}" class="impSvg" role="img" aria-label="Impact of incidents over time">
-    ${gridY}${xticks}${dots}${labels}</svg>`;
+    ${gridY}${xticks}${playhead}${dots}${labels}</svg>`;
 
   // coverage honesty
+  const builtNote=IMPACT_LIVE?` Building to ${mon(fromIdx(timelineIndex).month)} ${fromIdx(timelineIndex).year}.`:"";
   const covLine=(dimId==="composite")
     ? `${pts.length.toLocaleString()} of ${total.toLocaleString()} filtered incidents with impact data are plotted; each blends the dimensions it has (mean ${(pts.reduce((s,p)=>s+(impComposite(p.a)?impComposite(p.a).n:0),0)/pts.length).toFixed(1)} of 6).`
     : `${pts.length.toLocaleString()} of ${total.toLocaleString()} filtered incidents with impact data carry a ${dim.label.toLowerCase()} figure. The rest are not plotted for this dimension rather than shown as zero.`;
@@ -5285,7 +5329,7 @@ function impactChartHTML(W){
   return chooser+
     `<div class="impChartBox">${svg}</div>
      <p class="chartNote" style="margin-top:2px">${dim.help}</p>
-     <p class="chartNote">${covLine} Larger dots carry more weight (people affected, where known); brighter, outlined dots are landmark incidents. Click any dot for the incident.</p>
+     <p class="chartNote">${covLine}${builtNote} Larger dots carry more weight (people affected, where known); brighter, outlined dots are landmark incidents. Click any dot for the incident.</p>
      <p class="chartNote"><b>Read with care.</b> Impact data is sparse and uneven: only EuRepoC-reviewed incidents and the curated landmarks are scored, so this is a view of the <i>documented</i> heavy hitters, not a complete ranking. Financial figures are best-available public estimates, often contested. Novelty is an editorial judgement, shown separately for that reason. Points sharing a level are fanned out slightly so they can be seen and clicked \u2014 the axis label is the true value.</p>`;
 }
 
@@ -5609,6 +5653,10 @@ function renderChartFrame(id){
  host.querySelectorAll(".impDimBtn").forEach(b=>b.addEventListener("click",()=>{
    setChartMode("impact",b.dataset.dim);
  }));
+ host.querySelectorAll("[data-imp]").forEach(b=>b.addEventListener("click",()=>{
+   IMPACT_LIVE=(b.dataset.imp==="live");
+   renderChartFrame("impact");
+ }));
  host.querySelectorAll(".impDot").forEach(c=>c.addEventListener("click",()=>{
    const aid=c.dataset.aid;
    let a=attacks.find(x=>String(x.id)===aid);
@@ -5622,6 +5670,7 @@ function renderChartFrame(id){
    redraws only the charts whose content genuinely depends on where the timeline
    sits; everything else waits for a filter or data change. */
 function chartIsLive(d){
+ if(d.id==="impact")return IMPACT_LIVE;   // only while building with the timeline
  if(d.live===true)return true;
  if(d.live===false)return false;
  // ranking tables move with the timeline only while in "as it happens" mode
