@@ -127,6 +127,17 @@
     .tbGrip:hover{background:rgba(20,38,63,.7);color:var(--text);border-color:#2c4666}
     #toolbar.min .tbGrip{border-color:var(--accent);color:var(--accent)}
     .frameBody{overflow:auto;padding:13px 15px}
+    /* Scroll bars: styled so they are clearly visible on the dark panels. Declaring
+       ::-webkit-scrollbar opts out of Chromium's overlay bars, which were invisible
+       until hovered - the reason zoomed charts felt like they had no scrolling. */
+    .chartHost,.frameBody,.moreMenu{scrollbar-color:#4a6d95 #0d1c30}
+    .chartHost::-webkit-scrollbar,.frameBody::-webkit-scrollbar{width:12px;height:12px}
+    .chartHost::-webkit-scrollbar-track,.frameBody::-webkit-scrollbar-track{
+      background:#0d1c30;border-radius:8px}
+    .chartHost::-webkit-scrollbar-thumb,.frameBody::-webkit-scrollbar-thumb{
+      background:#3f6288;border:2px solid #0d1c30;border-radius:8px;min-height:32px;min-width:32px}
+    .chartHost::-webkit-scrollbar-thumb:hover,.frameBody::-webkit-scrollbar-thumb:hover{background:#5b86b4}
+    .chartHost::-webkit-scrollbar-corner,.frameBody::-webkit-scrollbar-corner{background:#0d1c30}
     .frame.front{z-index:86}
     @keyframes frameAttention{
       0%{box-shadow:0 22px 60px rgba(0,0,0,.55),0 0 0 0 rgba(77,216,255,.9);border-color:var(--accent)}
@@ -276,7 +287,25 @@
     .chartNote{font-size:10.5px;color:#7f95b4;margin:3px 0 12px;line-height:1.5}
     .chartFrame{width:420px}
     .chartHost{min-height:60px;overflow:auto;touch-action:pan-x pan-y;overscroll-behavior:contain}
-    .chartZoomLayer{zoom:1;transform-origin:0 0}
+    /* Unzoomed, a tall chart grows and the panel scrolls as before. Zoomed, the chart
+       gets its own bounded viewport so it scrolls in place rather than stretching the
+       window to an unusable height. */
+    .chartHost.czZoomed{max-height:min(62vh,620px);resize:vertical;scrollbar-gutter:stable}
+    /* width:max-content is what makes zooming scrollable. With width:auto the layer
+       lays out at (host width / zoom) and renders back to exactly the host width, so
+       the box never grows and the enlarged chart is clipped with no scrollable
+       overflow. Sizing to content lets the box grow, so the host gets a real
+       horizontal scroll range. */
+    .chartZoomLayer{zoom:1;width:max-content;min-width:100%}
+    /* max-content would also stop the prose wrapping, which made the panel overflow
+       sideways even at 1x. Text and tables are held to the visible width (--czW, the
+       host width in the layer's own zoomed units, set in applyChartZoom) so they wrap
+       and simply get larger; only the drawn chart is allowed to extend and scroll. */
+    .chartZoomLayer>p,.chartZoomLayer>h3,.chartZoomLayer>h4,.chartZoomLayer .chartNote,
+    .chartZoomLayer .impDimRow,.chartZoomLayer .modeSwitch,.chartZoomLayer .league,
+    .chartZoomLayer .grpRow,.chartZoomLayer .hbar,.chartZoomLayer .leagueToggle{
+      max-width:var(--czW,100%)}
+    .chartZoomLayer svg,.chartZoomLayer .chartBox,.chartZoomLayer .impChartBox{max-width:none}
     .czBtn{font-size:15px;line-height:1;padding:3px 8px;min-width:28px;font-weight:700}
     .czReset{font-size:10px;min-width:40px;font-variant-numeric:tabular-nums}
     .czHint{color:#5f7a9c;font-size:10px;margin-left:4px}
@@ -1349,7 +1378,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v58";
+const APP_VERSION="v59";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -5617,9 +5646,34 @@ const CHART_ZOOM={};
 function applyChartZoom(id){
  const f=chartFrame(id); if(!f)return;
  const layer=f.querySelector(".chartZoomLayer"); if(!layer)return;
+ const host=f.querySelector(".chartHost");
  const z=Math.max(0.6,Math.min(4,CHART_ZOOM[id]||1));
+ const prev=parseFloat(layer.style.zoom)||1;
  CHART_ZOOM[id]=z;
- layer.style.zoom=z;                               // reflows: parent scrolls when >1
+ // Keep the middle of what you are looking at roughly still, rather than snapping
+ // back to the top-left every time the zoom changes.
+ let ax=0.5, ay=0.5;
+ if(host&&host.scrollWidth>host.clientWidth+1)
+   ax=(host.scrollLeft+host.clientWidth/2)/host.scrollWidth;
+ if(host&&host.scrollHeight>host.clientHeight+1)
+   ay=(host.scrollTop+host.clientHeight/2)/host.scrollHeight;
+ layer.style.zoom=z;                               // reflows: the host then scrolls
+ if(host){
+   // The visible width expressed in the layer's own (zoomed) units, so wrapped text
+   // fills the panel exactly rather than overflowing it.
+   layer.style.setProperty("--czW",Math.max(80,Math.round(host.clientWidth/z))+"px");
+   const zoomedIn=z>1.02;
+   host.classList.toggle("czZoomed",zoomedIn);
+   if(prev!==z){
+     // restore the anchor after the reflow has been applied
+     requestAnimationFrame(()=>{
+       if(host.scrollWidth>host.clientWidth+1)
+         host.scrollLeft=Math.max(0,ax*host.scrollWidth-host.clientWidth/2);
+       if(host.scrollHeight>host.clientHeight+1)
+         host.scrollTop=Math.max(0,ay*host.scrollHeight-host.clientHeight/2);
+     });
+   }
+ }
  const rs=f.querySelector(".czReset");
  if(rs)rs.textContent=(Math.abs(z-1)<0.001)?"\u25c9":(Math.round(z*100)+"%");
 }
@@ -5668,7 +5722,7 @@ function openChartFrame(id){
      <button class="frameMax" type="button" aria-label="Maximise ${def.title}" title="Maximise / restore">&#9713;</button>
      <button class="frameClose" type="button" aria-label="Close ${def.title}">&#215;</button></span></div>
      <div class="frameBody"><div class="chartHost"></div>
-     <p class="chartNote chartScope">${def.group==="filtered"?"Follows the filters set in Controls.":"Background data \u2014 not affected by your filters."} <span class="czHint">Pinch, or use +/&minus;, to zoom.</span></p></div>`;
+     <p class="chartNote chartScope">${def.group==="filtered"?"Follows the filters set in Controls.":"Background data \u2014 not affected by your filters."} <span class="czHint">Pinch or use +/&minus; to zoom; scroll or drag to move around.</span></p></div>`;
    document.getElementById("frames").appendChild(f);
    registerFrame(f);
  }
