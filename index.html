@@ -1444,7 +1444,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v64";
+const APP_VERSION="v65";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -3305,7 +3305,7 @@ async function cachedLoad(key,ttlMs,loader){
    (plotted as missiles); vulns, advisories and techniques are reference data
    that drive charts and enrichment but are NOT attacks. Falls back to the
    legacy flat pack, then to remote fetching, so older deployments keep working. */
-const LAKE={manifest:null,kev:[],epss:null,epssMap:null,ics:[],attack:null,reports:[],cve:null};
+const LAKE={manifest:null,kev:[],epss:null,epssMap:null,nvd:[],nvdMap:null,ics:[],attack:null,reports:[],cve:null};
 async function grabJSON(p){try{const r=await fetch(p,{cache:"no-cache"});return r.ok?await r.json():null}catch(e){return null}}
 async function loadLake(){
  const base="cyber_data/";
@@ -3384,6 +3384,13 @@ async function loadLake(){
  // ---- reference tables (charts + enrichment) ----
  const vf=(T.vulns&&T.vulns.files)||{};
  if(vf.kev)jobs.push(grabJSON(base+vf.kev.file).then(k=>{if(Array.isArray(k))LAKE.kev=k}));
+ // NVD detail for the exploited catalogue: severity, weakness, publication date
+ if(vf.nvd)jobs.push(grabJSON(base+vf.nvd.file).then(n=>{
+   if(Array.isArray(n)){
+     LAKE.nvd=n; LAKE.nvdMap=new Map();
+     n.forEach(r=>{ if(r&&r.cve)LAKE.nvdMap.set(r.cve,r) });
+   }
+ }).catch(()=>{}));
  if(vf.cve)jobs.push(grabJSON(base+vf.cve.file).then(c=>{if(c&&c.months)LAKE.cve=c}));
  if(vf.epss)jobs.push(grabJSON(base+vf.epss.file).then(e=>{
    if(e&&Array.isArray(e.rows)){
@@ -3914,11 +3921,24 @@ function tidyFrames(){
 
  if(W<760){
    // No room for a corridor: keep the top third for the map and stack below it.
-   const mapKeep=Math.round(availH*0.34);
-   const y0=top+mapKeep;
-   const h=Math.max(120,Math.floor((bottom-y0-(open.length-1)*gap)/open.length));
-   const w=Math.min(W-20,440);
-   open.forEach((f,i)=>put(f,10,y0+i*(h+gap),w,h));
+   const minH=140, w=Math.min(W-20,440);
+   let y0=top+Math.round(availH*0.34);
+   let fit=Math.floor((bottom-y0+gap)/(minH+gap));
+   if(fit<open.length){ y0=top; fit=Math.floor((bottom-y0+gap)/(minH+gap)); }  // map first
+   if(fit>=open.length){
+     const h=Math.floor((bottom-y0-(open.length-1)*gap)/open.length);
+     open.forEach((f,i)=>put(f,10,y0+i*(h+gap),w,h));
+   }else{
+     // More windows than the screen can stack at a usable size. Cascade them so every
+     // title bar stays reachable and nothing runs off the bottom - overlapping is
+     // better than invisible.
+     const step=Math.max(30,Math.floor((bottom-y0-minH)/Math.max(1,open.length-1)));
+     open.forEach((f,i)=>{
+       const y=y0+i*step;
+       const hh=(i===open.length-1)?Math.max(minH,bottom-y):minH;
+       put(f,10,Math.min(y,bottom-minH),w,Math.min(hh,bottom-y));
+     });
+   }
    return;
  }
 
@@ -3939,12 +3959,16 @@ function tidyFrames(){
    const h=Math.max(150,Math.floor((availH-(take-1)*gap)/take));
    for(let k=0;k<take;k++,i++)put(open[i],x,top+k*(h+gap),colW,h);
  }
- // anything left over (more windows than columns hold) goes back to the tiler
- for(;i<open.length;i++){
-   delete open[i].dataset.placed; delete open[i].dataset.sized;
-   open[i].style.left="";open[i].style.top="";open[i].style.width="";open[i].style.maxWidth="";
-   open[i].style.height="";open[i].style.maxHeight="";
-   if(typeof positionFrame==="function")positionFrame(open[i]);
+ // More windows than the columns hold: cascade the remainder across the middle,
+ // still inside the safe area, so none of them lands off-screen.
+ if(i<open.length){
+   const left=open.length-i, minH=180;
+   const step=Math.max(28,Math.floor((availH-minH)/Math.max(1,left-1)));
+   const cx=Math.round((W-colW)/2);
+   for(let k=0;i<open.length;i++,k++){
+     const y=Math.min(top+k*step,bottom-minH);
+     put(open[i],cx+((k%2)?18:-18),y,colW,Math.min(minH+40,bottom-y));
+   }
  }
  // charts must redraw at their new width
  document.querySelectorAll('.frame[id^="frame-chart-"]:not(.hidden)').forEach(f=>{
@@ -5556,6 +5580,32 @@ function impHash(s){s=String(s);let h=2166136261>>>0;for(let i=0;i<s.length;i++)
      CVE   Monthly counts of published vulnerabilities from NVD. A measure of
            cataloguing effort as much as of insecurity. */
 
+/* NVD detail, where the pack carries it. Absent is normal: the enrichment fills in
+   over the first few nightly builds, and the charts degrade to what KEV alone knows. */
+function nvdOf(cve){return (LAKE.nvdMap&&LAKE.nvdMap.get(cve))||null;}
+function cvssOf(cve){const n=nvdOf(cve);return n&&typeof n.cvss==="number"?n.cvss:null;}
+/* Days between a flaw being published and CISA recording it as exploited. Negative
+   means exploitation was catalogued BEFORE the flaw was public - a zero-day, at least
+   as far as the public record goes. */
+function exploitLagDays(k){
+  const n=nvdOf(k.cve); if(!n||!n.published||!k.added)return null;
+  const p=Date.parse(n.published+"T00:00:00Z"), a=Date.parse(k.added+"T00:00:00Z");
+  if(!isFinite(p)||!isFinite(a))return null;
+  return Math.round((a-p)/86400000);
+}
+const VULN_DIMS=[
+  {id:"epss",label:"Predicted exploitation (EPSS)",
+   help:"FIRST's estimate of the chance a flaw is exploited in the next 30 days. A prediction, not an observation, and the pack only carries scores at or above 10%."},
+  {id:"cvss",label:"Severity (CVSS)",
+   help:"NVD's base score, 0 to 10. Severity is about how bad exploitation would be, not how likely it is \u2014 which is why it disagrees with EPSS so often."},
+  {id:"lag",label:"Time to known exploitation",
+   help:"Days from the flaw being published to CISA recording it as exploited. Points below the line were catalogued as exploited before publication."}
+];
+let VULN_DIM="epss";
+function vulnDimChooser(){
+  return `<div class="impDimRow">${VULN_DIMS.map(d=>
+    `<button type="button" class="impDimBtn vulnDimBtn${d.id===VULN_DIM?" on":""}" data-vdim="${d.id}">${d.label}</button>`).join("")}</div>`;
+}
 let VULN_VENDORS=new Set();          // empty = every vendor
 function vulnVendorList(n){
   const c={};
@@ -5589,7 +5639,7 @@ function epssOf(cve){
 /* ── 1. Exploited flaws over time (the CVE counterpart of the impact chart) ── */
 function vulnTimeHTML(W){
   const kev=vulnKev();
-  if(!kev.length)return timeSwitch("vulntime")+vulnVendorChips()+'<p class="chartNote">No known-exploited vulnerabilities loaded, or none for the chosen vendors.</p>';
+  if(!kev.length)return timeSwitch("vulntime")+vulnDimChooser()+vulnVendorChips()+'<p class="chartNote">No known-exploited vulnerabilities loaded, or none for the chosen vendors.</p>';
   const H=250, padL=44, padR=14, padT=14, padB=40;
   const innerW=Math.max(120,W-padL-padR), innerH=H-padT-padB;
   const fs=filterState("period");
@@ -5604,14 +5654,27 @@ function vulnTimeHTML(W){
     const e=epssOf(k.cve);
     pts.push({k,i,e});
   });
-  if(!pts.length)return timeSwitch("vulntime")+vulnVendorChips()+`<p class="chartNote">${follows("vulntime")?"Nothing catalogued yet at this point in the timeline \u2014 press Play to build it up. ":""}Nothing catalogued inside the years currently shown. Widen the range in Controls \u2014 the catalogue only starts in 2021, though the flaws themselves are often much older.</p>`;
+  if(!pts.length)return timeSwitch("vulntime")+vulnDimChooser()+vulnVendorChips()+`<p class="chartNote">${follows("vulntime")?"Nothing catalogued yet at this point in the timeline \u2014 press Play to build it up. ":""}Nothing catalogued inside the years currently shown. Widen the range in Controls \u2014 the catalogue only starts in 2021, though the flaws themselves are often much older.</p>`;
 
-  // y: predicted exploitation probability where known; unscored sit on a base line
-  const scored=pts.filter(p=>p.e!==null);
+  const dim=VULN_DIMS.find(d=>d.id===VULN_DIM)||VULN_DIMS[0];
+  const lagNorm=d=>{                       // 0 at a decade, 1 at same-day; negatives clamp low
+    if(d<0)return 0.02;
+    const L=Math.log10(Math.max(1,d));
+    return Math.max(0.06,Math.min(1,1-(L/3.6)));
+  };
+  const yValue=(p)=>{
+    if(VULN_DIM==="epss")return p.e;
+    if(VULN_DIM==="cvss"){const c=cvssOf(p.k.cve);return c===null?null:c/10;}
+    const d=exploitLagDays(p.k); return d===null?null:lagNorm(d);
+  };
   const gridY=[0,.25,.5,.75,1].map(g=>{
     const y=yOf(g);
+    let lab;
+    if(VULN_DIM==="epss")lab=Math.round(g*100)+"%";
+    else if(VULN_DIM==="cvss")lab=(g*10).toFixed(0);
+    else lab=g<=0.05?"before":(g>=0.98?"same day":Math.round(Math.pow(10,(1-g)*3.6))+"d");
     return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${(W-padR).toFixed(1)}" y2="${y.toFixed(1)}" stroke="#1b3350"/>
-            <text x="${padL-6}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="9" fill="#6f8bad">${Math.round(g*100)}%</text>`;
+            <text x="${padL-6}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="9" fill="#6f8bad">${lab}</text>`;
   }).join("");
   const xticks=yearTicks().map(t=>{
     const x=xOf(t.i); if(x<padL-1||x>W-padR+1)return "";
@@ -5632,27 +5695,40 @@ function vulnTimeHTML(W){
     if(d.length>1)ctx=`<path d="M${d.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join("L")}" fill="none" stroke="#6f8bad" stroke-width="1.1" stroke-dasharray="4 3" opacity="0.55"/>`;
   }
 
-  const dots=pts.map(p=>{
+  const plotted=pts.map(p=>({p,v:yValue(p)})).filter(o=>o.v!==null);
+  const dots=plotted.map(({p,v})=>{
     const jx=(impHash(p.k.cve+"x")-0.5)*Math.min(10,(innerW/((ve-vs)||1))*0.8);
-    const y=(p.e!==null)?yOf(p.e):yOf(0.015+impHash(p.k.cve+"y")*0.05);
+    const jy=(impHash(p.k.cve+"y")-0.5)*0.03;
+    const y=yOf(Math.max(0,Math.min(1,v+jy)));
     const x=Math.max(padL,Math.min(W-padR,xOf(p.i)+jx));
     const ran=/known/i.test(p.k.ransomware||"");
-    const r=p.e!==null?(2.6+p.e*4.4):2.2;
+    const r=2.4+v*4.2;
     return `<circle class="vulnDot" data-cve="${escapeHtml(p.k.cve)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}"
-      fill="${ran?"#ff4d66":"#4dd8ff"}" fill-opacity="${p.e!==null?0.72:0.34}"
-      stroke="${ran?"#ff8fa0":"#7fe6ff"}" stroke-width="${ran?0.9:0.4}"><title>${escapeHtml(p.k.cve)} \u2014 ${escapeHtml(p.k.vendor||"")} ${escapeHtml(p.k.product||"")}${p.e!==null?` \u2014 ${Math.round(p.e*100)}% predicted`:" \u2014 no EPSS score"}${ran?" \u2014 used in ransomware":""}</title></circle>`;
+      fill="${ran?"#ff4d66":"#4dd8ff"}" fill-opacity="0.7"
+      stroke="${ran?"#ff8fa0":"#7fe6ff"}" stroke-width="${ran?0.9:0.4}"><title>${escapeHtml(p.k.cve)} \u2014 ${escapeHtml(p.k.vendor||"")} ${escapeHtml(p.k.product||"")}${(()=>{
+        if(VULN_DIM==="epss")return ` \u2014 ${Math.round(p.e*100)}% predicted`;
+        if(VULN_DIM==="cvss")return ` \u2014 CVSS ${cvssOf(p.k.cve)}`;
+        const d=exploitLagDays(p.k);
+        return d===null?"":(d<0?` \u2014 exploited ${Math.abs(d)} days before publication`:` \u2014 ${d} days to exploitation`);
+      })()}${ran?" \u2014 used in ransomware":""}</title></circle>`;
   }).join("");
 
-  const ranN=pts.filter(p=>/known/i.test(p.k.ransomware||"")).length;
+  const ranN=plotted.filter(o=>/known/i.test(o.p.k.ransomware||"")).length;
+  const covLine=(VULN_DIM==="epss")
+    ? `${plotted.length.toLocaleString()} of ${pts.length.toLocaleString()} shown carry an EPSS score, because the pack only keeps scores at or above 10%.`
+    : (VULN_DIM==="cvss")
+    ? `${plotted.length.toLocaleString()} of ${pts.length.toLocaleString()} shown have an NVD severity score. Scores mix CVSS versions, which are not strictly comparable \u2014 the version is shown when you click a flaw.`
+    : `${plotted.length.toLocaleString()} of ${pts.length.toLocaleString()} shown can be dated, needing both a publication date and a catalogue date.`;
   const ph=follows("vulntime")?(()=>{
     const px=xOf(Math.max(vs,Math.min(ve,timelineIndex)));
     return `<line x1="${px.toFixed(1)}" y1="${padT}" x2="${px.toFixed(1)}" y2="${(padT+innerH).toFixed(1)}" stroke="#4dd8ff" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.8"/>`;
   })():"";
-  return timeSwitch("vulntime")+vulnVendorChips()+
+  return timeSwitch("vulntime")+vulnDimChooser()+vulnVendorChips()+
    `<div class="impChartBox"><svg width="${W}" height="${H}" class="impSvg" role="img" aria-label="Exploited vulnerabilities over time">
       ${gridY}${xticks}${ctx}${ph}${dots}</svg></div>
-    <p class="chartNote">Each dot is one flaw CISA has recorded as <b>actually exploited</b>, placed at the month it was catalogued. Height is FIRST's EPSS estimate of the chance it would be exploited in the next 30 days; dots with no published score sit along the bottom. Red dots are flagged as used in ransomware campaigns (${ranN.toLocaleString()} of ${pts.length.toLocaleString()} shown). The dashed line is the monthly volume of <i>all</i> published vulnerabilities, on its own scale, purely for context.</p>
-    <p class="chartNote"><b>Read with care.</b> ${scored.length.toLocaleString()} of ${pts.length.toLocaleString()} shown carry an EPSS score, because the pack only keeps scores at or above 10%. The catalogue is a remediation list for US federal agencies, not a census of exploitation \u2014 a flaw is here because CISA saw evidence and chose to list it. The date is when it was catalogued, which can be years after the flaw was published. Click any dot for the detail.</p>`;
+    <p class="chartNote">Each dot is one flaw CISA has recorded as <b>actually exploited</b>, placed at the month it was catalogued. Height is the measure chosen above; flaws without that measure are left out rather than shown at zero. Red dots are flagged as used in ransomware campaigns (${ranN.toLocaleString()} of ${pts.length.toLocaleString()} shown). The dashed line is the monthly volume of <i>all</i> published vulnerabilities, on its own scale, purely for context.</p>
+    <p class="chartNote">${dim.help}</p>
+    <p class="chartNote"><b>Read with care.</b> ${covLine} The catalogue is a remediation list for US federal agencies, not a census of exploitation \u2014 a flaw is here because CISA saw evidence and chose to list it. The date is when it was catalogued, which can be years after the flaw was published. Click any dot for the detail.</p>`;
 }
 
 /* ── 2. Attacks against vulnerabilities, indexed ────────────────────────────
@@ -5718,13 +5794,52 @@ function vulnVsAttacksHTML(W){
     <p class="chartNote"><b>What this cannot show.</b> Three lines rising together is not evidence that one causes another. All three are driven substantially by <i>recording effort</i> \u2014 more researchers, more disclosure law, more catalogue staff \u2014 and the exploited-flaw line begins only when CISA started the catalogue in 2021, so its early steepness is the catalogue filling up, not a real surge. Treat this as a prompt for questions, not an answer.</p>`;
 }
 
+/* ── From publication to exploitation ───────────────────────────────────────
+   The gap between a flaw becoming public and CISA recording it as exploited.
+   The left-hand bucket is the uncomfortable one: flaws catalogued as exploited
+   before they were ever published. */
+function vulnLagHTML(W){
+  const kev=vulnKev();
+  const rows=kev.map(k=>({k,d:exploitLagDays(k)})).filter(o=>o.d!==null);
+  if(!rows.length)return vulnVendorChips()+'<p class="chartNote">This needs NVD publication dates, which arrive with builder 3.11.0 or later. Rebuild the data pack and this fills in \u2014 the first few nights enrich part of the catalogue, then it completes.</p>';
+  const BUCKETS=[
+    {lab:"Before publication",test:d=>d<0},
+    {lab:"Within a week",test:d=>d>=0&&d<=7},
+    {lab:"Within a month",test:d=>d>7&&d<=30},
+    {lab:"1 to 3 months",test:d=>d>30&&d<=90},
+    {lab:"3 months to a year",test:d=>d>90&&d<=365},
+    {lab:"1 to 3 years",test:d=>d>365&&d<=1095},
+    {lab:"More than 3 years",test:d=>d>1095}
+  ];
+  const counts=BUCKETS.map(b=>rows.filter(o=>b.test(o.d)).length);
+  const max=Math.max(1,...counts);
+  const bars=BUCKETS.map((b,i)=>{
+    const n=counts[i], pct=n/rows.length*100;
+    const col=i===0?"linear-gradient(90deg,#8f2233,#ff4d66)":"linear-gradient(90deg,#2f6f96,#4dd8ff)";
+    return `<div class="hbar"><span>${b.lab}</span>
+      <div class="hbarTrack"><div class="hbarFill" style="width:${(n/max*100).toFixed(1)}%;background:${col}"></div></div>
+      <i>${n.toLocaleString()} (${pct.toFixed(0)}%)</i></div>`;
+  }).join("");
+  const sorted=rows.map(o=>o.d).sort((a,b)=>a-b);
+  const median=sorted[Math.floor(sorted.length/2)];
+  const pre=counts[0];
+  return vulnVendorChips()+`<div class="league">${bars}</div>
+    <p class="chartNote">How long after a flaw became public CISA recorded it as being exploited. Median ${median<0?`${Math.abs(median)} days <b>before</b> publication`:`<b>${median.toLocaleString()}</b> days`}, across ${rows.length.toLocaleString()} flaws with both dates known.</p>
+    <p class="chartNote"><b>What the first bar means.</b> ${pre.toLocaleString()} were catalogued as exploited before the vulnerability was published \u2014 attackers were there first, at least as far as the public record goes. ${pre?"That is the zero-day case, and it is the one patching cannot help with.":""}</p>
+    <p class="chartNote"><b>Read with care.</b> The catalogue date is when CISA <i>listed</i> the flaw, not when exploitation began: real exploitation usually precedes it, sometimes by a long way. So these gaps are an upper bound on the time defenders had, not a measurement of attacker speed.</p>`;
+}
 /* ── 3. Where exploited flaws cluster: weakness themes ──────────────────── */
 function vulnCweHTML(W){
   const kev=vulnKev();
-  const withCwe=kev.filter(k=>Array.isArray(k.cwes)&&k.cwes.length);
-  if(!withCwe.length)return vulnVendorChips()+'<p class="chartNote">The data pack does not yet carry weakness identifiers. They arrive with builder 3.10.0 or later \u2014 rebuild the pack and this fills in.</p>';
+  const cwesFor=k=>{
+    if(Array.isArray(k.cwes)&&k.cwes.length)return k.cwes;
+    const n=nvdOf(k.cve);                     // NVD classifies where the catalogue does not
+    return (n&&Array.isArray(n.cwes)&&n.cwes.length)?n.cwes:null;
+  };
+  const withCwe=kev.filter(k=>cwesFor(k));
+  if(!withCwe.length)return vulnVendorChips()+'<p class="chartNote">The data pack does not yet carry weakness identifiers. They arrive with builder 3.10.0 (from the catalogue) or 3.11.0 (from NVD) \u2014 rebuild the pack and this fills in.</p>';
   const c={};
-  withCwe.forEach(k=>k.cwes.forEach(w=>{c[w]=(c[w]||0)+1}));
+  withCwe.forEach(k=>cwesFor(k).forEach(w=>{c[w]=(c[w]||0)+1}));
   const rows=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,14);
   const max=Math.max(...rows.map(r=>r[1]));
   const bars=rows.map(([w,n])=>{
@@ -5804,17 +5919,28 @@ function showCveDetail(cveId){
   if(!k)return;
   const e=LAKE.epssMap&&LAKE.epssMap.get(cveId);
   const ran=/known/i.test(k.ransomware||"");
-  const cwes=(Array.isArray(k.cwes)?k.cwes:[]).map(w=>`${escapeHtml(CWE_NAMES[w]||w)} <span style="color:#5f7a9c">(${escapeHtml(w)})</span>`).join(", ");
+  const n=nvdOf(cveId)||{};
+  const cweList=(Array.isArray(k.cwes)&&k.cwes.length)?k.cwes:(n.cwes||[]);
+  const cwes=cweList.map(w=>`${escapeHtml(CWE_NAMES[w]||w)} <span style="color:#5f7a9c">(${escapeHtml(w)})</span>`).join(", ");
+  const lag=exploitLagDays(k);
+  const lagTxt=(lag===null)?"Not known"
+    :(lag<0?`<b style="color:#ff8fa0">${Math.abs(lag).toLocaleString()} days before publication</b> \u2014 exploited first`
+           :`${lag.toLocaleString()} day${lag===1?"":"s"} after publication`);
   const html=`<h3>${escapeHtml(k.cve)}</h3>
    <div class="kv"><b>Vendor</b><span>${escapeHtml(k.vendor||"Not recorded")}</span>
    <b>Product</b><span>${escapeHtml(k.product||"Not recorded")}</span>
    <b>Catalogued</b><span>${escapeHtml(k.added||"\u2014")}</span>
    <b>Fix required by</b><span>${escapeHtml(k.due||"Not recorded")}</span>
    <b>Ransomware use</b><span>${ran?"Known":"Not established"}</span>
-   <b>Predicted exploitation</b><span>${e?`${Math.round(e.epss*100)}% in 30 days (${Math.round(e.pct*100)}th percentile)`:"No published score"}</span></div>
+   <b>Predicted exploitation</b><span>${e?`${Math.round(e.epss*100)}% in 30 days (${Math.round(e.pct*100)}th percentile)`:"No published score"}</span>
+   <b>Severity</b><span>${typeof n.cvss==="number"?`${n.cvss.toFixed(1)}${n.sev?` (${escapeHtml(n.sev)})`:""} <span style="color:#5f7a9c">CVSS ${escapeHtml(n.cvssVer||"")}</span>`:"Not scored by NVD"}</span>
+   <b>Published</b><span>${escapeHtml(n.published||"Not known")}</span>
+   <b>Time to exploitation</b><span>${lagTxt}</span>
+   <b>References</b><span>${n.refs?`${n.refs} recorded by NVD`:"Not known"}</span></div>
    <p>${escapeHtml(k.name||"")}</p>
+   ${n.desc?`<p style="color:#a8bcd6">${escapeHtml(n.desc)}</p>`:""}
    ${cwes?`<p><b>Weakness:</b> ${cwes}</p>`:""}
-   <p class="small">"Catalogued" is the date CISA added it, which can be long after the flaw was published. The predicted probability is FIRST's EPSS model \u2014 an estimate, not an observation. "Not established" for ransomware means no evidence recorded, not that it was never used.</p>
+   <p class="small">"Catalogued" is the date CISA added it, which can be long after the flaw was published \u2014 and exploitation usually began before either date. The predicted probability is FIRST's EPSS model, an estimate rather than an observation; severity is NVD's judgement of how bad exploitation would be, not how likely. Scores from different CVSS versions are not strictly comparable, so the version is shown. "Not established" for ransomware means no evidence was recorded, not that it never happened.</p>
    <div class="miniLinks">
      <a href="https://nvd.nist.gov/vuln/detail/${encodeURIComponent(k.cve)}" target="_blank" rel="noopener">NVD record</a>
      <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank" rel="noopener">CISA catalogue</a>
@@ -6046,6 +6172,10 @@ const CHART_DEFS=[
   blurb:"Three trends side by side \u2014 shapes only, not a causal claim.",
   ok:()=>!!(LAKE.kev&&LAKE.kev.length),
   build:W=>vulnVsAttacksHTML(W)},
+ {id:"vulnlag",title:"From publication to exploitation",group:"reference",live:false,
+  blurb:"How long defenders actually had \u2014 and how often none at all.",
+  ok:()=>!!(LAKE.kev&&LAKE.kev.length),
+  build:W=>vulnLagHTML(W)},
  {id:"vulncwe",title:"Weakness themes in exploited flaws",group:"reference",live:false,
   blurb:"The same handful of mistakes, repeated across vendors.",
   ok:()=>!!(LAKE.kev&&LAKE.kev.length),
@@ -6183,6 +6313,9 @@ function renderChartFrame(id){
    if(wrap)setFollow(wrap.dataset.timefor,b.dataset.follow==="1");
  }));
  // vendor chips are shared by every vulnerability chart, so all of them stay in step
+ host.querySelectorAll(".vulnDimBtn").forEach(b=>b.addEventListener("click",()=>{
+   VULN_DIM=b.dataset.vdim; renderChartFrame("vulntime");
+ }));
  host.querySelectorAll(".vendChip").forEach(b=>b.addEventListener("click",()=>{
    const v=b.dataset.vendor;
    if(v==="__all")VULN_VENDORS.clear();

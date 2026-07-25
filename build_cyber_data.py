@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.10.0 (2026-07-25) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.11.0 (2026-07-25) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.11.0 NVD per-CVE detail added for the exploited catalogue only: severity and
+        CVSS version, weakness identifiers, publication date, reference count and a
+        short description, for the ~1,600 flaws CISA records as actually exploited.
+        The full NVD corpus (~250,000 records) is deliberately NOT downloaded - it
+        would be a multi-hundred-megabyte artefact almost none of which anyone would
+        look at. Work is capped per run and cached in vulns/nvd.json, so the first
+        few nights fill it in and later runs fetch only newly catalogued flaws.
+        Publication dates make the gap between disclosure and observed exploitation
+        measurable for the first time.
  3.10.0 KEV entries now carry the catalogue's weakness identifiers (cwes) and the
         remediation due date, so exploited flaws can be grouped by underlying weakness
         and by how urgently CISA required them fixed - the recurring-theme view, rather
@@ -132,8 +141,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.10.0"
-BUILDER_DATE = "2026-07-25d"
+BUILDER_VERSION = "3.11.0"
+BUILDER_DATE = "2026-07-25e"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -1352,6 +1361,159 @@ def build_impact_overlay():
     return rows
 
 
+# ── NVD per-CVE detail for the exploited catalogue ──────────────────────────
+# The CVE connector above counts how many vulnerabilities were published each
+# month. This one fetches the DETAIL - severity, weakness, publication date -
+# but only for the flaws that matter most: the ones CISA has recorded as
+# actually exploited. That is about 1,600 records rather than a quarter of a
+# million, which keeps the pack small enough to load in a browser and the run
+# inside a sensible time budget.
+#
+# Why not the whole corpus: NVD holds ~250,000 CVEs. Even at 2,000 per request
+# that is a large multi-hundred-megabyte artefact no browser should download,
+# and almost all of it would never be looked at. Enriching the exploited set
+# gives the analytical value at a thousandth of the size.
+#
+# The work is capped per run and cached, so the first few nights fill it in and
+# later runs only fetch newly catalogued flaws.
+NVD_DETAIL_MAX_PER_RUN_KEYED = 500
+NVD_DETAIL_MAX_PER_RUN_NOKEY = 30
+NVD_DETAIL_MAX_SECONDS = 900
+
+
+def _nvd_parse_cve(item):
+    """Pull the few fields worth carrying out of one NVD API record."""
+    cve = item.get("cve") or {}
+    out = {"cve": cve.get("id", "")}
+    pub = (cve.get("published") or "")[:10]
+    if pub:
+        out["published"] = pub
+
+    # CVSS: prefer v3.1, then v3.0, then v2 - and record which, because comparing
+    # scores across versions is not strictly valid and the reader should know.
+    metrics = cve.get("metrics") or {}
+    for keyname, label in (("cvssMetricV31", "3.1"), ("cvssMetricV30", "3.0"),
+                           ("cvssMetricV2", "2.0")):
+        arr = metrics.get(keyname) or []
+        if not arr:
+            continue
+        data = (arr[0] or {}).get("cvssData") or {}
+        score = data.get("baseScore")
+        if score is None:
+            continue
+        out["cvss"] = float(score)
+        out["cvssVer"] = label
+        sev = data.get("baseSeverity") or (arr[0] or {}).get("baseSeverity") or ""
+        if sev:
+            out["sev"] = str(sev).title()
+        break
+
+    cwes = []
+    for w in (cve.get("weaknesses") or []):
+        for d in (w.get("description") or []):
+            v = str(d.get("value") or "")
+            if v.startswith("CWE-") and v not in cwes:
+                cwes.append(v)
+    if cwes:
+        out["cwes"] = cwes[:4]
+
+    refs = cve.get("references") or []
+    if refs:
+        out["refs"] = len(refs)
+    for d in (cve.get("descriptions") or []):
+        if (d.get("lang") or "") == "en":
+            txt = " ".join(str(d.get("value") or "").split())
+            if txt:
+                out["desc"] = txt[:320]
+            break
+    return out
+
+
+@source(id="nvdcve", table="vulns",
+        title="NVD detail for exploited vulnerabilities",
+        licence="NVD data - US Government work, public domain",
+        cadence="daily", homepage="https://nvd.nist.gov/", expected=0)
+def build_nvd_detail(out_dir=None):
+    key = os.environ.get("NVD_API_KEY", "").strip()
+    headers = dict(UA)
+    if key:
+        headers["apiKey"] = key
+    delay = 0.8 if key else 6.5
+    cap = NVD_DETAIL_MAX_PER_RUN_KEYED if key else NVD_DETAIL_MAX_PER_RUN_NOKEY
+
+    # Which flaws to enrich: whatever is in the exploited catalogue right now.
+    try:
+        kev_json = get_first(KEV_URLS, "CISA KEV (for NVD enrichment)").json()
+        wanted = [v.get("cveID", "") for v in kev_json.get("vulnerabilities", [])]
+        wanted = [c for c in wanted if c.startswith("CVE-")]
+    except Exception as exc:                                # noqa: BLE001
+        print("  [nvd] could not read the exploited catalogue (%s) - skipping" % exc)
+        return []
+    if not wanted:
+        return []
+
+    cached = {}
+    cache = (out_dir or Path("cyber_data")) / "vulns" / "nvd.json"
+    if cache.exists():
+        try:
+            for rec in json.loads(cache.read_text(encoding="utf-8")):
+                if rec.get("cve"):
+                    cached[rec["cve"]] = rec
+        except Exception:                                   # noqa: BLE001
+            cached = {}
+
+    # Fetch what we do not have, and retry anything that came back without a score
+    # (NVD sometimes publishes a record before it has been analysed).
+    todo = [c for c in wanted if c not in cached]
+    todo += [c for c in wanted if c in cached and "cvss" not in cached[c]]
+    print("  [nvd] %s; %d catalogued, %d cached, %d to fetch (cap %d this run)"
+          % ("API key in use" if key else "no API key - slow mode",
+             len(wanted), len(cached), len(todo), cap))
+
+    fetched, throttled, failures, t0 = 0, 0, 0, time.time()
+    for cve_id in todo:
+        if fetched >= cap:
+            print("  [nvd] per-run cap reached; the rest fills in on later runs")
+            break
+        if time.time() - t0 > NVD_DETAIL_MAX_SECONDS:
+            print("  [nvd] time budget reached; stopping this run cleanly")
+            break
+        try:
+            r = requests.get(NVD_API, params={"cveId": cve_id},
+                             headers=headers, timeout=60)
+            if r.status_code in (403, 429):
+                throttled += 1
+                if throttled >= 3:
+                    print("  [nvd] repeatedly throttled - keeping what we have")
+                    break
+                print("  [nvd] throttled at %s; backing off 20s" % cve_id)
+                time.sleep(20)
+                r = requests.get(NVD_API, params={"cveId": cve_id},
+                                 headers=headers, timeout=60)
+            r.raise_for_status()
+            items = r.json().get("vulnerabilities") or []
+            if items:
+                rec = _nvd_parse_cve(items[0])
+                if rec.get("cve"):
+                    cached[rec["cve"]] = rec
+            fetched += 1
+            if fetched % 50 == 0:
+                print("  [nvd] %d fetched, %ds elapsed" % (fetched, int(time.time() - t0)))
+            time.sleep(delay)
+        except Exception as exc:                            # noqa: BLE001
+            failures += 1
+            print("  [warn] nvd %s failed (%s)" % (cve_id, exc))
+            if failures >= 8:
+                print("  [nvd] too many consecutive failures - stopping this run")
+                break
+
+    rows = [cached[c] for c in sorted(cached) if c in cached]
+    scored = sum(1 for r in rows if "cvss" in r)
+    print("  [nvd] %d records held, %d with a CVSS score (%d fetched this run)"
+          % (len(rows), scored, fetched))
+    return rows
+
+
 @source(id="reports", table="reports", title="Vendor & agency threat reports (curated)",
         licence="Links only - reports are copyright of their publishers",
         cadence="manual", homepage="", expected=15)
@@ -1508,6 +1670,15 @@ def main():
         write_json(out_dir / "reports" / "vendor.json", results["reports"])
         tables["reports"] = {"files": {"vendor": {"file": "reports/vendor.json",
                                                   "rows": len(results["reports"])}}}
+    # ---- NVD detail for exploited flaws ----
+    if results.get("nvdcve"):
+        write_json(out_dir / "vulns" / "nvd.json", results["nvdcve"])
+        scored = sum(1 for r in results["nvdcve"] if "cvss" in r)
+        tables.setdefault("vulns", {"files": {}})
+        tables["vulns"]["files"]["nvd"] = {"file": "vulns/nvd.json",
+                                          "rows": len(results["nvdcve"]),
+                                          "scored": scored}
+
     # ---- curated impact overlay ----
     if results.get("impact_overlay"):
         write_json(out_dir / "impact" / "overlay.json", results["impact_overlay"])
