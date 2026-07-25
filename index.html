@@ -1444,7 +1444,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v65";
+const APP_VERSION="v66";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -1703,7 +1703,7 @@ const PROV_TIERS=[
  {id:"reported",label:"Reported by a database",
   help:"Compiled from public breach reports and press coverage by an established community database (VERIS Community Database, CISSM). Documented, but not expert-reviewed case by case."},
  {id:"provisional",label:"Provisional coding",
-  help:"Recorded but still being coded by the source, so scores and details may change on review. Currently the EuRepoC TableView rows marked \u201cOpen\u201d \u2014 the most recent data, and the least settled."},
+  help:"Recorded but not yet settled, so scores and details may change. Two kinds sit here: EuRepoC TableView rows still marked \u201cOpen\u201d, and curated landmark incidents whose figures have not yet been checked against the cited source. The most recent data, and the least settled."},
  {id:"claimed",label:"Claimed by the attacker",
   help:"Taken from ransomware leak-site listings, where the criminal group asserts a victim. Useful for tracking activity and volume, but unconfirmed and sometimes false or double-counted. Never read these as verified breaches."}
 ];
@@ -1713,7 +1713,7 @@ function provenanceOf(a){
   let layer="";
   try{ layer=(typeof sourceLayerName==="function")?(sourceLayerName(a)||""):"" }catch(e){ layer="" }
   let t="reported";
-  if(a&&a._impProvenance==="curated")t="reviewed";
+  if(a&&a._impProvenance==="curated")t=(a._reviewStatus==="verified")?"reviewed":"provisional";
   else if(/leak|ransomware\.live|claim/i.test(layer))t="claimed";
   else if(/provisional|tableview/i.test(layer))t="provisional";
   else if(/eurepoc|advisor|kev|cisa/i.test(layer))t="reviewed";
@@ -5294,7 +5294,7 @@ function curatedImpactIncidents(){
     type:normCategory((typeof canonicalType==="function"&&canonicalType(c.type))||c.type),
     severity:c.severity||"High", impact:severityToImpact(c.severity),
     summary:c.summary||"", source:c.source_name||"", sourceUrl:c.source_url||"",
-    confidence:(c.review_status==="verified"?"Curated landmark, verified against the cited source":"Curated landmark, "+(c.review_status||"unreviewed")),
+    confidence:(c.review_status==="verified"?"Curated landmark, verified against the cited source":"Curated landmark \u2014 NOT yet verified against the cited source"),
     leader:"", attribution:"Curated from the cited primary or official source"+(c.last_checked?", last checked "+c.last_checked:"")+".",
     imp:c.imp||{}, _impFigures:c.figures||{}, _impProvenance:"curated",
     _reviewStatus:c.review_status||""
