@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.11.1 (2026-07-25) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.11.2 (2026-07-26) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.11.2 Hardened the NVD record parser against malformed input: a non-string date,
+        or a list holding something other than a dictionary, would previously raise
+        and stop the whole connector rather than skipping one bad record. Found by
+        fuzzing the parser rather than in the wild.
  3.11.1 Cosmetic tidy of the NVD detail: truncated descriptions end with an ellipsis
         rather than stopping mid-word, and records sort by CVE year and number rather
         than as text (so CVE-2025-9242 precedes CVE-2025-10035). No refetch needed;
@@ -145,8 +149,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.11.1"
-BUILDER_DATE = "2026-07-25f"
+BUILDER_VERSION = "3.11.2"
+BUILDER_DATE = "2026-07-26"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -1388,8 +1392,12 @@ NVD_DETAIL_MAX_SECONDS = 900
 def _nvd_parse_cve(item):
     """Pull the few fields worth carrying out of one NVD API record."""
     cve = item.get("cve") or {}
-    out = {"cve": cve.get("id", "")}
-    pub = (cve.get("published") or "")[:10]
+    if not isinstance(cve, dict):
+        return {"cve": ""}
+    out = {"cve": str(cve.get("id") or "")}
+    # Coerce before slicing: a non-string here (seen only with malformed input, but
+    # cheap to guard) would otherwise take the whole build down.
+    pub = str(cve.get("published") or "")[:10]
     if pub:
         out["published"] = pub
 
@@ -1401,20 +1409,25 @@ def _nvd_parse_cve(item):
         arr = metrics.get(keyname) or []
         if not arr:
             continue
-        data = (arr[0] or {}).get("cvssData") or {}
+        first = arr[0] if isinstance(arr[0], dict) else {}
+        data = first.get("cvssData") or {}
         score = data.get("baseScore")
         if score is None:
             continue
         out["cvss"] = float(score)
         out["cvssVer"] = label
-        sev = data.get("baseSeverity") or (arr[0] or {}).get("baseSeverity") or ""
+        sev = data.get("baseSeverity") or first.get("baseSeverity") or ""
         if sev:
             out["sev"] = str(sev).title()
         break
 
     cwes = []
     for w in (cve.get("weaknesses") or []):
+        if not isinstance(w, dict):
+            continue
         for d in (w.get("description") or []):
+            if not isinstance(d, dict):
+                continue
             v = str(d.get("value") or "")
             if v.startswith("CWE-") and v not in cwes:
                 cwes.append(v)
@@ -1425,6 +1438,8 @@ def _nvd_parse_cve(item):
     if refs:
         out["refs"] = len(refs)
     for d in (cve.get("descriptions") or []):
+        if not isinstance(d, dict):
+            continue
         if (d.get("lang") or "") == "en":
             txt = " ".join(str(d.get("value") or "").split())
             if txt:

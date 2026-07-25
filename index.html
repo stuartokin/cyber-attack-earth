@@ -95,9 +95,20 @@
     .tbDot.green{background:#4ee6a5;box-shadow:0 0 8px rgba(78,230,165,.8)}
     .tbDot.amber{background:var(--orange);box-shadow:0 0 8px rgba(255,157,60,.8)}
     .tbDot.red{background:#ff4d66;box-shadow:0 0 8px rgba(255,77,102,.85)}
-    .tbTidy{color:#7fe6ff;border-color:#24506b}
-    .tbTidy:hover{background:rgba(77,216,255,.12);border-color:var(--accent)}
-    .tbTidy.hidden{display:none}
+    .tbWinWrap{position:relative;display:inline-flex}
+    .tbWinWrap.hidden{display:none}
+    .tbWindows{color:#7fe6ff;border-color:#24506b}
+    .tbWindows:hover,.tbWindows.on{background:rgba(77,216,255,.12);border-color:var(--accent)}
+    .winMenu{position:absolute;top:calc(100% + 6px);left:0;z-index:210;min-width:250px;
+      background:#0a1526;border:1px solid #34506f;border-radius:10px;padding:5px;
+      box-shadow:0 18px 46px rgba(0,0,0,.6);display:grid;gap:2px}
+    .winMenu.hidden{display:none}
+    .winMenu button{display:block;width:100%;text-align:left;background:transparent;border:0;
+      border-radius:7px;padding:7px 9px;color:#dbe8f7;cursor:pointer}
+    .winMenu button:hover{background:rgba(77,216,255,.13)}
+    .winMenu b{display:block;font-size:12px;font-weight:600}
+    .winMenu i{display:block;font-style:normal;font-size:10.5px;color:#8fa6c2;margin-top:1px}
+    .winMenu .winDanger b{color:var(--orange)}
     .tbCloseAll{color:var(--orange);border-color:#4a3520}
     .tbCloseAll:hover{background:rgba(255,157,60,.14);color:var(--orange);border-color:var(--orange)}
     .tbCloseAll.hidden{display:none}
@@ -182,6 +193,9 @@
        not show through it. Globe in space; flat earth on ocean. */
     #flatMap{display:none;padding:12px;z-index:2;background:#071a30}
     #flatMap svg{width:100%;height:100%;display:block;background:#071a30}
+    /* The missile animation is drawn on one canvas above the map rather than as
+       thousands of SVG transitions - see flatFx() for why. */
+    #flatFx{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3}
     #flatMap .ocean{fill:#0a2242}
     .country{fill:#10213b;stroke:#38506f;stroke-width:.35}
     .flat-arc{fill:none;stroke-linecap:round}
@@ -279,7 +293,10 @@
     .lookupResults{max-height:40vh;overflow:auto;margin-top:6px}
     .lookupScope{font-size:10.5px;color:#8fa6c4;background:rgba(16,32,57,.4);border:1px solid #223a58;border-radius:8px;padding:6px 9px;margin-bottom:6px;line-height:1.5}
     .histoHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:3px}
-    .chartBox{background:#0a1626;border:1px solid #1e3350;border-radius:9px;padding:6px 4px 2px;margin:5px 0}
+    /* No horizontal padding: the drawing already carries its own left margin for the
+       axis labels, and the extra 8px plus 2px of border was pushing every chart 4px
+       past its container - which is what kept the horizontal scroll bar switched on. */
+    .chartBox{background:#0a1626;border:1px solid #1e3350;border-radius:9px;padding:6px 0 2px;margin:5px 0;box-sizing:border-box;overflow:hidden}
     .impFigs{margin-top:9px;border-top:1px solid #1e3350;padding-top:7px}
     .impFigs h4{margin:0 0 4px;font-size:12px;color:#a8bcd6}
     .impFigs ul{margin:0;padding-left:16px;font-size:11.5px;line-height:1.5}
@@ -304,11 +321,22 @@
     .hbar>i{font-style:normal;color:#dbe8f7;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
     /* On a narrow panel the row would squeeze the number into nothing, so the label
        takes its own line and the bar and number share the next one. */
-    @media (max-width:520px){
-      .hbar{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name name" "bar val";row-gap:2px;margin-bottom:5px}
-      .hbar>span{grid-area:name}
+    /* The panel, not the screen, decides. A 340px window on a 2560px display still
+       needs the stacked layout, and the old viewport media query never fired there -
+       which is why the numbers disappeared behind the labels. */
+    .chartHost{container-type:inline-size}
+    @container (max-width:430px){
+      .hbar{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name name" "bar val";row-gap:2px;margin-bottom:6px}
+      .hbar>span{grid-area:name;white-space:normal}
       .hbarTrack{grid-area:bar}
       .hbar>i{grid-area:val}
+      .lgRow{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"rank name" "val move";row-gap:1px}
+      .lgRank{grid-area:rank}.lgName{grid-area:name}.lgVal{grid-area:val}.lgMove{grid-area:move;text-align:left}
+    }
+    /* Fallback for engines without container queries: never let the value be hidden. */
+    @supports not (container-type:inline-size){
+      .hbar{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name name" "bar val";row-gap:2px;margin-bottom:6px}
+      .hbar>span{grid-area:name}.hbarTrack{grid-area:bar}.hbar>i{grid-area:val}
     }
     .hbarTrack{position:relative;height:13px;background:#0a1626;border:1px solid #1e3350;border-radius:4px;overflow:hidden}
     .hbarFill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#2f6f96,#4dd8ff);border-radius:3px}
@@ -335,7 +363,9 @@
        the box never grows and the enlarged chart is clipped with no scrollable
        overflow. Sizing to content lets the box grow, so the host gets a real
        horizontal scroll range. */
-    .chartZoomLayer{zoom:1;width:max-content;min-width:100%}
+    /* fit-content, not max-content + min-width:100%: the latter rounded up against a
+       fractional container width and left a permanent 1px horizontal scroll bar. */
+    .chartZoomLayer{zoom:1;width:fit-content;min-width:calc(100% - 1px)}
     /* max-content would also stop the prose wrapping, which made the panel overflow
        sideways even at 1x. Text and tables are held to the visible width (--czW, the
        host width in the layer's own zoomed units, set in applyChartZoom) so they wrap
@@ -509,8 +539,16 @@
     <button class="tbBtn" data-frame="search" type="button" title="Search — look up an attack or threat group and jump to it" aria-label="Search"><span class="tbIco">🔍</span><span class="tbLabel">Search</span></button>
     <button class="tbBtn" data-frame="charts" type="button" title="Charts — incident, KEV, ICS advisory and EPSS charts" aria-label="Charts"><span class="tbIco">📊</span><span class="tbLabel">Charts</span></button>
     <button class="tbBtn" data-frame="bench" type="button" title="Compare against published findings from ENISA, Verizon and Dragos" aria-label="Compare"><span class="tbIco">⚖</span><span class="tbLabel">Compare</span></button>
-    <button id="tbTidy" class="tbBtn tbTidy hidden" type="button" title="Arrange the open windows so the globe stays visible" aria-label="Tidy windows"><span class="tbIco">&#9783;</span><span class="tbLabel">Tidy</span></button>
-    <button id="tbCloseAll" class="tbBtn tbCloseAll hidden" type="button" title="Close every open window" aria-label="Close all windows"><span class="tbIco">&#10006;</span><span class="tbLabel">Close all</span></button>
+    <div class="tbWinWrap hidden" id="tbWinWrap">
+      <button id="tbWindows" class="tbBtn tbWindows" type="button" title="Arrange, reset or close the open windows" aria-haspopup="true" aria-expanded="false"><span class="tbIco">&#9783;</span><span class="tbLabel">Windows</span></button>
+      <div class="winMenu hidden" id="winMenu" role="menu">
+        <button type="button" data-win="tidy" role="menuitem"><b>Tidy them</b><i>Arrange so the map stays visible</i></button>
+        <button type="button" data-win="home" role="menuitem"><b>Back to their usual places</b><i>Undo any dragging or resizing</i></button>
+        <button type="button" data-win="defaults" role="menuitem"><b>Reset what they show</b><i>Charts back to their opening settings</i></button>
+        <button type="button" data-win="close" role="menuitem" class="winDanger"><b>Close them all</b><i>Clear the screen</i></button>
+      </div>
+    </div>
+    <button id="tbCloseAll" class="tbBtn tbCloseAll hidden" type="button" hidden aria-hidden="true"></button>
     <button class="tbBtn" data-frame="help" type="button" title="Help — how to read this map, its limitations, sources and licences" aria-label="Help"><span class="tbIco">ⓘ</span><span class="tbLabel">Help</span></button>
   </div>
   <div id="frames">
@@ -555,9 +593,11 @@
         </select>
         <label for="densityMode">Missile density</label>
         <select id="densityMode">
-          <option value="full" selected>Every attack (may slow older devices)</option>
-          <option value="performance">Fewer missiles (smoother on phones)</option>
+          <option value="cinematic" selected>A few, clearly &mdash; launch, flight and impact</option>
+          <option value="some">More in the air at once</option>
+          <option value="full">Every attack (busy, and slower)</option>
         </select>
+        <p class="small" style="margin:2px 0 8px;color:#8fa6c2">The map is the picture, not the measurement: the counts, the heat shading and every chart always use the full set, whatever this is set to.</p>
         <label class="form-check" style="display:flex;gap:8px;align-items:center">
           <input id="cumulative" type="checkbox" /> Build up attacks over time (rather than one month at a time)
         </label>
@@ -825,7 +865,7 @@
   <main id="stage">
     <canvas id="stars"></canvas>
     <div id="globe"></div>
-    <div id="flatMap" aria-label="Flat world map"></div>
+    <div id="flatMap" aria-label="Flat world map"><canvas id="flatFx" aria-hidden="true"></canvas></div>
     <button id="impactLabel" class="impact-label hidden" type="button"></button>
     <section id="attackDrawer" class="detailDrawer frame hidden" aria-live="polite" aria-label="Attack details">
       <div class="frameHead"><h2>Attack details</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise attack details" title="Maximise / restore">&#9713;</button><button id="closeAttackDrawer" class="frameClose" type="button" aria-label="Close attack details">&#215;</button></span></div>
@@ -1363,8 +1403,11 @@ const HOME=homeView();
  const ctx=cv.getContext("2d");
  let stars=[],w=0,h=0,dpr=Math.min(2,window.devicePixelRatio||1);
  function build(){
-   w=cv.clientWidth||cv.parentNode.clientWidth||window.innerWidth;
-   h=cv.clientHeight||cv.parentNode.clientHeight||window.innerHeight;
+   // Same trap as the map canvas: if this node has been detached, parentNode is
+   // null and the fallback chain throws before it can fall back.
+   const par=cv.parentNode;
+   w=cv.clientWidth||(par&&par.clientWidth)||window.innerWidth;
+   h=cv.clientHeight||(par&&par.clientHeight)||window.innerHeight;
    cv.width=Math.round(w*dpr); cv.height=Math.round(h*dpr);
    ctx.setTransform(dpr,0,0,dpr,0,0);
    const n=Math.round(Math.min(520,Math.max(160,w*h/5200)));
@@ -1444,7 +1487,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v67";
+const APP_VERSION="v69";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -1917,7 +1960,7 @@ function countryPass(a){return countryPassSt(a,filterState("timeline"))}
 function filtered(){
  const all=filterPass("timeline");
  const perfCap=(window.__perfCap||900);
- if(densityMode && densityMode.value==="performance" && all.length>perfCap){
+ if(densityMode && densityMode.value!=="full" && all.length>perfCap){
    const step=all.length/perfCap; return Array.from({length:perfCap},(_,i)=>all[Math.floor(i*step)]);
  }
  // Safety valve: even on "every attack", cap what reaches the renderer. Beyond a few
@@ -2439,10 +2482,225 @@ function flatReset(animate){
    else flatSvg.transition().duration(900).call(flatZoom.transform,d3.zoomIdentity);
  }catch(e){}
 }
+/* ── Flat-map missiles ──────────────────────────────────────────────────────
+   The old approach gave every arc its own SVG dash transition. With a few
+   thousand arcs in a busy month that is a few thousand simultaneous animations,
+   each needing a getTotalLength() measurement that forces layout - which is why
+   playback staggered and why the result read as "the whole thing is flashing"
+   rather than as anything flying.
+
+   This draws instead on ONE canvas in a single animation frame loop, and shows
+   deliberately FEW missiles at a time. Each one has three visible phases:
+
+     launch   a bright ring blooms at the origin
+     flight   a comet - bright head, tapering tail - travels the arc
+     impact   a ring expands and fades at the target, and the route is left
+              behind very faintly
+
+   Showing forty missiles properly is a better picture than four thousand
+   flickering, and the honest position is that the map was never the measurement:
+   the counters, the heat shading and every chart still use the full set. */
+
+const FLATFX={cv:null,ctx:null,run:false,raf:null,shots:[],trails:[],last:0,
+              w:0,h:0,dpr:1,tf:{k:1,x:0,y:0},pool:[],cursor:0,nextLaunch:0};
+
+function flatFxDensity(){
+  const v=(document.getElementById("densityMode")||{}).value||"cinematic";
+  // concurrent missiles, and how often a new one leaves
+  if(v==="full")return {max:150,every:60};
+  if(v==="some")return {max:70,every:110};
+  return {max:34,every:190};                     // cinematic: few, but legible
+}
+
+function flatFxResize(){
+  // Every one of these can legitimately be missing. The canvas is destroyed whenever
+  // something rewrites the map container - the basemap-failure message does exactly
+  // that - and a resize can then arrive holding a reference to a detached node with
+  // no parent. Re-acquire, and give up quietly rather than throwing.
+  let cv=FLATFX.cv;
+  if(!cv||!cv.isConnected)cv=document.getElementById("flatFx");
+  if(!cv||!cv.isConnected){ FLATFX.cv=null; FLATFX.ctx=null; return }
+  if(FLATFX.cv!==cv){ FLATFX.cv=cv; FLATFX.ctx=null }
+  const host=cv.parentNode||document.getElementById("flatMap");
+  if(!host)return;
+  if(!FLATFX.ctx){ try{ FLATFX.ctx=cv.getContext("2d") }catch(e){ return } }
+  if(!FLATFX.ctx)return;
+  const w=host.clientWidth||host.offsetWidth||1, h=host.clientHeight||host.offsetHeight||1;
+  FLATFX.dpr=Math.min(2,window.devicePixelRatio||1);
+  FLATFX.w=w; FLATFX.h=h;
+  cv.width=Math.max(1,Math.round(w*FLATFX.dpr)); cv.height=Math.max(1,Math.round(h*FLATFX.dpr));
+  try{ FLATFX.ctx.setTransform(FLATFX.dpr,0,0,FLATFX.dpr,0,0) }catch(e){}
+}
+
+/* The map pans and zooms via a transform on the SVG layer; the canvas has to
+   follow it or the missiles drift off the coastline. */
+function flatFxReadTransform(){
+  try{
+    const t=flatZoomLayer&&flatZoomLayer.attr("transform");
+    if(!t){FLATFX.tf={k:1,x:0,y:0};return}
+    const m=/translate\(([-\d.]+)[, ]+([-\d.]+)\)/.exec(t);
+    const s=/scale\(([-\d.]+)/.exec(t);
+    FLATFX.tf={k:s?+s[1]:1,x:m?+m[1]:0,y:m?+m[2]:0};
+  }catch(e){ FLATFX.tf={k:1,x:0,y:0} }
+}
+function flatFxPt(lng,lat){
+  if(typeof flatProjection!=="function")return null;
+  let p=null;
+  try{ p=flatProjection([lng,lat]) }catch(e){ return null }
+  if(!p||!isFinite(p[0])||!isFinite(p[1]))return null;
+  const t=FLATFX.tf;
+  return [p[0]*t.k+t.x, p[1]*t.k+t.y];
+}
+
+/* Feed the animation. Called on every render with whatever is currently in the
+   arc window; it keeps its own rotating pool so the same few incidents do not
+   fly over and over when the month is quiet. */
+function flatFxSetData(arcs){
+  FLATFX.pool=Array.isArray(arcs)?arcs:[];
+  if(FLATFX.cursor>=FLATFX.pool.length)FLATFX.cursor=0;
+}
+
+function flatFxLaunch(now){
+  const pool=FLATFX.pool;
+  if(!pool.length)return;
+  const d=pool[FLATFX.cursor++ % pool.length];
+  const a=flatFxPt(d.startLng,d.startLat), b=flatFxPt(d.endLng,d.endLat);
+  if(!a||!b)return;
+  // a gentle arc, bowing away from the straight line
+  const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2 - Math.hypot(b[0]-a[0],b[1]-a[1])*0.22;
+  const dist=Math.hypot(b[0]-a[0],b[1]-a[1]);
+  FLATFX.shots.push({
+    a,b,c:[mx,my],
+    t0:now, dur:Math.max(900,Math.min(2600,700+dist*3.2)),
+    col:severityColor[d.severity]||"#4dd8ff",
+    impact:d.impact||50, id:d.id, done:false
+  });
+}
+
+function flatFxQuad(p0,p1,p2,t){
+  const u=1-t;
+  return [u*u*p0[0]+2*u*t*p1[0]+t*t*p2[0], u*u*p0[1]+2*u*t*p1[1]+t*t*p2[1]];
+}
+
+function flatFxFrame(now){
+  if(!FLATFX.run){FLATFX.raf=null;return}
+  // the canvas can disappear mid-flight; stop cleanly rather than throwing every frame
+  if(!FLATFX.cv||!FLATFX.cv.isConnected){FLATFX.run=false;FLATFX.raf=null;FLATFX.ctx=null;return}
+  const ctx=FLATFX.ctx;
+  if(!ctx){FLATFX.raf=null;return}
+  const dens=flatFxDensity();
+  flatFxReadTransform();
+  ctx.clearRect(0,0,FLATFX.w,FLATFX.h);
+
+  // faint routes already flown, so the month still builds up a picture
+  ctx.lineWidth=0.6;
+  for(let i=FLATFX.trails.length-1;i>=0;i--){
+    const tr=FLATFX.trails[i];
+    const age=(now-tr.t0)/9000;
+    if(age>=1){FLATFX.trails.splice(i,1);continue}
+    ctx.globalAlpha=0.16*(1-age);
+    ctx.strokeStyle=tr.col;
+    ctx.beginPath();
+    ctx.moveTo(tr.a[0],tr.a[1]);
+    ctx.quadraticCurveTo(tr.c[0],tr.c[1],tr.b[0],tr.b[1]);
+    ctx.stroke();
+  }
+
+  // launch a new one on a steady cadence rather than all at once
+  if(now>=FLATFX.nextLaunch && FLATFX.shots.length<dens.max){
+    flatFxLaunch(now);
+    FLATFX.nextLaunch=now+dens.every*(0.6+Math.random()*0.8);
+  }
+
+  for(let i=FLATFX.shots.length-1;i>=0;i--){
+    const s=FLATFX.shots[i];
+    const t=(now-s.t0)/s.dur;
+
+    if(t>=1){
+      // ── impact ──
+      const it=(now-s.t0-s.dur)/700;
+      if(it>=1){
+        FLATFX.trails.push({a:s.a,b:s.b,c:s.c,col:s.col,t0:now});
+        FLATFX.shots.splice(i,1);
+        continue;
+      }
+      const r=3+it*16, al=(1-it);
+      ctx.globalAlpha=al*0.9; ctx.strokeStyle=s.col; ctx.lineWidth=1.6*(1-it)+0.4;
+      ctx.beginPath(); ctx.arc(s.b[0],s.b[1],r,0,6.283); ctx.stroke();
+      ctx.globalAlpha=al*0.5;
+      ctx.beginPath(); ctx.arc(s.b[0],s.b[1],r*0.45,0,6.283); ctx.fillStyle=s.col; ctx.fill();
+      continue;
+    }
+
+    // ── launch bloom, only for the first moment ──
+    if(t<0.16){
+      const lt=t/0.16;
+      ctx.globalAlpha=(1-lt)*0.75; ctx.strokeStyle=s.col; ctx.lineWidth=1.2;
+      ctx.beginPath(); ctx.arc(s.a[0],s.a[1],2+lt*7,0,6.283); ctx.stroke();
+    }
+
+    // ── flight: a comet with a tapering tail ──
+    const head=flatFxQuad(s.a,s.c,s.b,t);
+    const TAIL=10;
+    ctx.lineCap="round";
+    for(let k=0;k<TAIL;k++){
+      const t1=Math.max(0,t-k*0.016), t2=Math.max(0,t-(k+1)*0.016);
+      if(t2<=0)break;
+      const p1=flatFxQuad(s.a,s.c,s.b,t1), p2=flatFxQuad(s.a,s.c,s.b,t2);
+      ctx.globalAlpha=(1-k/TAIL)*0.85;
+      ctx.lineWidth=(1-k/TAIL)*2.2+0.3;
+      ctx.strokeStyle=s.col;
+      ctx.beginPath(); ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.stroke();
+    }
+    ctx.globalAlpha=1;
+    ctx.fillStyle="#fff";
+    ctx.beginPath(); ctx.arc(head[0],head[1],1.7,0,6.283); ctx.fill();
+    ctx.globalAlpha=0.55; ctx.fillStyle=s.col;
+    ctx.beginPath(); ctx.arc(head[0],head[1],3.4,0,6.283); ctx.fill();
+  }
+
+  ctx.globalAlpha=1;
+  FLATFX.raf=requestAnimationFrame(flatFxFrame);
+}
+
+function flatFxStart(){
+  // The canvas can be destroyed by anything that rewrites the map container - the
+  // basemap-failure message does exactly that - so re-create it rather than
+  // silently never animating again.
+  let cv=document.getElementById("flatFx");
+  const host=document.getElementById("flatMap");
+  if(!cv&&host){
+    cv=document.createElement("canvas");
+    cv.id="flatFx"; cv.setAttribute("aria-hidden","true");
+    host.appendChild(cv);
+    FLATFX.ctx=null;                       // the old context belonged to a dead node
+  }
+  if(!cv)return;
+  if(FLATFX.cv!==cv)FLATFX.ctx=null;
+  FLATFX.cv=cv;
+  if(!FLATFX.ctx)FLATFX.ctx=cv.getContext("2d");
+  flatFxResize();
+  if(!FLATFX.run){
+    FLATFX.run=true;
+    FLATFX.nextLaunch=0;
+    if(!FLATFX.raf)FLATFX.raf=requestAnimationFrame(flatFxFrame);
+  }
+}
+function flatFxStop(){
+  FLATFX.run=false;
+  if(FLATFX.raf){cancelAnimationFrame(FLATFX.raf);FLATFX.raf=null}
+  if(FLATFX.ctx)FLATFX.ctx.clearRect(0,0,FLATFX.w,FLATFX.h);
+  FLATFX.shots.length=0; FLATFX.trails.length=0;
+}
+window.addEventListener("resize",()=>{ try{ if(FLATFX.run)flatFxResize() }catch(e){} },{passive:true});
+
 function renderFlat(data,arcData){
  if(!flatZoomLayer||typeof flatProjection!=="function") return;
  if(!arcData)arcData=data;
- const hits=heatCounts(); const mx=Math.max(1,...Object.values(hits)); _lastHeatCounts=hits;
+ // update() has just computed these for the sphere; reuse rather than recount the
+ // whole filtered set a second time on every tick.
+ const hits=_lastHeatCounts||heatCounts();
+ const mx=Math.max(1,...Object.values(hits)); _lastHeatCounts=hits;
  flatZoomLayer.selectAll(".country").style("fill",d=>heatColor(hits[String(d.id).padStart(3,"0")]||0,mx,hits));
  flatZoomLayer.selectAll(".flat-attack-layer").remove();
  const layer=flatZoomLayer.append("g").attr("class","flat-attack-layer");
@@ -2461,69 +2719,31 @@ function renderFlat(data,arcData){
        .text("Unknown / unattributed origin \u00b7 "+flatUnattr.toLocaleString());
    }
  }
+ if(mode!=="attacks"&&typeof flatFxStop==="function")flatFxStop();
  if(mode==="attacks"){
-   const flightMs=Math.min(850,Math.max(160,(+speed.value||1000)*0.82));
-   const paths=layer.selectAll("path.flat-arc").data(arcData).join("path")
-    .attr("class","flat-arc pulse-path")
+   // The flight animation now lives on a canvas (see flatFx above). What stays in
+   // SVG is only what needs to be clickable: a faint route for each arc, and the
+   // origin and target markers.
+   // Past a few hundred, the faint routes are an indistinguishable wash and cost a
+   // path node each on every tick. Cap what is drawn; the counts are unaffected.
+   const ROUTE_CAP=(document.getElementById("densityMode")||{}).value==="full"?1200:320;
+   const routeData=arcData.length>ROUTE_CAP
+     ? arcData.filter((d,i)=>i%Math.ceil(arcData.length/ROUTE_CAP)===0)
+     : arcData;
+   const paths=layer.selectAll("path.flat-arc").data(routeData).join("path")
+    .attr("class","flat-arc")
     .attr("d",d=>{
       const a=flatProjection([d.startLng,d.startLat]), b=flatProjection([d.endLng,d.endLat]);
-      const mx=(a[0]+b[0])/2, my=Math.min(a[1],b[1])-Math.abs(a[0]-b[0])*.14;
+      const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2-Math.hypot(b[0]-a[0],b[1]-a[1])*0.22;
       return `M${a[0]},${a[1]} Q${mx},${my} ${b[0]},${b[1]}`;
     })
-    .attr("stroke",d=>severityColor[d.severity]).attr("stroke-width",d=>1+d.impact/45)
+    .attr("fill","none")
+    .attr("stroke",d=>severityColor[d.severity])
+    .attr("stroke-width",0.6)
+    .attr("opacity",routeData.length>600?0.05:0.09)
     .on("click",(e,d)=>showDetail(d));
-   // A comet, not a drawn line. Previously the whole arc was inked in from origin
-   // to target, which reads as "a line growing towards the victim". Instead each
-   // arc carries a SHORT bright dash that travels the full path with empty space
-   // in front of and behind it, so what you see is a projectile with a tail.
-   //
-   // Mechanics: dasharray is [tail, len] so only one short segment is ever visible,
-   // and dashoffset sweeps from +tail (just before the start) to -len (just past
-   // the end), carrying that segment along the whole route. This is a pure SVG
-   // transition, so it works for every arc rather than a capped few.
-   // Launches must be STAGGERED. Previously every arc had a delay of zero unless
-   // there were more than fifteen hundred of them, so they all set off and landed
-   // in unison - one synchronised flash, which is why it read as "the lines just
-   // appear" rather than as missiles in flight. Each arc now leaves at its own
-   // moment, spread across a window, and flies at its own speed.
-   const many=arcData.length>1200;
-   const spread=many?2600:2000;                 // launches spread across this long
-   const hash=d=>{                              // stable per-arc, so it does not
-     const s=String(d.id||"");                  // jump about between renders
-     let h=0; for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;
-     return h;
-   };
-   paths
-     .attr("stroke-linecap","round")
-     .attr("stroke-width",d=>0.9+d.impact/70)
-     .attr("stroke-dasharray",function(){
-       const len=this.getTotalLength?this.getTotalLength():100;
-       const tail=Math.max(8,Math.min(28,len*0.08));
-       this.__len=len; this.__tail=tail;
-       return tail+" "+(len+tail);
-     })
-     .attr("stroke-dashoffset",function(){return this.__tail})
-     .attr("opacity",1);
-   paths.transition("fly")
-     .delay((d,i)=>(hash(d)%spread))
-     .duration(d=>Math.max(700,1900-d.impact*8))
-     .ease(d3.easeLinear)
-     .attr("stroke-dashoffset",function(){return -(this.__len)});
-   // Once it lands, leave the route behind very faintly so the picture builds up
-   // over the month. The dash pattern is swapped INSTANTLY at zero opacity and the
-   // faint line then fades in: animating the dash values instead made the trail
-   // appear to travel back towards its origin, because interpolating from a short
-   // dash to a full-length one grows the visible segment backwards from the head.
-   paths.transition("fly").on("end",function(){
-     const s=d3.select(this);
-     s.interrupt("settle")
-      .attr("stroke-dasharray",null)
-      .attr("stroke-dashoffset",null)
-      .attr("stroke-width",0.7)
-      .attr("opacity",0)
-      .transition("settle").duration(400)
-      .attr("opacity",many?.05:.10);
-   });
+   flatFxSetData(arcData);
+   flatFxStart();
    layer.selectAll("circle.flat-origin").data(data).join("circle").attr("class","flat-origin")
     .attr("cx",d=>flatProjection([d.startLng,d.startLat])[0]).attr("cy",d=>flatProjection([d.startLng,d.startLat])[1])
     .attr("r",4).on("click",(e,d)=>showDetail(d));
@@ -2856,7 +3076,7 @@ async function loadEnrichmentLayers(){
   fetch(RWLIVE_API+"/groups").then(r=>r.ok?r.json():Promise.reject(r.status)).then(gs=>{enrichmentCounts.rwGroups=ingestRwGroups(gs)}).catch(err=>{console.warn("Ransomware.live groups unavailable",err)})
  ];
  if(typeof splashBar==="function"){splashBar(1,100,attacks.length);splashBar(2,100);splashBar(3,55)}
- document.getElementById("splashStatus").textContent="Merging and de-duplicating…";
+ const _ss1=document.getElementById("splashStatus"); if(_ss1)_ss1.textContent="Merging and de-duplicating…";
  await Promise.allSettled(jobs); renderSourceMenu();
  if(typeof dataHealth==="function")dataHealth();
  if(typeof splashReady==="function")splashReady();
@@ -3156,7 +3376,7 @@ function maybeMobilePerfDefaults(){
  if(!LOW_POWER||mobilePerfApplied||userTouchedFilters||attacks.length<8000)return;
  mobilePerfApplied=true;
  document.querySelectorAll(".severity").forEach(x=>{x.checked=(x.value==="Critical"||x.value==="High")});
- if(densityMode)densityMode.value="performance";
+ if(densityMode)densityMode.value="cinematic";
  markHistoDirty(); update();
  const t=document.createElement("div");
  t.style.cssText="position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:70;max-width:min(480px,calc(100% - 24px));background:rgba(5,12,25,.97);border:1px solid #34506f;border-radius:12px;padding:10px 13px;font-size:12px;line-height:1.5;color:#dbe7f5;box-shadow:0 10px 34px rgba(0,0,0,.45)";
@@ -3190,7 +3410,7 @@ async function loadRansomwareLiveProgressive(){
      const countries=new Set(attacks.map(a=>a.victimISO).filter(Boolean));
      dataStatus.textContent=`Multi-source data loaded • ${attacks.length.toLocaleString()} deduplicated routes • ${countries.size} victim countries • incl. ${all.length.toLocaleString()} leak-site claims (2020 → today)`;
      if(attacks.length>10000&&densityMode.value==="full"){
-       densityMode.value="performance";
+       densityMode.value="cinematic";
        dataStatus.textContent+=" • density auto-set to Performance for smooth playback";
        update();
      }
@@ -3413,10 +3633,10 @@ async function loadLake(){
  const rf=(T.reports&&T.reports.files)||{};
  if(rf.vendor)jobs.push(grabJSON(base+rf.vendor.file).then(r=>{if(Array.isArray(r))LAKE.reports=r}));
  if(typeof splashBar==="function"){splashBar(1,45);splashBar(2,20)}
- document.getElementById("splashStatus").textContent="Downloading incident tables…";
+ const _ss2=document.getElementById("splashStatus"); if(_ss2)_ss2.textContent="Downloading incident tables…";
  await Promise.all(jobs);
  if(typeof splashBar==="function"){splashBar(1,92);splashBar(2,85)}
- document.getElementById("splashStatus").textContent="Read "+(Object.keys(T).length)+" tables…";
+ const _ss3=document.getElementById("splashStatus"); if(_ss3)_ss3.textContent="Read "+(Object.keys(T).length)+" tables…";
  return out;
 }
 async function loadDataPack(){
@@ -3444,7 +3664,7 @@ let packRwl=null,packRwlLastIdx=-1;
 async function loadResearchDataset(){
  dataStatus.textContent="Checking for same-origin data lake…";
  if(typeof splashBar==="function"){splashBar(1,8);splashBar(2,4);splashBar(3,2)}
- if(typeof splashProgress==="function")document.getElementById("splashStatus").textContent="Looking for the data pack…";
+ if(typeof splashProgress==="function"){const _e=document.getElementById("splashStatus"); if(_e)_e.textContent="Looking for the data pack…";}
  const sources=[]; const failures=[]; let packUsed=[];
  const pack=(await loadLake())||(await loadDataPack());
  if(pack.lake)packUsed.push("lake v"+LAKE.manifest.schema);
@@ -3504,6 +3724,7 @@ function setMapMode(mode){
  flatMapEl.style.display=sphere?"none":"block";
  const st=document.getElementById("stars");           // stars are for space only
  if(st)st.style.display=sphere?"block":"none";
+ if(sphere&&typeof flatFxStop==="function")flatFxStop();   // no point animating a hidden map
  sphereBtn.classList.toggle("primary",sphere);
  flatBtn.classList.toggle("primary",!sphere);
  if(selectedAttack) showDetail(selectedAttack);
@@ -3976,15 +4197,79 @@ function tidyFrames(){
    if(typeof renderChartFrame==="function")renderChartFrame(id);
  });
 }
+
+/* ── Window housekeeping ────────────────────────────────────────────────────
+   Four related actions behind one tool-bar button, because they were eating
+   space for something used occasionally:
+     tidy      arrange so the map stays visible
+     home      forget any dragging and resizing, back to the usual places
+     defaults  reset what each chart is SHOWING - dimension, follow mode, zoom
+     close     clear the screen
+   "home" and "defaults" are deliberately separate: moving a window and changing
+   what it displays are different mistakes to undo. */
+function framesHome(){
+ document.querySelectorAll(".frame").forEach(f=>{
+   f.classList.remove("maxed");
+   f.style.left="";f.style.top="";f.style.right="";f.style.width="";
+   f.style.maxWidth="";f.style.height="";f.style.maxHeight="";
+   delete f.dataset.placed; delete f.dataset.sized;
+ });
+ document.querySelectorAll(".frame:not(.hidden)").forEach(f=>{
+   if(typeof positionFrame==="function")positionFrame(f);
+ });
+ document.querySelectorAll('.frame[id^="frame-chart-"]:not(.hidden)').forEach(f=>{
+   const id=f.id.replace("frame-chart-","");
+   if(typeof renderChartFrame==="function")renderChartFrame(id);
+ });
+}
+function chartsToDefaults(){
+ // what each chart shows, not where it sits
+ Object.keys(CHART_ZOOM).forEach(k=>delete CHART_ZOOM[k]);
+ Object.keys(CHART_FOLLOW).forEach(k=>delete CHART_FOLLOW[k]);
+ Object.keys(CHART_MODE).forEach(k=>delete CHART_MODE[k]);
+ Object.keys(CHART_TOPONLY).forEach(k=>delete CHART_TOPONLY[k]);
+ Object.keys(CHART_LAST_RANK).forEach(k=>delete CHART_LAST_RANK[k]);
+ VULN_DIM="epss";
+ VULN_VENDORS.clear();
+ document.querySelectorAll('.frame[id^="frame-chart-"]:not(.hidden)').forEach(f=>{
+   const id=f.id.replace("frame-chart-","");
+   if(typeof renderChartFrame==="function")renderChartFrame(id);
+ });
+}
+(function(){
+ const btn=document.getElementById("tbWindows"), menu=document.getElementById("winMenu");
+ if(!btn||!menu)return;
+ const close=()=>{menu.classList.add("hidden");btn.classList.remove("on");btn.setAttribute("aria-expanded","false")};
+ btn.addEventListener("click",e=>{
+   e.stopPropagation();
+   const open=menu.classList.contains("hidden");
+   menu.classList.toggle("hidden",!open);
+   btn.classList.toggle("on",open);
+   btn.setAttribute("aria-expanded",String(open));
+ });
+ menu.addEventListener("click",e=>{
+   const b=e.target.closest("[data-win]"); if(!b)return;
+   const what=b.dataset.win;
+   close();
+   if(what==="tidy")tidyFrames();
+   else if(what==="home")framesHome();
+   else if(what==="defaults")chartsToDefaults();
+   else if(what==="close"&&typeof closeAllFrames==="function")closeAllFrames();
+   else if(what==="close")document.querySelectorAll(".frame:not(.hidden)").forEach(f=>f.classList.add("hidden"));
+   if(typeof refreshCloseAll==="function")refreshCloseAll();
+ });
+ document.addEventListener("click",ev=>{ if(!menu.contains(ev.target)&&ev.target!==btn)close() });
+ document.addEventListener("keydown",ev=>{ if(ev.key==="Escape")close() });
+})();
 function refreshCloseAll(){
  if(!tbCloseAll)return;
  const n=openFrameCount();
- tbCloseAll.classList.toggle("hidden",n<2);
- const tid=document.getElementById("tbTidy");
- if(tid){
-   tid.classList.toggle("hidden",n<1);
-   const tl=tid.querySelector(".tbLabel");
-   if(tl)tl.textContent=n>1?`Tidy (${n})`:"Tidy";
+ const wrap=document.getElementById("tbWinWrap");
+ if(wrap){
+   wrap.classList.toggle("hidden",n<1);
+   const lab=wrap.querySelector(".tbLabel");
+   if(lab)lab.textContent=n>1?`Windows (${n})`:"Windows";
+   if(n<1){const m=document.getElementById("winMenu"); if(m)m.classList.add("hidden");}
  }
  const lbl=tbCloseAll.querySelector(".tbLabel");
  if(lbl)lbl.textContent=`Close all (${n})`;
@@ -4064,17 +4349,20 @@ function splashReady(){
  splashBar(1,100,attacks.length);
  splashBar(2,100,LAKE.manifest?((LAKE.manifest.sources||[]).filter(s=>s.status==="ok").length+" src"):"\u2014");
  splashBar(3,100,"\u2713");
- document.getElementById("splashStatus").textContent="Ready.";
+ const st=document.getElementById("splashStatus");
+ if(st)st.textContent="Ready.";
  const v=document.getElementById("splashVer");
  if(v)v.textContent="Version "+APP_VERSION+(LAKE.manifest&&LAKE.manifest.builder?"  \u00b7  data pack "+LAKE.manifest.builder+", built "+String(LAKE.manifest.generated).slice(0,10):"  \u00b7  no data pack");
  const go=document.getElementById("splashGo");
  const n=attacks.length;
- document.getElementById("splashCount").textContent=n.toLocaleString();
+ const cnt=document.getElementById("splashCount");
+ if(cnt)cnt.textContent=n.toLocaleString();
  // credit the sources actually loaded, drawn from the pack rather than hard-coded
  const names=LAKE.manifest
    ? (LAKE.manifest.sources||[]).filter(s=>s.status==="ok").map(s=>s.title.replace(/\s*\(.*\)/,""))
    : ["an embedded curated set"];
- document.getElementById("splashAttrib").innerHTML=
+ const attrib=document.getElementById("splashAttrib");
+ if(attrib)attrib.innerHTML=
    "Contains information from "+names.slice(0,8).join(", ")+
    ". Licences and full attribution are in the Help window, and in ATTRIBUTION.md in the repository.";
  if(go){go.disabled=false;go.textContent="Explore the map";}
@@ -4082,11 +4370,16 @@ function splashReady(){
 function splashDismiss(then){
  const s=document.getElementById("splash");
  if(!s)return;
+ // Mark it finished FIRST. The pack can still be loading, and a late splashReady -
+ // or the minimum-hold timer - would otherwise write to nodes that are about to be
+ // removed. That is a real crash on a slow or blocked connection, where the
+ // failsafe dismisses the splash while fetches are still in flight.
+ SPLASH.done=true;
  clearInterval(SPLASH.jokeTimer);
  // honour the lighter-load choice before revealing the map
  if(document.getElementById("splashLite").checked){
    window.__perfCap=380;
-   densityMode.value="performance";
+   densityMode.value="cinematic";
    document.querySelectorAll(".severity").forEach(x=>{x.checked=(x.value==="Critical"||x.value==="High")});
    const aw=document.getElementById("arcWindow"); if(aw)aw.value="3";
    markHistoDirty();
@@ -4146,7 +4439,7 @@ document.getElementById("tbHealth").addEventListener("click",()=>{
    setTimeout(()=>sec.scrollIntoView({block:"start",behavior:"smooth"}),120);
  }
 });
-tbCloseAll.addEventListener("click",()=>{
+function closeAllFrames(){
  document.querySelectorAll(".frame:not(.hidden)").forEach(f=>{
    f.classList.add("hidden");
    const b=tbBtn(f.id.replace("frame-",""));
@@ -4154,7 +4447,8 @@ tbCloseAll.addEventListener("click",()=>{
  });
  renderChartsMenu();
  refreshCloseAll();
-});
+}
+tbCloseAll.addEventListener("click",closeAllFrames);
 dragBy(toolbar,tbGrip,null,()=>{gripMoved=true});
 placeHeatLegend();
 tbGrip.addEventListener("click",()=>{
@@ -4309,7 +4603,7 @@ document.getElementById("resetDefaults").addEventListener("click",()=>{
  document.getElementById("trendMode").value="avg";
  document.getElementById("sigPause").checked=false;
  document.querySelectorAll(".atype").forEach(x=>x.checked=true); viewMode.value="attacks"; speed.value="3000";
- densityMode.value="full";      // matches the markup default, i.e. genuine first-load state
+ densityMode.value="cinematic";  // matches the markup default, i.e. genuine first-load state
  document.getElementById("histoOverlay").value="";
  const aw=document.getElementById("arcWindow"); if(aw)aw.value="12";
  document.getElementById("countryMode").value="between";
@@ -5138,7 +5432,9 @@ function narrScriptText(){
    frame, so several can sit side by side and each can be maximised on its own. */
 function chartWidthFor(host){
  const w=(host&&host.clientWidth)||300;
- return Math.max(220,Math.round(w-6));
+ // leave room for the container's border and any scroll gutter, or the drawing
+ // overflows its own panel by a few pixels and pins the scroll bar on
+ return Math.max(220,Math.round(w-10));
 }
 function visTally(arr,key){
  const t={};arr.forEach(a=>{const k=a[key];if(k)t[k]=(t[k]||0)+1});
@@ -5419,7 +5715,7 @@ function impactPool(when){
    is plainly what the viewer is watching for. A chart already open is left exactly
    as the viewer set it - changing it under them would be rude and would discard a
    deliberate choice. */
-const TIME_CHARTS=new Set(["impact","vulntime","vulnvs","cve","kev","icsyear"]);
+const TIME_CHARTS=new Set(["impact","vulntime","vulnvs","cve","kev","icsyear","incidents"]);
 const CHART_FOLLOW={};
 function follows(id){return !!CHART_FOLLOW[id];}
 function setFollow(id,on){CHART_FOLLOW[id]=!!on;renderChartFrame(id);}
@@ -5990,10 +6286,12 @@ const CHART_DEFS=[
   ok:()=>true,
   build:W=>{
     if(histoDirty||!histoCounts.length)computeHistoCounts();
+    const series=clipToPlayhead(histoCounts,"incidents");
     const total=histoCounts.reduce((a,b)=>a+b,0);
-    return `<div class="chartBox">${svgBars(histoCounts,{w:W,h:120,color:"#ff6b78",ticks:yearTicks(),
+    const shown=follows("incidents")?series.reduce((a,b)=>a+b,0):total;
+    return timeSwitch("incidents")+`<div class="chartBox">${svgBars(series,{w:W,h:120,color:"#ff6b78",ticks:yearTicks(),
       label:(i,n)=>`${mon(fromIdx(i).month)} ${fromIdx(i).year}: ${n}`})}</div>
-      <p class="chartNote">${total.toLocaleString()} incidents match your current filters. Each bar is one month.</p>`;
+      <p class="chartNote">${follows("incidents")?`Built to ${mon(month)} ${year}: ${shown.toLocaleString()} of `:""}${total.toLocaleString()} incidents match your current filters. Each bar is one month.</p>`;
   }},
  {id:"targets",title:"Most-targeted countries",group:"filtered",
   blurb:"Full league table of where attacks landed.",
@@ -6372,13 +6670,44 @@ function chartIsLive(d){
  return d.group==="filtered"&&chartMode(d.id)==="live";
 }
 let chartsNeedFullRefresh=true;
+/* Redrawing every open chart on every tick was the main reason playback staggered
+   in the busy years: several charts, each rebuilding a few thousand SVG nodes,
+   inside the same frame as the globe's own animation. Two changes fix it without
+   the reader noticing anything missing:
+     - a live chart redraws at most every REDRAW_MS while the clock is running,
+       which is far more often than the eye can follow anyway;
+     - the work is spread across animation frames rather than done in one block,
+       so the globe keeps its rotation even when several charts are open.
+   A deliberate action - changing a filter, opening a chart - still redraws
+   immediately, because that is a response to the reader rather than to the clock. */
+const CHART_REDRAW_MS=420;
+let _lastLiveRedraw=0, _liveQueue=[], _liveRaf=null;
+function _drainLiveQueue(){
+ _liveRaf=null;
+ const t0=performance.now();
+ while(_liveQueue.length){
+   const id=_liveQueue.shift();
+   const f=chartFrame(id);
+   if(f&&!f.classList.contains("hidden"))renderChartFrame(id);
+   if(performance.now()-t0>8){                 // keep the frame budget
+     _liveRaf=requestAnimationFrame(_drainLiveQueue);
+     return;
+   }
+ }
+}
 function refreshOpenCharts(scope){
  const full=(scope==="all")||chartsNeedFullRefresh;
+ const running=(typeof timer!=="undefined"&&timer);
+ const now=performance.now();
+ const liveDue=!running||(now-_lastLiveRedraw>=CHART_REDRAW_MS);
+ if(liveDue)_lastLiveRedraw=now;
  CHART_DEFS.forEach(d=>{
    const f=chartFrame(d.id);
    if(!f||f.classList.contains("hidden"))return;
-   if(full||chartIsLive(d))renderChartFrame(d.id);
+   if(full){ renderChartFrame(d.id); return }     // a real change: draw it now
+   if(chartIsLive(d)&&liveDue&&_liveQueue.indexOf(d.id)<0)_liveQueue.push(d.id);
  });
+ if(_liveQueue.length&&!_liveRaf)_liveRaf=requestAnimationFrame(_drainLiveQueue);
  if(full)chartsNeedFullRefresh=false;
 }
 /* ── Chart zoom / pinch ─────────────────────────────────────────────────────
@@ -6477,11 +6806,19 @@ function wireChartZoom(f,id){
 
 function openChartFrame(id){
  const def=chartDef(id); if(!def)return;
+ // Time series and league tables both read far better wide. On a large screen give
+ // chart windows a generous default width; small screens are unchanged.
+ const WIDE=new Set(["incidents","impact","vulntime","vulnvs","cve","kev","lag","percapita","dyads","icsyear"]);
+ const roomy=Math.min(WIDE.has(id)?900:640,Math.round(window.innerWidth*(WIDE.has(id)?0.52:0.38)));
  // Opened while the timeline is running? Then the viewer is watching it move, so
- // start this chart building. Only ever on FIRST open - a chart the viewer has
+ // start this chart tracking it. Only ever on FIRST open - a chart the viewer has
  // already set to "whole period" is never switched under them.
- if(TIME_CHARTS.has(id)&&CHART_FOLLOW[id]===undefined&&typeof timer!=="undefined"&&timer)
-   CHART_FOLLOW[id]=true;
+ const running=(typeof timer!=="undefined"&&timer);
+ if(running&&TIME_CHARTS.has(id)&&CHART_FOLLOW[id]===undefined)CHART_FOLLOW[id]=true;
+ // The league tables (targets, origins, sectors, groups, severity) use the older
+ // live/period switch rather than the follow flag, and were being missed.
+ if(running&&def.group==="filtered"&&!TIME_CHARTS.has(id)&&CHART_MODE[id]===undefined)
+   CHART_MODE[id]="live";
  let f=chartFrame(id);
  if(!f){
    f=document.createElement("section");
@@ -6498,6 +6835,12 @@ function openChartFrame(id){
      <p class="chartNote chartScope">${def.group==="filtered"?"Follows the filters set in Controls.":"Background data \u2014 not affected by your filters."} <span class="czHint">Pinch or use +/&minus; to zoom; scroll or drag to move around.</span></p></div>`;
    document.getElementById("frames").appendChild(f);
    registerFrame(f);
+   // Give it its roomy default the first time only; a width the reader has set
+   // themselves is never overridden.
+   if(window.innerWidth>=900){
+     f.style.width=roomy+"px";
+     f.style.maxWidth=Math.min(roomy,window.innerWidth-24)+"px";
+   }
  }
  renderChartFrame(id);          // content first, so the frame is never blank
  openFrame("chart-"+id);
