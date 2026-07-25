@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.9.0 (2026-07-25) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.10.0 (2026-07-25) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.10.0 KEV entries now carry the catalogue's weakness identifiers (cwes) and the
+        remediation due date, so exploited flaws can be grouped by underlying weakness
+        and by how urgently CISA required them fixed - the recurring-theme view, rather
+        than only a vendor league table.
  3.9.0  Curated impact overlay moved out of the app into two human-maintained CSVs
         (impact_overlay.csv = one row per incident, impact_figures.csv = one row per
         figure with its own source URL and as_of date). The builder validates and
@@ -128,8 +132,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.9.0"
-BUILDER_DATE = "2026-07-25c"
+BUILDER_VERSION = "3.10.0"
+BUILDER_DATE = "2026-07-25d"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -441,6 +445,11 @@ def build_kev():
             "name": (v.get("vulnerabilityName") or "")[:160],
             "added": (v.get("dateAdded") or "")[:10],
             "ransomware": (v.get("knownRansomwareCampaignUse") or "Unknown")[:10],
+            # CISA added weakness identifiers to the catalogue; carrying them lets the
+            # app group exploited flaws by the underlying weakness rather than only by
+            # vendor, which is where the recurring themes actually show up.
+            "cwes": [str(c)[:12] for c in (v.get("cwes") or [])][:4],
+            "due": (v.get("dueDate") or "")[:10],
         })
     print("  [kev] %d catalogue entries" % len(out))
     if not out:

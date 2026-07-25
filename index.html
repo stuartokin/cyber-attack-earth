@@ -289,6 +289,31 @@
     .impSvg .impDot:hover{fill-opacity:1}
     .chartNote{font-size:10.5px;color:#7f95b4;margin:3px 0 12px;line-height:1.5}
     .chartFrame{width:420px}
+    .vendRow{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 8px}
+    .vendChip{font-size:10.5px;padding:3px 8px;border-radius:999px;border:1px solid #2c4666;
+      background:#0e2036;color:#a8bcd6;cursor:pointer;white-space:nowrap}
+    .vendChip i{font-style:normal;color:#5f7a9c;margin-left:3px}
+    .vendChip:hover{border-color:#4dd8ff;color:#dbe8f7}
+    .vendChip.on{background:#173a54;border-color:var(--accent);color:#eaf6ff}
+    .vendChip.on i{color:#9fd8ef}
+    .hbar{display:grid;grid-template-columns:minmax(88px,34%) 1fr auto;gap:8px;align-items:center;font-size:11.5px}
+    .hbar>span{color:#c9d8ec;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .hbar>i{font-style:normal;color:#8fa6c2;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .hbarTrack{position:relative;height:13px;background:#0a1626;border:1px solid #1e3350;border-radius:4px;overflow:hidden}
+    .hbarFill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#2f6f96,#4dd8ff);border-radius:3px}
+    .hbarOver{background:linear-gradient(90deg,#8f2233,#ff4d66);opacity:.95}
+    .lgdRow{display:flex;flex-wrap:wrap;gap:10px;margin:4px 0 2px}
+    .lgd{display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:#a8bcd6}
+    .lgd i{width:11px;height:3px;border-radius:2px;display:inline-block}
+    .impSvg .vulnDot{cursor:pointer;transition:fill-opacity .12s}
+    .impSvg .vulnDot:hover{fill-opacity:1}
+    .healthChip{display:inline-flex;align-items:center;gap:6px;margin-left:auto;margin-right:6px;
+      font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid #2c4666;background:#0e2036;color:#a8bcd6}
+    .healthChip:hover{border-color:var(--accent);color:#eaf6ff}
+    .helpPlay{border:1px solid #23405f;background:#0c1a2c;border-radius:10px;padding:9px 11px;margin:0 0 10px}
+    .helpPlay b{font-size:12px;color:#dbe8f7}
+    .helpPlay .btnrow{flex-wrap:wrap;gap:5px}
+    .helpPlay button{font-size:11.5px;padding:5px 9px}
     .chartHost{min-height:60px;overflow:auto;touch-action:pan-x pan-y;overscroll-behavior:contain}
     /* Unzoomed, a tall chart grows and the panel scrolls as before. Zoomed, the chart
        gets its own bounded viewport so it scrolls in place rather than stretching the
@@ -469,8 +494,6 @@
     <button class="tbBtn" data-frame="search" type="button" title="Search — look up an attack or threat group and jump to it" aria-label="Search"><span class="tbIco">🔍</span><span class="tbLabel">Search</span></button>
     <button class="tbBtn" data-frame="charts" type="button" title="Charts — incident, KEV, ICS advisory and EPSS charts" aria-label="Charts"><span class="tbIco">📊</span><span class="tbLabel">Charts</span></button>
     <button class="tbBtn" data-frame="bench" type="button" title="Compare against published findings from ENISA, Verizon and Dragos" aria-label="Compare"><span class="tbIco">⚖</span><span class="tbLabel">Compare</span></button>
-    <button class="tbBtn" data-frame="present" type="button" title="Presentation, guided tour and kiosk mode — narrated, with a copyable script" aria-label="Present"><span class="tbIco">▶</span><span class="tbLabel">Present</span></button>
-    <button id="tbHealth" class="tbBtn tbHealth" type="button" title="Data status" aria-label="Data status"><span class="tbDot" id="tbHealthDot"></span><span class="tbLabel" id="tbHealthLabel">Data</span></button>
     <button id="tbCloseAll" class="tbBtn tbCloseAll hidden" type="button" title="Close every open window" aria-label="Close all windows"><span class="tbIco">&#10006;</span><span class="tbLabel">Close all</span></button>
     <button class="tbBtn" data-frame="help" type="button" title="Help — how to read this map, its limitations, sources and licences" aria-label="Help"><span class="tbIco">ⓘ</span><span class="tbLabel">Help</span></button>
   </div>
@@ -685,8 +708,20 @@
       </section>
 
       <section class="frame hidden" id="frame-help" aria-label="Help">
-        <div class="frameHead"><h2>Help</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Help" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Help">&#215;</button></span></div>
+        <div class="frameHead"><h2>Help</h2>
+          <button id="tbHealth" class="healthChip" type="button" title="Data status — click for the source table"><span class="tbDot" id="tbHealthDot"></span><span id="tbHealthLabel">Data</span></button>
+          <span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Help" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Help">&#215;</button></span></div>
         <div class="frameBody">
+        <div class="helpPlay">
+          <b>Guided walk-throughs</b>
+          <p class="small" style="margin:3px 0 6px">Narrated by the browser's voice. Press Escape at any time to stop.</p>
+          <div class="btnrow">
+            <button id="helpPlayDemo" type="button">&#9654; Training video</button>
+            <button id="helpPlayPres" type="button">&#9654; Presentation</button>
+            <button id="helpPlayKiosk" type="button">&#9654; Kiosk loop</button>
+            <button id="helpPlayMore" type="button">Options &amp; script</button>
+          </div>
+        </div>
         <div class="miniLinks" style="margin:0 0 8px"><button id="helpExpandAll" type="button">Expand all</button><button id="helpCollapseAll" type="button">Collapse all</button></div>
         <details class="ctlSec" data-sec="about">
           <summary>About this map</summary>
@@ -816,7 +851,8 @@
       <div class="splashJoke" id="splashJoke"></div>
       <div class="btnrow" style="margin-top:12px">
         <button id="splashGo" class="primary" type="button" disabled>Loading&hellip;</button>
-        <button id="splashTour" type="button">Show me how it works</button>
+        <button id="splashTour" type="button">&#9654; Play the training video</button>
+        <button id="splashStory" type="button">&#9654; Watch the presentation</button>
       </div>
     </div>
   </div>
@@ -1389,7 +1425,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v62";
+const APP_VERSION="v63";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -3943,6 +3979,7 @@ function splashDismiss(then){
 (function(){ const v=document.getElementById("splashVer"); if(v)v.textContent="Version "+APP_VERSION; })();
 document.getElementById("splashGo").addEventListener("click",()=>splashDismiss());
 document.getElementById("splashTour").addEventListener("click",()=>splashDismiss(()=>narrStart("demo")));
+document.getElementById("splashStory").addEventListener("click",()=>splashDismiss(()=>narrStart("presentation")));
 // a gentle orbit while they read, so the wait is not a blank screen
 (function(){
  // Grow the globe into position first, then dim it a little as the card arrives -
@@ -3968,8 +4005,21 @@ document.getElementById("splashTour").addEventListener("click",()=>splashDismiss
 })();
 // never strand anyone behind the screen if a source hangs
 setTimeout(()=>{splashProgress(100);splashReady()},20000);
+/* The narrated modes used to have their own tool-bar button. They now live in Help:
+   three one-press launchers for the common cases, and the full frame for the script,
+   voice and pacing options. */
+(function(){
+ const go=(mode)=>{ const f=document.getElementById("frame-help");
+   if(f)f.classList.add("hidden");
+   if(typeof narrStart==="function")narrStart(mode); };
+ const b1=document.getElementById("helpPlayDemo");   if(b1)b1.addEventListener("click",()=>go("demo"));
+ const b2=document.getElementById("helpPlayPres");   if(b2)b2.addEventListener("click",()=>go("presentation"));
+ const b3=document.getElementById("helpPlayKiosk");  if(b3)b3.addEventListener("click",()=>go("kiosk"));
+ const b4=document.getElementById("helpPlayMore");
+ if(b4)b4.addEventListener("click",()=>{ if(typeof openFrame==="function")openFrame("present"); });
+})();
 document.getElementById("tbHealth").addEventListener("click",()=>{
- openFrame("help");
+ if(typeof openFrame==="function")openFrame("help");   // no-op when already open
  const sec=document.querySelector('#frame-help .ctlSec[data-sec="data"]');
  if(sec){
    document.querySelectorAll("#frame-help .ctlSec").forEach(d=>d.open=false);
@@ -5378,6 +5428,287 @@ function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"
 function impHash(s){s=String(s);let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0)/4294967296;}
 
 
+/* ── Vulnerability analysis ─────────────────────────────────────────────────
+   These charts deliberately do NOT follow the incident filters. Sector, attack
+   type and country describe victims of attacks; a vulnerability has none of
+   those properties, and pretending otherwise would silently mislead. What they
+   do share is a vendor filter, so you can follow one supplier across all of
+   them.
+
+   What the data actually is, because it governs every reading below:
+     KEV   CISA's catalogue of flaws seen being exploited in the wild. About
+           1,600 entries. It is a REMEDIATION LIST for US federal agencies, not
+           a census of exploitation - inclusion depends on CISA seeing evidence
+           and choosing to list it.
+     EPSS  FIRST's model estimating the probability a flaw will be exploited in
+           the next 30 days. A PREDICTION, not an observation, and the pack only
+           carries scores at or above 10%.
+     CVE   Monthly counts of published vulnerabilities from NVD. A measure of
+           cataloguing effort as much as of insecurity. */
+
+let VULN_VENDORS=new Set();          // empty = every vendor
+function vulnVendorList(n){
+  const c={};
+  (LAKE.kev||[]).forEach(k=>{const v=(k.vendor||"").trim(); if(v)c[v]=(c[v]||0)+1});
+  return Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,n||18);
+}
+function vulnVendorChips(){
+  const list=vulnVendorList(18);
+  if(!list.length)return "";
+  const chips=list.map(([v,n])=>
+    `<button type="button" class="vendChip${VULN_VENDORS.has(v)?" on":""}" data-vendor="${escapeHtml(v)}">${escapeHtml(v)} <i>${n}</i></button>`).join("");
+  return `<div class="vendRow"><button type="button" class="vendChip vendAll${VULN_VENDORS.size?"":" on"}" data-vendor="__all">All vendors</button>${chips}</div>`;
+}
+function vulnKev(){
+  const all=LAKE.kev||[];
+  if(!VULN_VENDORS.size)return all;
+  return all.filter(k=>VULN_VENDORS.has((k.vendor||"").trim()));
+}
+function kevIdx(k){
+  const d=String(k.added||"");
+  const y=+d.slice(0,4), m=+d.slice(5,7);
+  if(!y||!m)return null;
+  if(y<startYear)return null;
+  return idx(y,m);
+}
+function epssOf(cve){
+  const e=LAKE.epssMap&&LAKE.epssMap.get(cve);
+  return e?e.epss:null;
+}
+
+/* ── 1. Exploited flaws over time (the CVE counterpart of the impact chart) ── */
+function vulnTimeHTML(W){
+  const kev=vulnKev();
+  if(!kev.length)return vulnVendorChips()+'<p class="chartNote">No known-exploited vulnerabilities loaded, or none for the chosen vendors.</p>';
+  const H=250, padL=44, padR=14, padT=14, padB=40;
+  const innerW=Math.max(120,W-padL-padR), innerH=H-padT-padB;
+  const fs=filterState("period");
+  const vs=fs.vs, ve=Math.max(vs+1,fs.ve);
+  const xOf=i=>padL+((i-vs)/(ve-vs))*innerW;
+  const yOf=v=>padT+(1-v)*innerH;
+
+  const pts=[];
+  kev.forEach(k=>{
+    const i=kevIdx(k); if(i===null||i<vs||i>ve)return;
+    const e=epssOf(k.cve);
+    pts.push({k,i,e});
+  });
+  if(!pts.length)return vulnVendorChips()+`<p class="chartNote">Nothing catalogued inside the years currently shown. Widen the range in Controls \u2014 the catalogue only starts in 2021, though the flaws themselves are often much older.</p>`;
+
+  // y: predicted exploitation probability where known; unscored sit on a base line
+  const scored=pts.filter(p=>p.e!==null);
+  const gridY=[0,.25,.5,.75,1].map(g=>{
+    const y=yOf(g);
+    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${(W-padR).toFixed(1)}" y2="${y.toFixed(1)}" stroke="#1b3350"/>
+            <text x="${padL-6}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="9" fill="#6f8bad">${Math.round(g*100)}%</text>`;
+  }).join("");
+  const xticks=yearTicks().map(t=>{
+    const x=xOf(t.i); if(x<padL-1||x>W-padR+1)return "";
+    return `<text x="${x.toFixed(1)}" y="${H-padB+16}" text-anchor="middle" font-size="9" fill="#6f8bad">${t.label}</text>`;
+  }).join("");
+
+  // monthly CVE publication volume as a faint context line, on its own scale
+  let ctx="";
+  if(LAKE.cve&&LAKE.cve.months){
+    const mv=LAKE.cve.months, keys=Object.keys(mv);
+    const max=Math.max(1,...keys.map(k=>mv[k]));
+    const d=keys.map(k=>{
+      const y=+k.slice(0,4), m=+k.slice(5,7);
+      if(!y||!m)return null;
+      const i=idx(y,m); if(i<vs||i>ve)return null;
+      return [xOf(i),yOf(mv[k]/max)];
+    }).filter(Boolean).sort((a,b)=>a[0]-b[0]);
+    if(d.length>1)ctx=`<path d="M${d.map(p=>p[0].toFixed(1)+","+p[1].toFixed(1)).join("L")}" fill="none" stroke="#6f8bad" stroke-width="1.1" stroke-dasharray="4 3" opacity="0.55"/>`;
+  }
+
+  const dots=pts.map(p=>{
+    const jx=(impHash(p.k.cve+"x")-0.5)*Math.min(10,(innerW/((ve-vs)||1))*0.8);
+    const y=(p.e!==null)?yOf(p.e):yOf(0.015+impHash(p.k.cve+"y")*0.05);
+    const x=Math.max(padL,Math.min(W-padR,xOf(p.i)+jx));
+    const ran=/known/i.test(p.k.ransomware||"");
+    const r=p.e!==null?(2.6+p.e*4.4):2.2;
+    return `<circle class="vulnDot" data-cve="${escapeHtml(p.k.cve)}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}"
+      fill="${ran?"#ff4d66":"#4dd8ff"}" fill-opacity="${p.e!==null?0.72:0.34}"
+      stroke="${ran?"#ff8fa0":"#7fe6ff"}" stroke-width="${ran?0.9:0.4}"><title>${escapeHtml(p.k.cve)} \u2014 ${escapeHtml(p.k.vendor||"")} ${escapeHtml(p.k.product||"")}${p.e!==null?` \u2014 ${Math.round(p.e*100)}% predicted`:" \u2014 no EPSS score"}${ran?" \u2014 used in ransomware":""}</title></circle>`;
+  }).join("");
+
+  const ranN=pts.filter(p=>/known/i.test(p.k.ransomware||"")).length;
+  return vulnVendorChips()+
+   `<div class="impChartBox"><svg width="${W}" height="${H}" class="impSvg" role="img" aria-label="Exploited vulnerabilities over time">
+      ${gridY}${xticks}${ctx}${dots}</svg></div>
+    <p class="chartNote">Each dot is one flaw CISA has recorded as <b>actually exploited</b>, placed at the month it was catalogued. Height is FIRST's EPSS estimate of the chance it would be exploited in the next 30 days; dots with no published score sit along the bottom. Red dots are flagged as used in ransomware campaigns (${ranN.toLocaleString()} of ${pts.length.toLocaleString()} shown). The dashed line is the monthly volume of <i>all</i> published vulnerabilities, on its own scale, purely for context.</p>
+    <p class="chartNote"><b>Read with care.</b> ${scored.length.toLocaleString()} of ${pts.length.toLocaleString()} shown carry an EPSS score, because the pack only keeps scores at or above 10%. The catalogue is a remediation list for US federal agencies, not a census of exploitation \u2014 a flaw is here because CISA saw evidence and chose to list it. The date is when it was catalogued, which can be years after the flaw was published. Click any dot for the detail.</p>`;
+}
+
+/* ── 2. Attacks against vulnerabilities, indexed ────────────────────────────
+   The chart the whole request was really about - and the one that most needs a
+   warning attached, because three rising lines invite a causal reading that the
+   data cannot support. */
+function vulnVsAttacksHTML(W){
+  const H=240, padL=46, padR=14, padT=14, padB=40;
+  const innerW=Math.max(120,W-padL-padR), innerH=H-padT-padB;
+  const y0=2016, y1=(new Date()).getFullYear();
+  const years=[]; for(let y=y0;y<=y1;y++)years.push(y);
+
+  const incByYear={}, kevByYear={}, cveByYear={};
+  filterPass("all").forEach(a=>{ if(a.year>=y0)incByYear[a.year]=(incByYear[a.year]||0)+1 });
+  (vulnKev()||[]).forEach(k=>{const y=+String(k.added||"").slice(0,4); if(y>=y0)kevByYear[y]=(kevByYear[y]||0)+1});
+  if(LAKE.cve&&LAKE.cve.months)Object.entries(LAKE.cve.months).forEach(([k,v])=>{
+    const y=+k.slice(0,4); if(y>=y0)cveByYear[y]=(cveByYear[y]||0)+v;
+  });
+
+  const series=[
+    {id:"inc",label:"Documented incidents",colour:"#ff9d3c",data:incByYear},
+    {id:"cve",label:"Vulnerabilities published",colour:"#4dd8ff",data:cveByYear},
+    {id:"kev",label:"Flaws seen exploited",colour:"#ff4d66",data:kevByYear}
+  ].filter(s=>Object.keys(s.data).length>1);
+  if(series.length<2)return '<p class="chartNote">Not enough of the reference data has loaded yet to compare these series.</p>';
+
+  // index each to its own first non-zero year = 100, so shapes can be compared
+  // without implying the quantities are commensurable
+  const paths=series.map(s=>{
+    const base=years.map(y=>s.data[y]||0).find(v=>v>0)||1;
+    const pts=years.map((y,i)=>{
+      const v=(s.data[y]||0)/base*100;
+      return [padL+(i/(years.length-1))*innerW, v];
+    });
+    const maxV=Math.max(...pts.map(p=>p[1]),120);
+    return {s,pts,maxV};
+  });
+  const maxAll=Math.max(...paths.map(p=>p.maxV));
+  const yOf=v=>padT+(1-Math.min(1,v/maxAll))*innerH;
+
+  const grid=[0,.5,1].map(g=>{
+    const y=padT+(1-g)*innerH;
+    return `<line x1="${padL}" y1="${y.toFixed(1)}" x2="${(W-padR).toFixed(1)}" y2="${y.toFixed(1)}" stroke="#1b3350"/>
+            <text x="${padL-6}" y="${(y+3).toFixed(1)}" text-anchor="end" font-size="9" fill="#6f8bad">${Math.round(g*maxAll)}</text>`;
+  }).join("");
+  const xt=years.filter((y,i)=>i%2===0).map((y,i2)=>{
+    const i=years.indexOf(y);
+    const x=padL+(i/(years.length-1))*innerW;
+    return `<text x="${x.toFixed(1)}" y="${H-padB+16}" text-anchor="middle" font-size="9" fill="#6f8bad">${y}</text>`;
+  }).join("");
+  const lines=paths.map(({s,pts})=>{
+    const d=pts.map(p=>p[0].toFixed(1)+","+yOf(p[1]).toFixed(1)).join("L");
+    return `<path d="M${d}" fill="none" stroke="${s.colour}" stroke-width="1.9" stroke-linejoin="round"/>`;
+  }).join("");
+  const legend=series.map(s=>`<span class="lgd"><i style="background:${s.colour}"></i>${s.label}</span>`).join("");
+
+  return `${vulnVendorChips()}<div class="impChartBox"><svg width="${W}" height="${H}" role="img" aria-label="Attacks and vulnerabilities compared">
+      ${grid}${xt}${lines}</svg></div>
+    <div class="lgdRow">${legend}</div>
+    <p class="chartNote">Each line is indexed to its own first year at 100, so the <i>shapes</i> can be compared. The absolute quantities cannot: a published vulnerability, a catalogued exploitation and a documented incident are three different things counted by three different communities.</p>
+    <p class="chartNote"><b>What this cannot show.</b> Three lines rising together is not evidence that one causes another. All three are driven substantially by <i>recording effort</i> \u2014 more researchers, more disclosure law, more catalogue staff \u2014 and the exploited-flaw line begins only when CISA started the catalogue in 2021, so its early steepness is the catalogue filling up, not a real surge. Treat this as a prompt for questions, not an answer.</p>`;
+}
+
+/* ── 3. Where exploited flaws cluster: weakness themes ──────────────────── */
+function vulnCweHTML(W){
+  const kev=vulnKev();
+  const withCwe=kev.filter(k=>Array.isArray(k.cwes)&&k.cwes.length);
+  if(!withCwe.length)return vulnVendorChips()+'<p class="chartNote">The data pack does not yet carry weakness identifiers. They arrive with builder 3.10.0 or later \u2014 rebuild the pack and this fills in.</p>';
+  const c={};
+  withCwe.forEach(k=>k.cwes.forEach(w=>{c[w]=(c[w]||0)+1}));
+  const rows=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,14);
+  const max=Math.max(...rows.map(r=>r[1]));
+  const bars=rows.map(([w,n])=>{
+    const nm=CWE_NAMES[w]||w;
+    return `<div class="hbar"><span title="${escapeHtml(w)}">${escapeHtml(nm)}</span>
+      <div class="hbarTrack"><div class="hbarFill" style="width:${(n/max*100).toFixed(1)}%"></div></div><i>${n}</i></div>`;
+  }).join("");
+  return vulnVendorChips()+`<div class="league">${bars}</div>
+    <p class="chartNote">The underlying weakness in flaws attackers were actually seen using, from CISA's own classification. ${withCwe.length.toLocaleString()} of ${kev.length.toLocaleString()} catalogued entries carry one. This is where the recurring themes show: the same handful of mistakes, made repeatedly, across different vendors and decades.</p>
+    <p class="chartNote">Counts exceed the number of flaws because an entry can carry more than one weakness.</p>`;
+}
+const CWE_NAMES={
+ "CWE-78":"OS command injection","CWE-79":"Cross-site scripting","CWE-89":"SQL injection",
+ "CWE-22":"Path traversal","CWE-416":"Use after free","CWE-787":"Out-of-bounds write",
+ "CWE-125":"Out-of-bounds read","CWE-190":"Integer overflow","CWE-502":"Unsafe deserialisation",
+ "CWE-287":"Improper authentication","CWE-269":"Improper privilege management",
+ "CWE-798":"Hard-coded credentials","CWE-918":"Server-side request forgery",
+ "CWE-352":"Cross-site request forgery","CWE-434":"Unrestricted file upload",
+ "CWE-20":"Improper input validation","CWE-77":"Command injection","CWE-94":"Code injection",
+ "CWE-119":"Buffer overflow","CWE-843":"Type confusion","CWE-306":"Missing authentication",
+ "CWE-862":"Missing authorisation","CWE-863":"Incorrect authorisation","CWE-284":"Improper access control"
+};
+
+/* ── 4. Ransomware's share of exploited flaws, over time ─────────────────── */
+function vulnRansomHTML(W){
+  const kev=vulnKev();
+  if(!kev.length)return vulnVendorChips()+'<p class="chartNote">No catalogued flaws for the chosen vendors.</p>';
+  const byYear={};
+  kev.forEach(k=>{
+    const y=+String(k.added||"").slice(0,4); if(!y)return;
+    byYear[y]=byYear[y]||{n:0,r:0};
+    byYear[y].n++;
+    if(/known/i.test(k.ransomware||""))byYear[y].r++;
+  });
+  const years=Object.keys(byYear).map(Number).sort();
+  if(years.length<2)return vulnVendorChips()+'<p class="chartNote">Not enough years catalogued to show a trend.</p>';
+  const rows=years.map(y=>{
+    const {n,r}=byYear[y], pct=n?r/n*100:0;
+    return `<div class="hbar"><span>${y}</span>
+      <div class="hbarTrack"><div class="hbarFill" style="width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#ff4d66,#ff9d3c)"></div></div>
+      <i>${pct.toFixed(0)}% of ${n}</i></div>`;
+  }).join("");
+  const tot=kev.length, totR=kev.filter(k=>/known/i.test(k.ransomware||"")).length;
+  return vulnVendorChips()+`<div class="league">${rows}</div>
+    <p class="chartNote">Of the flaws catalogued each year, the share CISA records as used in ransomware campaigns. Overall ${totR.toLocaleString()} of ${tot.toLocaleString()} (${(totR/tot*100).toFixed(0)}%).</p>
+    <p class="chartNote"><b>A known undercount.</b> The flag is set only where CISA has evidence of ransomware use; absence means "not established", not "not used". Read the direction, not the level.</p>`;
+}
+
+/* ── 5. Vendors: how concentrated is exploitation? ───────────────────────── */
+function vulnVendorHTML(W){
+  const kev=LAKE.kev||[];                       // deliberately the FULL set
+  if(!kev.length)return '<p class="chartNote">No catalogued flaws loaded yet.</p>';
+  const c={}, ran={};
+  kev.forEach(k=>{
+    const v=(k.vendor||"").trim()||"Unattributed";
+    c[v]=(c[v]||0)+1;
+    if(/known/i.test(k.ransomware||""))ran[v]=(ran[v]||0)+1;
+  });
+  const rows=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,16);
+  const max=Math.max(...rows.map(r=>r[1]));
+  const top10=Object.values(c).sort((a,b)=>b-a).slice(0,10).reduce((x,y)=>x+y,0);
+  const bars=rows.map(([v,n])=>{
+    const r=ran[v]||0;
+    return `<div class="hbar"><span>${escapeHtml(v)}</span>
+      <div class="hbarTrack"><div class="hbarFill" style="width:${(n/max*100).toFixed(1)}%"></div>
+      <div class="hbarFill hbarOver" style="width:${(r/max*100).toFixed(1)}%"></div></div><i>${n}${r?` (${r} ransomware)`:""}</i></div>`;
+  }).join("");
+  return `<div class="league">${bars}</div>
+    <p class="chartNote">Vendors whose products appear most often among flaws seen being exploited, with the ransomware-linked portion shaded darker. The ten largest account for ${(top10/kev.length*100).toFixed(0)}% of the catalogue.</p>
+    <p class="chartNote"><b>Not a security ranking.</b> Appearing often reflects installed base, attacker attention and disclosure culture at least as much as code quality \u2014 ubiquitous software is attacked because it is ubiquitous. A vendor absent from this list may simply be too small to target, or too opaque to have its flaws catalogued.</p>`;
+}
+
+/* Clicking a flaw opens the same movable panel as an incident, with links out to the
+   authoritative records rather than a summary you would have to take on trust. */
+function showCveDetail(cveId){
+  const k=(LAKE.kev||[]).find(x=>x.cve===cveId);
+  if(!k)return;
+  const e=LAKE.epssMap&&LAKE.epssMap.get(cveId);
+  const ran=/known/i.test(k.ransomware||"");
+  const cwes=(Array.isArray(k.cwes)?k.cwes:[]).map(w=>`${escapeHtml(CWE_NAMES[w]||w)} <span style="color:#5f7a9c">(${escapeHtml(w)})</span>`).join(", ");
+  const html=`<h3>${escapeHtml(k.cve)}</h3>
+   <div class="kv"><b>Vendor</b><span>${escapeHtml(k.vendor||"Not recorded")}</span>
+   <b>Product</b><span>${escapeHtml(k.product||"Not recorded")}</span>
+   <b>Catalogued</b><span>${escapeHtml(k.added||"\u2014")}</span>
+   <b>Fix required by</b><span>${escapeHtml(k.due||"Not recorded")}</span>
+   <b>Ransomware use</b><span>${ran?"Known":"Not established"}</span>
+   <b>Predicted exploitation</b><span>${e?`${Math.round(e.epss*100)}% in 30 days (${Math.round(e.pct*100)}th percentile)`:"No published score"}</span></div>
+   <p>${escapeHtml(k.name||"")}</p>
+   ${cwes?`<p><b>Weakness:</b> ${cwes}</p>`:""}
+   <p class="small">"Catalogued" is the date CISA added it, which can be long after the flaw was published. The predicted probability is FIRST's EPSS model \u2014 an estimate, not an observation. "Not established" for ransomware means no evidence recorded, not that it was never used.</p>
+   <div class="miniLinks">
+     <a href="https://nvd.nist.gov/vuln/detail/${encodeURIComponent(k.cve)}" target="_blank" rel="noopener">NVD record</a>
+     <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank" rel="noopener">CISA catalogue</a>
+     <a href="https://www.first.org/epss/" target="_blank" rel="noopener">About EPSS</a>
+   </div>`;
+  const body=document.getElementById("attackDrawerBody");
+  if(body)body.innerHTML=html;
+  const dr=document.getElementById("attackDrawer");
+  if(dr){dr.classList.remove("hidden"); if(typeof placeDetailDrawer==="function")placeDetailDrawer();}
+}
+
 const CHART_DEFS=[
  {id:"incidents",title:"Documented incidents / month",group:"filtered",live:false,
   blurb:"How many attacks per month match your filters.",
@@ -5583,6 +5914,26 @@ const CHART_DEFS=[
        ${rows.length>10?`<button class="leagueToggle" type="button" data-for="dyads">${topOnly("dyads")?`Show all ${rows.length.toLocaleString()} \u25be`:"Show top ten only \u25b4"}</button>`:""}
        <p class="chartNote" style="margin-top:8px"><b>The biggest number here is the one not in the table.</b> ${unattr.toLocaleString()} of ${total.toLocaleString()} visible attacks (<b>${pct}%</b>) have no named origin at all, so they form no pair. Any structure below is drawn from the minority of incidents where someone was willing to point a finger \u2014 and that willingness is itself political.</p>`;
   }},
+ {id:"vulntime",title:"Exploited flaws over time",group:"reference",live:false,
+  blurb:"Vulnerabilities attackers were actually seen using, by month, against predicted risk.",
+  ok:()=>!!(LAKE.kev&&LAKE.kev.length),
+  build:W=>vulnTimeHTML(W)},
+ {id:"vulnvs",title:"Attacks and vulnerabilities compared",group:"reference",live:false,
+  blurb:"Three trends side by side \u2014 shapes only, not a causal claim.",
+  ok:()=>!!(LAKE.kev&&LAKE.kev.length),
+  build:W=>vulnVsAttacksHTML(W)},
+ {id:"vulncwe",title:"Weakness themes in exploited flaws",group:"reference",live:false,
+  blurb:"The same handful of mistakes, repeated across vendors.",
+  ok:()=>!!(LAKE.kev&&LAKE.kev.length),
+  build:W=>vulnCweHTML(W)},
+ {id:"vulnransom",title:"Ransomware's share of exploited flaws",group:"reference",live:false,
+  blurb:"How much of the exploited catalogue is tied to ransomware.",
+  ok:()=>!!(LAKE.kev&&LAKE.kev.length),
+  build:W=>vulnRansomHTML(W)},
+ {id:"vulnvendor",title:"Vendors in the exploited catalogue",group:"reference",live:false,
+  blurb:"Where exploited flaws concentrate \u2014 and why that is not a security ranking.",
+  ok:()=>!!(LAKE.kev&&LAKE.kev.length),
+  build:W=>vulnVendorHTML(W)},
  {id:"kev",title:"Known-exploited vulnerabilities added / month",group:"reference",live:true,
   blurb:"Flaws attackers were seen using, over time.",
   ok:()=>!!kevMonthly(),
@@ -5701,6 +6052,18 @@ function renderChartFrame(id){
  host.querySelectorAll("[data-imp]").forEach(b=>b.addEventListener("click",()=>{
    IMPACT_LIVE=(b.dataset.imp==="live");
    renderChartFrame("impact");
+ }));
+ // vendor chips are shared by every vulnerability chart, so all of them stay in step
+ host.querySelectorAll(".vendChip").forEach(b=>b.addEventListener("click",()=>{
+   const v=b.dataset.vendor;
+   if(v==="__all")VULN_VENDORS.clear();
+   else{ VULN_VENDORS.has(v)?VULN_VENDORS.delete(v):VULN_VENDORS.add(v) }
+   ["vulntime","vulnvs","vulncwe","vulnransom"].forEach(cid=>{
+     if(chartFrame(cid))renderChartFrame(cid);
+   });
+ }));
+ host.querySelectorAll(".vulnDot").forEach(c=>c.addEventListener("click",()=>{
+   if(typeof showCveDetail==="function")showCveDetail(c.dataset.cve);
  }));
  host.querySelectorAll(".impDot").forEach(c=>c.addEventListener("click",()=>{
    const aid=c.dataset.aid;
