@@ -1389,7 +1389,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v61";
+const APP_VERSION="v62";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -5347,6 +5347,7 @@ function impactChartHTML(W){
   }).join("");
 
   // a marker showing where the timeline has reached, while building
+  IMPACT_PLAYHEAD_FRAC=IMPACT_LIVE?(xOf(Math.max(vs,Math.min(ve,timelineIndex)))/Math.max(1,W)):null;
   const playhead=IMPACT_LIVE?(()=>{
     const px=xOf(Math.max(vs,Math.min(ve,timelineIndex)));
     return `<line x1="${px.toFixed(1)}" y1="${padT}" x2="${px.toFixed(1)}" y2="${(padT+innerH).toFixed(1)}"
@@ -5676,8 +5677,13 @@ function renderChartFrame(id){
  let out="";
  try{ out=def.build(chartWidthFor(host))||"" }
  catch(e){ console.warn("chart "+id+" failed",e); out='<p class="chartNote">This chart could not be drawn.</p>' }
+ // Replacing the content resets the scroll to the top-left, and the zoom anchoring
+ // then had nothing to read, so it recentred and threw away the view. Capture the
+ // position first and restore it afterwards, so a redraw - including every timeline
+ // tick while building - leaves the reader where they were.
+ const keepScroll={left:host.scrollLeft,top:host.scrollTop};
  host.innerHTML='<div class="chartZoomLayer">'+(out||'<p class="chartNote">No data available for this chart yet.</p>')+'</div>';
- applyChartZoom(id);
+ applyChartZoom(id,{restore:keepScroll});
  wireChartZoom(f,id);
  host.querySelectorAll(".modeSwitch button").forEach(b=>b.addEventListener("click",()=>{
    const target=b.closest(".modeSwitch").dataset.for;
@@ -5731,45 +5737,69 @@ function refreshOpenCharts(scope){
    chart rather than clipping it - which keeps long league tables readable too.
    Pinch on touch, +/- buttons, reset, and Ctrl/Cmd + wheel on the desktop. */
 const CHART_ZOOM={};
-function applyChartZoom(id){
+function applyChartZoom(id,opts){
  const f=chartFrame(id); if(!f)return;
  const layer=f.querySelector(".chartZoomLayer"); if(!layer)return;
  const host=f.querySelector(".chartHost");
  const z=Math.max(0.6,Math.min(4,CHART_ZOOM[id]||1));
  const prev=parseFloat(layer.style.zoom)||1;
  CHART_ZOOM[id]=z;
- // Keep the middle of what you are looking at roughly still, rather than snapping
- // back to the top-left every time the zoom changes.
+ const restore=opts&&opts.restore;                 // a redraw: put the view back exactly
+ // Zooming by button/pinch keeps the middle of the view still. A redraw instead
+ // restores the previous absolute position, because the axis has not changed under it.
  let ax=0.5, ay=0.5;
- if(host&&host.scrollWidth>host.clientWidth+1)
-   ax=(host.scrollLeft+host.clientWidth/2)/host.scrollWidth;
- if(host&&host.scrollHeight>host.clientHeight+1)
-   ay=(host.scrollTop+host.clientHeight/2)/host.scrollHeight;
+ if(!restore&&host){
+   if(host.scrollWidth>host.clientWidth+1)
+     ax=(host.scrollLeft+host.clientWidth/2)/host.scrollWidth;
+   if(host.scrollHeight>host.clientHeight+1)
+     ay=(host.scrollTop+host.clientHeight/2)/host.scrollHeight;
+ }
  layer.style.zoom=z;                               // reflows: the host then scrolls
  if(host){
-   // The visible width expressed in the layer's own (zoomed) units, so wrapped text
-   // fills the panel exactly rather than overflowing it.
    layer.style.setProperty("--czW",Math.max(80,Math.round(host.clientWidth/z))+"px");
-   const zoomedIn=z>1.02;
-   host.classList.toggle("czZoomed",zoomedIn);
-   if(prev!==z){
-     // restore the anchor after the reflow has been applied
-     requestAnimationFrame(()=>{
-       if(host.scrollWidth>host.clientWidth+1)
-         host.scrollLeft=Math.max(0,ax*host.scrollWidth-host.clientWidth/2);
-       if(host.scrollHeight>host.clientHeight+1)
-         host.scrollTop=Math.max(0,ay*host.scrollHeight-host.clientHeight/2);
-     });
-   }
+   host.classList.toggle("czZoomed",z>1.02);
+   const settle=()=>{
+     const maxL=Math.max(0,host.scrollWidth-host.clientWidth);
+     const maxT=Math.max(0,host.scrollHeight-host.clientHeight);
+     if(restore){
+       host.scrollLeft=Math.min(restore.left,maxL);
+       host.scrollTop=Math.min(restore.top,maxT);
+       followPlayhead(id,host);                    // then nudge only if it has moved off
+     }else if(prev!==z){
+       if(maxL>0)host.scrollLeft=Math.max(0,Math.min(maxL,ax*host.scrollWidth-host.clientWidth/2));
+       if(maxT>0)host.scrollTop=Math.max(0,Math.min(maxT,ay*host.scrollHeight-host.clientHeight/2));
+     }
+     CHART_SCROLL[id]={left:host.scrollLeft,top:host.scrollTop};
+   };
+   requestAnimationFrame(settle);
  }
  const rs=f.querySelector(".czReset");
  if(rs)rs.textContent=(Math.abs(z-1)<0.001)?"\u25c9":(Math.round(z*100)+"%");
+}
+const CHART_SCROLL={};
+/* While the impact chart builds with the timeline, the playhead marches to the right.
+   Rather than dragging the view about, hold it still and nudge only when the playhead
+   would otherwise leave the visible strip - so the picture creeps along instead of
+   jumping. */
+let IMPACT_PLAYHEAD_FRAC=null;
+function followPlayhead(id,host){
+ if(id!=="impact"||!IMPACT_LIVE||IMPACT_PLAYHEAD_FRAC===null)return;
+ const maxL=Math.max(0,host.scrollWidth-host.clientWidth);
+ if(maxL<=0)return;
+ const px=IMPACT_PLAYHEAD_FRAC*host.scrollWidth;
+ const margin=Math.min(70,host.clientWidth*0.18);
+ if(px>host.scrollLeft+host.clientWidth-margin)
+   host.scrollLeft=Math.min(maxL,px-host.clientWidth+margin);
+ else if(px<host.scrollLeft+margin)
+   host.scrollLeft=Math.max(0,px-margin);
 }
 function setChartZoom(id,z){ CHART_ZOOM[id]=Math.max(0.6,Math.min(4,z)); applyChartZoom(id); }
 function bumpChartZoom(id,factor){ setChartZoom(id,(CHART_ZOOM[id]||1)*factor); }
 function wireChartZoom(f,id){
  if(f.dataset.zoomWired)return; f.dataset.zoomWired="1";
  const host=f.querySelector(".chartHost"); if(!host)return;
+ // Whatever the reader scrolls to is what we restore after the next redraw.
+ host.addEventListener("scroll",()=>{CHART_SCROLL[id]={left:host.scrollLeft,top:host.scrollTop}},{passive:true});
  const inB=f.querySelector(".czIn"), outB=f.querySelector(".czOut"), rs=f.querySelector(".czReset");
  if(inB)inB.addEventListener("click",()=>bumpChartZoom(id,1.2));
  if(outB)outB.addEventListener("click",()=>bumpChartZoom(id,1/1.2));
