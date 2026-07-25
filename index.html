@@ -275,7 +275,11 @@
     .impSvg .impDot:hover{fill-opacity:1}
     .chartNote{font-size:10.5px;color:#7f95b4;margin:3px 0 12px;line-height:1.5}
     .chartFrame{width:420px}
-    .chartHost{min-height:60px}
+    .chartHost{min-height:60px;overflow:auto;touch-action:pan-x pan-y;overscroll-behavior:contain}
+    .chartZoomLayer{zoom:1;transform-origin:0 0}
+    .czBtn{font-size:15px;line-height:1;padding:3px 8px;min-width:28px;font-weight:700}
+    .czReset{font-size:10px;min-width:40px;font-variant-numeric:tabular-nums}
+    .czHint{color:#5f7a9c;font-size:10px;margin-left:4px}
     .chartScope{margin:8px 0 0;padding-top:7px;border-top:1px solid #1e3350;opacity:.85}
     .modeSwitch{display:flex;gap:0;border:1px solid #2c4666;border-radius:8px;overflow:hidden;margin-bottom:4px}
     .modeSwitch button{flex:1;background:transparent;border:0;border-radius:0;color:var(--muted);font-size:11px;padding:6px 8px}
@@ -1345,7 +1349,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v57";
+const APP_VERSION="v58";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -2125,6 +2129,7 @@ function showDetail(a){
  detail.innerHTML=detailHtml;
  attackDrawerBody.innerHTML=detailHtml;
  attackDrawer.classList.remove("hidden");
+ placeDetailDrawer();
  impactLabel.innerHTML=`<b>${a.name}</b><span>${a.originCountry} → ${a.victimCountry}<br>${a.severity} • impact ${a.impact}</span>`;
  impactLabel.classList.remove("hidden");
  if(mapMode==="sphere"){
@@ -3499,6 +3504,19 @@ document.querySelectorAll(".frame").forEach(registerFrame);
  const d=document.getElementById("attackDrawer");
  if(d)registerFrame(d);
 })();
+/* Open the detail drawer clear of the tool bar (top-left) rather than beneath it.
+   Placed below the tool bar's actual bottom - which adapts to however it has
+   wrapped - and to the right on a wide screen. Respects a hand-dragged position. */
+function placeDetailDrawer(){
+ const d=document.getElementById("attackDrawer");
+ if(!d||d.dataset.placed)return;                 // user moved it: leave it be
+ const tb=document.getElementById("toolbar").getBoundingClientRect();
+ const w=d.getBoundingClientRect().width||Math.min(430,window.innerWidth-24);
+ const top=Math.round(tb.bottom+10);
+ const left=Math.round(Math.max(10,Math.min(window.innerWidth-w-10, window.innerWidth-w-12)));
+ d.style.left=left+"px"; d.style.top=top+"px"; d.style.right="auto";
+ if(typeof fitFrame==="function")fitFrame(d);
+}
 /* Frames can be resized from the bottom-right corner in both directions. Charts
    re-render at the new pixel width rather than being scaled, so text stays crisp
    and never stretches. */
@@ -5189,18 +5207,38 @@ function impactChartHTML(W){
   // draw the smallest last so notable big dots sit on top; label the top few
   const ordered=pts.slice().sort((p,q)=>rOf(q.a)-rOf(p.a));
   const labelled=ordered.filter(p=>p.a.imp&&p.a.imp.notable).slice(0,7);
+
+  // De-crowd. Ordinal dimensions (intensity, disruption, data, novelty) quantise the
+  // Y value, so dozens of incidents land on the same horizontal line and stack. We
+  // fan them out with a small DETERMINISTIC offset - seeded by the incident id, so a
+  // point never jumps between redraws - spread vertically within its level's band and
+  // slightly along time. The offset is cosmetic separation, not a change of value; the
+  // axis labels remain the true levels.
+  const bandPx=(dim.kind==="scale")?(innerH/((dim.max||1)||1))*0.40:6;
+  const monthPx=innerW/(((ve-vs)||1));
+  const xJit=Math.min(monthPx*0.42,10);
+  const baseIdxOf=a=>(a._i!==undefined?a._i:idx(a.year,a.month));
+  const place=(p)=>{
+    if(p._px!==undefined)return p;
+    const hx=impHash(p.a.id+"x")-0.5, hy=impHash(p.a.id+"y")-0.5;
+    let x=xOf(baseIdxOf(p.a))+hx*2*xJit;
+    let y=yOf(p.y)+hy*2*bandPx;
+    p._px=Math.max(padL,Math.min(W-padR,x));
+    p._py=Math.max(padT,Math.min(padT+innerH,y));
+    return p;
+  };
   const dots=ordered.map(p=>{
-    const x=xOf(p.a._i!==undefined?p.a._i:idx(p.a.year,p.a.month));
-    const y=yOf(p.y), r=rOf(p.a);
+    place(p);
+    const r=rOf(p.a);
     const col=severityColor[p.a.severity]||"#4dd8ff";
     const notable=p.a.imp&&p.a.imp.notable;
-    return `<circle class="impDot" data-aid="${p.a.id}" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}"
+    return `<circle class="impDot" data-aid="${p.a.id}" cx="${p._px.toFixed(1)}" cy="${p._py.toFixed(1)}" r="${r.toFixed(1)}"
       fill="${col}" fill-opacity="${notable?0.92:0.5}" stroke="${notable?"#fff":col}" stroke-width="${notable?1.1:0.5}"><title>${escapeHtml(p.a.name)}</title></circle>`;
   }).join("");
 
   const labels=labelled.map(p=>{
-    const x=xOf(p.a._i!==undefined?p.a._i:idx(p.a.year,p.a.month));
-    const y=yOf(p.y);
+    place(p);
+    const x=p._px, y=p._py;
     const anchor=x>W*0.7?"end":"start";
     const dx=x>W*0.7?-8:8;
     const nm=p.a.name.length>22?p.a.name.slice(0,21)+"\u2026":p.a.name;
@@ -5219,10 +5257,12 @@ function impactChartHTML(W){
     `<div class="impChartBox">${svg}</div>
      <p class="chartNote" style="margin-top:2px">${dim.help}</p>
      <p class="chartNote">${covLine} Larger dots carry more weight (people affected, where known); brighter, outlined dots are landmark incidents. Click any dot for the incident.</p>
-     <p class="chartNote"><b>Read with care.</b> Impact data is sparse and uneven: only EuRepoC-reviewed incidents and the curated landmarks are scored, so this is a view of the <i>documented</i> heavy hitters, not a complete ranking. Financial figures are best-available public estimates, often contested. Novelty is an editorial judgement, shown separately for that reason.</p>`;
+     <p class="chartNote"><b>Read with care.</b> Impact data is sparse and uneven: only EuRepoC-reviewed incidents and the curated landmarks are scored, so this is a view of the <i>documented</i> heavy hitters, not a complete ranking. Financial figures are best-available public estimates, often contested. Novelty is an editorial judgement, shown separately for that reason. Points sharing a level are fanned out slightly so they can be seen and clicked \u2014 the axis label is the true value.</p>`;
 }
 
 function escapeHtml(s){return String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+/* Stable 0..1 hash of a string, so a point's cosmetic offset is the same every redraw. */
+function impHash(s){s=String(s);let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0)/4294967296;}
 
 
 const CHART_DEFS=[
@@ -5524,7 +5564,9 @@ function renderChartFrame(id){
  let out="";
  try{ out=def.build(chartWidthFor(host))||"" }
  catch(e){ console.warn("chart "+id+" failed",e); out='<p class="chartNote">This chart could not be drawn.</p>' }
- host.innerHTML=out||'<p class="chartNote">No data available for this chart yet.</p>';
+ host.innerHTML='<div class="chartZoomLayer">'+(out||'<p class="chartNote">No data available for this chart yet.</p>')+'</div>';
+ applyChartZoom(id);
+ wireChartZoom(f,id);
  host.querySelectorAll(".modeSwitch button").forEach(b=>b.addEventListener("click",()=>{
    const target=b.closest(".modeSwitch").dataset.for;
    setChartMode(target,b.dataset.mode);
@@ -5566,6 +5608,51 @@ function refreshOpenCharts(scope){
  });
  if(full)chartsNeedFullRefresh=false;
 }
+/* ── Chart zoom / pinch ─────────────────────────────────────────────────────
+   Every chart renders inside a .chartZoomLayer. Zooming it with the CSS `zoom`
+   property reflows the content, so the frame body scrolls to reveal the enlarged
+   chart rather than clipping it - which keeps long league tables readable too.
+   Pinch on touch, +/- buttons, reset, and Ctrl/Cmd + wheel on the desktop. */
+const CHART_ZOOM={};
+function applyChartZoom(id){
+ const f=chartFrame(id); if(!f)return;
+ const layer=f.querySelector(".chartZoomLayer"); if(!layer)return;
+ const z=Math.max(0.6,Math.min(4,CHART_ZOOM[id]||1));
+ CHART_ZOOM[id]=z;
+ layer.style.zoom=z;                               // reflows: parent scrolls when >1
+ const rs=f.querySelector(".czReset");
+ if(rs)rs.textContent=(Math.abs(z-1)<0.001)?"\u25c9":(Math.round(z*100)+"%");
+}
+function setChartZoom(id,z){ CHART_ZOOM[id]=Math.max(0.6,Math.min(4,z)); applyChartZoom(id); }
+function bumpChartZoom(id,factor){ setChartZoom(id,(CHART_ZOOM[id]||1)*factor); }
+function wireChartZoom(f,id){
+ if(f.dataset.zoomWired)return; f.dataset.zoomWired="1";
+ const host=f.querySelector(".chartHost"); if(!host)return;
+ const inB=f.querySelector(".czIn"), outB=f.querySelector(".czOut"), rs=f.querySelector(".czReset");
+ if(inB)inB.addEventListener("click",()=>bumpChartZoom(id,1.2));
+ if(outB)outB.addEventListener("click",()=>bumpChartZoom(id,1/1.2));
+ if(rs)rs.addEventListener("click",()=>setChartZoom(id,1));
+ // Ctrl / Cmd + wheel zooms; a plain wheel still scrolls the frame body.
+ host.addEventListener("wheel",e=>{
+   if(e.ctrlKey||e.metaKey){ e.preventDefault(); bumpChartZoom(id, e.deltaY<0?1.1:1/1.1); }
+ },{passive:false});
+ // Two-finger pinch.
+ let pinch=null;
+ const dist=t=>Math.hypot(t[0].clientX-t[1].clientX, t[0].clientY-t[1].clientY);
+ host.addEventListener("touchstart",e=>{
+   if(e.touches.length===2)pinch={d:dist(e.touches)||1, z:CHART_ZOOM[id]||1};
+ },{passive:true});
+ host.addEventListener("touchmove",e=>{
+   if(e.touches.length===2&&pinch){ e.preventDefault(); setChartZoom(id, pinch.z*(dist(e.touches)/pinch.d)); }
+ },{passive:false});
+ host.addEventListener("touchend",e=>{ if(e.touches.length<2)pinch=null; });
+ // Double-click empty space resets (but not on a dot or a control).
+ host.addEventListener("dblclick",e=>{
+   if(e.target.closest(".impDot,button,a,input,select"))return;
+   setChartZoom(id,1);
+ });
+}
+
 function openChartFrame(id){
  const def=chartDef(id); if(!def)return;
  let f=chartFrame(id);
@@ -5575,10 +5662,13 @@ function openChartFrame(id){
    f.id="frame-chart-"+id;
    f.setAttribute("aria-label",def.title);
    f.innerHTML=`<div class="frameHead"><h2>${def.title}</h2><span class="frameBtns">
+     <button class="czBtn czOut" type="button" aria-label="Zoom out" title="Zoom out">&#8722;</button>
+     <button class="czBtn czReset" type="button" aria-label="Reset zoom" title="Reset zoom">&#9673;</button>
+     <button class="czBtn czIn" type="button" aria-label="Zoom in" title="Zoom in">+</button>
      <button class="frameMax" type="button" aria-label="Maximise ${def.title}" title="Maximise / restore">&#9713;</button>
      <button class="frameClose" type="button" aria-label="Close ${def.title}">&#215;</button></span></div>
      <div class="frameBody"><div class="chartHost"></div>
-     <p class="chartNote chartScope">${def.group==="filtered"?"Follows the filters set in Controls.":"Background data \u2014 not affected by your filters."}</p></div>`;
+     <p class="chartNote chartScope">${def.group==="filtered"?"Follows the filters set in Controls.":"Background data \u2014 not affected by your filters."} <span class="czHint">Pinch, or use +/&minus;, to zoom.</span></p></div>`;
    document.getElementById("frames").appendChild(f);
    registerFrame(f);
  }
