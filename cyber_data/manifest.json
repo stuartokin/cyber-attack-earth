@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.11.1",
  "builder_date": "2026-07-25f",
- "generated": "2026-07-25T20:14:28+00:00",
+ "generated": "2026-07-25T20:24:29+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -198,7 +198,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 3.4
+   "seconds": 2.3
   },
   {
    "id": "vcdb",
@@ -210,7 +210,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10362,
-   "seconds": 6.0
+   "seconds": 5.6
   },
   {
    "id": "rwlive",
@@ -222,7 +222,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 21304,
-   "seconds": 193.6
+   "seconds": 148.4
   },
   {
    "id": "kev",
@@ -234,7 +234,7 @@
    "status": "ok",
    "expected": 1650,
    "rows": 1653,
-   "seconds": 0.1
+   "seconds": 0.2
   },
   {
    "id": "epss",
@@ -246,7 +246,7 @@
    "status": "ok",
    "expected": 17000,
    "rows": 17242,
-   "seconds": 0.9
+   "seconds": 1.0
   },
   {
    "id": "attack",
@@ -258,7 +258,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 871,
-   "seconds": 3.4
+   "seconds": 0.5
   },
   {
    "id": "icsadv",
@@ -270,7 +270,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 3902,
-   "seconds": 1.3
+   "seconds": 0.6
   },
   {
    "id": "eurepoc_live",
@@ -306,7 +306,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 319,
-   "seconds": 87.1
+   "seconds": 23.2
   },
   {
    "id": "impact_overlay",
@@ -330,7 +330,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1653,
-   "seconds": 156.4
+   "seconds": 0.1
   },
   {
    "id": "reports",
