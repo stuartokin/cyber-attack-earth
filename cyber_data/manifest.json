@@ -1,8 +1,8 @@
 {
  "schema": 3,
- "builder": "3.10.0",
- "builder_date": "2026-07-25d",
- "generated": "2026-07-25T16:28:00+00:00",
+ "builder": "3.11.0",
+ "builder_date": "2026-07-25e",
+ "generated": "2026-07-25T18:21:34+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -144,6 +144,19 @@
     "cve": {
      "file": "vulns/cve.json",
      "months": 319
+    },
+    "nvd": {
+     "file": "vulns/nvd.json",
+     "rows": 500,
+     "scored": 500
+    }
+   }
+  },
+  "advisories": {
+   "files": {
+    "ics": {
+     "file": "advisories/ics.json",
+     "rows": 3902
     }
    }
   },
@@ -185,7 +198,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 3.4
+   "seconds": 2.4
   },
   {
    "id": "vcdb",
@@ -197,7 +210,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10362,
-   "seconds": 5.7
+   "seconds": 5.4
   },
   {
    "id": "rwlive",
@@ -209,7 +222,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 21304,
-   "seconds": 169.2
+   "seconds": 138.5
   },
   {
    "id": "kev",
@@ -245,7 +258,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 871,
-   "seconds": 0.6
+   "seconds": 0.5
   },
   {
    "id": "icsadv",
@@ -253,9 +266,11 @@
    "table": "advisories",
    "licence": "Open Database Licence (ODbL) v1.0 - attribution + share-alike",
    "homepage": "https://www.icsadvisoryproject.com/",
+   "cadence": "weekly",
+   "status": "ok",
    "expected": 3800,
-   "status": "failed: 403 Client Error: rate limit exceeded for url: https://api.github.com/repos/icsadvprj/ICS-Advisory-Project/contents/ICS-CERT_ADV",
-   "rows": 0
+   "rows": 3902,
+   "seconds": 0.4
   },
   {
    "id": "eurepoc_live",
@@ -291,7 +306,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 319,
-   "seconds": 25.2
+   "seconds": 23.2
   },
   {
    "id": "impact_overlay",
@@ -304,6 +319,18 @@
    "expected": 0,
    "rows": 23,
    "seconds": 0.0
+  },
+  {
+   "id": "nvdcve",
+   "title": "NVD detail for exploited vulnerabilities",
+   "table": "vulns",
+   "licence": "NVD data - US Government work, public domain",
+   "homepage": "https://nvd.nist.gov/",
+   "cadence": "daily",
+   "status": "ok",
+   "expected": 0,
+   "rows": 500,
+   "seconds": 463.8
   },
   {
    "id": "reports",
