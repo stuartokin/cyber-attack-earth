@@ -95,6 +95,9 @@
     .tbDot.green{background:#4ee6a5;box-shadow:0 0 8px rgba(78,230,165,.8)}
     .tbDot.amber{background:var(--orange);box-shadow:0 0 8px rgba(255,157,60,.8)}
     .tbDot.red{background:#ff4d66;box-shadow:0 0 8px rgba(255,77,102,.85)}
+    .tbTidy{color:#7fe6ff;border-color:#24506b}
+    .tbTidy:hover{background:rgba(77,216,255,.12);border-color:var(--accent)}
+    .tbTidy.hidden{display:none}
     .tbCloseAll{color:var(--orange);border-color:#4a3520}
     .tbCloseAll:hover{background:rgba(255,157,60,.14);color:var(--orange);border-color:var(--orange)}
     .tbCloseAll.hidden{display:none}
@@ -296,9 +299,17 @@
     .vendChip:hover{border-color:#4dd8ff;color:#dbe8f7}
     .vendChip.on{background:#173a54;border-color:var(--accent);color:#eaf6ff}
     .vendChip.on i{color:#9fd8ef}
-    .hbar{display:grid;grid-template-columns:minmax(88px,34%) 1fr auto;gap:8px;align-items:center;font-size:11.5px}
-    .hbar>span{color:#c9d8ec;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .hbar>i{font-style:normal;color:#8fa6c2;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .hbar{display:grid;grid-template-columns:minmax(96px,32%) minmax(0,1fr) auto;gap:9px;align-items:center;font-size:12px}
+    .hbar>span{color:#dbe8f7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .hbar>i{font-style:normal;color:#dbe8f7;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
+    /* On a narrow panel the row would squeeze the number into nothing, so the label
+       takes its own line and the bar and number share the next one. */
+    @media (max-width:520px){
+      .hbar{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name name" "bar val";row-gap:2px;margin-bottom:5px}
+      .hbar>span{grid-area:name}
+      .hbarTrack{grid-area:bar}
+      .hbar>i{grid-area:val}
+    }
     .hbarTrack{position:relative;height:13px;background:#0a1626;border:1px solid #1e3350;border-radius:4px;overflow:hidden}
     .hbarFill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#2f6f96,#4dd8ff);border-radius:3px}
     .hbarOver{background:linear-gradient(90deg,#8f2233,#ff4d66);opacity:.95}
@@ -343,13 +354,17 @@
     .modeSwitch button.on,.impTimeSwitch button.on{background:rgba(77,216,255,.16);color:var(--text);font-weight:600}
     .modeSwitch button:not(.on):hover,.impTimeSwitch button:not(.on):hover{background:rgba(20,38,63,.7);color:var(--text)}
     .league{display:grid;gap:3px;max-height:none}
-    .lgRow{position:relative;display:grid;grid-template-columns:auto 1fr auto auto;gap:8px;align-items:center;
-      background:#0a1626;border:1px solid #1e3350;border-radius:6px;padding:4px 8px;font-size:11.5px;overflow:hidden}
-    .lgRow i{position:absolute;left:0;top:0;bottom:0;opacity:.2}
+    .lgRow{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;gap:8px;align-items:center;
+      background:#0a1626;border:1px solid #1e3350;border-radius:6px;padding:5px 9px;font-size:12px;overflow:hidden}
+    .lgRow i{position:absolute;left:0;top:0;bottom:0;opacity:.26}
     .lgRank,.lgName,.lgVal,.lgMove{position:relative;z-index:1}
-    .lgRank{color:#6f86a6;font-variant-numeric:tabular-nums;min-width:2.1em}
-    .lgName{color:#c9d8ec;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .lgVal{color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
+    .lgRank{color:#8fa6c2;font-variant-numeric:tabular-nums;min-width:2.1em}
+    /* minmax(0,1fr) lets the name shrink instead of shoving the number off the row,
+       and a text shadow keeps it legible where it crosses the bar behind. */
+    .lgName{color:#dbe8f7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+      text-shadow:0 1px 2px rgba(4,10,20,.9)}
+    .lgVal{color:#fff;font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap;
+      text-shadow:0 1px 2px rgba(4,10,20,.9)}
     .lgMove{min-width:2.6em;text-align:right;font-size:10px;font-variant-numeric:tabular-nums}
     .lgMove.up{color:#4ee6a5}.lgMove.down{color:#ff6b78}.lgMove.new{color:var(--accent)}
     .coverage{display:grid;gap:3px;margin:6px 0}
@@ -494,6 +509,7 @@
     <button class="tbBtn" data-frame="search" type="button" title="Search — look up an attack or threat group and jump to it" aria-label="Search"><span class="tbIco">🔍</span><span class="tbLabel">Search</span></button>
     <button class="tbBtn" data-frame="charts" type="button" title="Charts — incident, KEV, ICS advisory and EPSS charts" aria-label="Charts"><span class="tbIco">📊</span><span class="tbLabel">Charts</span></button>
     <button class="tbBtn" data-frame="bench" type="button" title="Compare against published findings from ENISA, Verizon and Dragos" aria-label="Compare"><span class="tbIco">⚖</span><span class="tbLabel">Compare</span></button>
+    <button id="tbTidy" class="tbBtn tbTidy hidden" type="button" title="Arrange the open windows so the globe stays visible" aria-label="Tidy windows"><span class="tbIco">&#9783;</span><span class="tbLabel">Tidy</span></button>
     <button id="tbCloseAll" class="tbBtn tbCloseAll hidden" type="button" title="Close every open window" aria-label="Close all windows"><span class="tbIco">&#10006;</span><span class="tbLabel">Close all</span></button>
     <button class="tbBtn" data-frame="help" type="button" title="Help — how to read this map, its limitations, sources and licences" aria-label="Help"><span class="tbIco">ⓘ</span><span class="tbLabel">Help</span></button>
   </div>
@@ -712,16 +728,18 @@
           <button id="tbHealth" class="healthChip" type="button" title="Data status — click for the source table"><span class="tbDot" id="tbHealthDot"></span><span id="tbHealthLabel">Data</span></button>
           <span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Help" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Help">&#215;</button></span></div>
         <div class="frameBody">
-        <div class="helpPlay">
-          <b>Guided walk-throughs</b>
-          <p class="small" style="margin:3px 0 6px">Narrated by the browser's voice. Press Escape at any time to stop.</p>
+        <details class="ctlSec" data-sec="walkthrough">
+          <summary>Guided walk-throughs</summary>
+          <div class="ctlBody helpPlay">
+          <p class="small" style="margin:0 0 6px">Narrated by the browser's voice. Press Escape at any time to stop.</p>
           <div class="btnrow">
             <button id="helpPlayDemo" type="button">&#9654; Training video</button>
             <button id="helpPlayPres" type="button">&#9654; Presentation</button>
             <button id="helpPlayKiosk" type="button">&#9654; Kiosk loop</button>
             <button id="helpPlayMore" type="button">Options &amp; script</button>
           </div>
-        </div>
+          </div>
+        </details>
         <div class="miniLinks" style="margin:0 0 8px"><button id="helpExpandAll" type="button">Expand all</button><button id="helpCollapseAll" type="button">Collapse all</button></div>
         <details class="ctlSec" data-sec="about">
           <summary>About this map</summary>
@@ -853,6 +871,7 @@
         <button id="splashGo" class="primary" type="button" disabled>Loading&hellip;</button>
         <button id="splashTour" type="button">&#9654; Play the training video</button>
         <button id="splashStory" type="button">&#9654; Watch the presentation</button>
+        <button id="splashKiosk" type="button">&#9654; Kiosk loop</button>
       </div>
     </div>
   </div>
@@ -889,10 +908,10 @@
         </label>
         <label class="small" style="margin:0;display:flex;align-items:center;gap:5px">Trend
           <select id="trendMode" style="width:auto;padding:3px 5px;font-size:11px">
-            <option value="avg" selected>12-month average</option>
+            <option value="avg">12-month average</option>
             <option value="long">Long-run trend, 2000 to today</option>
             <option value="both">Both</option>
-            <option value="off">Off</option>
+            <option value="off" selected>Off</option>
           </select>
         </label>
         <label class="small" style="margin:0;display:flex;align-items:center;gap:6px">Overlay
@@ -1425,7 +1444,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v63";
+const APP_VERSION="v64";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -3819,6 +3838,8 @@ let gripMoved=false;
 /* Appears only when there is something to close, so it never sits there as dead
    weight on a small screen. */
 const tbCloseAll=document.getElementById("tbCloseAll");
+(function(){const t=document.getElementById("tbTidy");
+ if(t)t.addEventListener("click",()=>{tidyFrames();});})();
 function openFrameCount(){return document.querySelectorAll(".frame:not(.hidden)").length}
 /* A single light for the state of the data lake. Green when every source arrived at
    the volume expected, amber when something is thin or a source is missing, red when
@@ -3864,10 +3885,83 @@ function dataHealth(){
  if(btn)btn.title=why;
  return {level,why};
 }
+
+/* Arrange every open window into columns down the edges, leaving a corridor through
+   the middle so the globe or map is still visible - the point of the tool is the map,
+   and a screen of stacked panels loses it. Windows keep their order of opening, are
+   un-maximised first, and are sized to fit the space actually available between the
+   tool bar and the timeline. On a narrow screen there is no corridor to protect, so
+   they stack in one column and the map keeps the top third. */
+function tidyFrames(){
+ const open=[...document.querySelectorAll(".frame:not(.hidden)")];
+ if(!open.length)return;
+ open.forEach(f=>f.classList.remove("maxed"));
+ const gap=8;
+ const top=Math.round(document.getElementById("toolbar").getBoundingClientRect().bottom+10);
+ const bottom=Math.round((typeof safeBottom==="function"?safeBottom():window.innerHeight)-10);
+ const availH=Math.max(150,bottom-top);
+ const W=window.innerWidth;
+
+ const put=(f,x,y,w,h)=>{
+   f.style.left=Math.round(x)+"px";
+   f.style.top=Math.round(y)+"px";
+   f.style.width=Math.round(w)+"px";
+   f.style.maxWidth=Math.round(w)+"px";
+   f.style.height=Math.round(h)+"px";
+   f.style.maxHeight=Math.round(h)+"px";
+   f.dataset.placed="1"; f.dataset.sized="1";
+ };
+
+ if(W<760){
+   // No room for a corridor: keep the top third for the map and stack below it.
+   const mapKeep=Math.round(availH*0.34);
+   const y0=top+mapKeep;
+   const h=Math.max(120,Math.floor((bottom-y0-(open.length-1)*gap)/open.length));
+   const w=Math.min(W-20,440);
+   open.forEach((f,i)=>put(f,10,y0+i*(h+gap),w,h));
+   return;
+ }
+
+ const colW=Math.min(360,Math.max(240,Math.round(W*0.26)));
+ const maxPerCol=Math.max(1,Math.floor(availH/200));
+ // Columns from the outside in: left, right, then second-left, second-right - so the
+ // centre is the last thing to be encroached on.
+ const maxCols=Math.max(2,Math.floor((W-40)/(colW+gap)));
+ const xs=[];
+ for(let c=0;c<Math.ceil(maxCols/2);c++){
+   xs.push(10+c*(colW+gap));
+   xs.push(W-10-colW-c*(colW+gap));
+ }
+ let i=0;
+ for(const x of xs){
+   if(i>=open.length)break;
+   const take=Math.min(maxPerCol,open.length-i);
+   const h=Math.max(150,Math.floor((availH-(take-1)*gap)/take));
+   for(let k=0;k<take;k++,i++)put(open[i],x,top+k*(h+gap),colW,h);
+ }
+ // anything left over (more windows than columns hold) goes back to the tiler
+ for(;i<open.length;i++){
+   delete open[i].dataset.placed; delete open[i].dataset.sized;
+   open[i].style.left="";open[i].style.top="";open[i].style.width="";open[i].style.maxWidth="";
+   open[i].style.height="";open[i].style.maxHeight="";
+   if(typeof positionFrame==="function")positionFrame(open[i]);
+ }
+ // charts must redraw at their new width
+ document.querySelectorAll('.frame[id^="frame-chart-"]:not(.hidden)').forEach(f=>{
+   const id=f.id.replace("frame-chart-","");
+   if(typeof renderChartFrame==="function")renderChartFrame(id);
+ });
+}
 function refreshCloseAll(){
  if(!tbCloseAll)return;
  const n=openFrameCount();
  tbCloseAll.classList.toggle("hidden",n<2);
+ const tid=document.getElementById("tbTidy");
+ if(tid){
+   tid.classList.toggle("hidden",n<1);
+   const tl=tid.querySelector(".tbLabel");
+   if(tl)tl.textContent=n>1?`Tidy (${n})`:"Tidy";
+ }
  const lbl=tbCloseAll.querySelector(".tbLabel");
  if(lbl)lbl.textContent=`Close all (${n})`;
  tbCloseAll.title=`Close all ${n} open windows`;
@@ -3980,6 +4074,7 @@ function splashDismiss(then){
 document.getElementById("splashGo").addEventListener("click",()=>splashDismiss());
 document.getElementById("splashTour").addEventListener("click",()=>splashDismiss(()=>narrStart("demo")));
 document.getElementById("splashStory").addEventListener("click",()=>splashDismiss(()=>narrStart("presentation")));
+document.getElementById("splashKiosk").addEventListener("click",()=>splashDismiss(()=>narrStart("kiosk")));
 // a gentle orbit while they read, so the wait is not a blank screen
 (function(){
  // Grow the globe into position first, then dim it a little as the card arrives -
@@ -5289,19 +5384,34 @@ function impactPool(when){
    selected dimension (0..1). Bubble radius encodes a second reading - people
    affected where present, else the composite confidence. Notable incidents are
    labelled. Every dot carries its incident id for click-through. */
-/* "Whole period" shows everything in the selected years at once. "Build with the
-   timeline" accumulates from the start of the range up to the playhead, so pressing
-   Play draws the story in as it happens. It deliberately accumulates regardless of
-   the Build-up switch in Controls - a single month of impact points would be a bare
-   vertical line rather than a developing picture. */
-let IMPACT_LIVE=false;
-function impactWhen(){return IMPACT_LIVE?"heat":"period";}
-function impTimeSwitch(){
-  return `<div class="impTimeSwitch">
-    <button type="button" data-imp="period" class="${IMPACT_LIVE?"":"on"}">Whole period</button>
-    <button type="button" data-imp="live" class="${IMPACT_LIVE?"on":""}">Build with the timeline</button>
+/* ── Follow the timeline ────────────────────────────────────────────────────
+   Any chart that develops over time can either show the whole selected period at
+   once, or build up to the playhead so that pressing Play draws it in as it
+   happens. Building deliberately accumulates regardless of the Build-up switch in
+   Controls: a single month would be a bare sliver rather than a developing
+   picture.
+
+   A chart opened WHILE the timeline is playing starts in build mode, because that
+   is plainly what the viewer is watching for. A chart already open is left exactly
+   as the viewer set it - changing it under them would be rude and would discard a
+   deliberate choice. */
+const TIME_CHARTS=new Set(["impact","vulntime","vulnvs","cve","kev","icsyear"]);
+const CHART_FOLLOW={};
+function follows(id){return !!CHART_FOLLOW[id];}
+function setFollow(id,on){CHART_FOLLOW[id]=!!on;renderChartFrame(id);}
+function timeSwitch(id){
+  if(!TIME_CHARTS.has(id))return "";
+  const on=follows(id);
+  return `<div class="impTimeSwitch" data-timefor="${id}">
+    <button type="button" data-follow="0" class="${on?"":"on"}">Whole period</button>
+    <button type="button" data-follow="1" class="${on?"on":""}">Build with the timeline</button>
   </div>`;
 }
+/* The playhead, clamped into the visible range, for charts that draw a marker. */
+function playheadIdx(){return timelineIndex;}
+function playheadYear(){return fromIdx(timelineIndex).year;}
+function impactWhen(){return follows("impact")?"heat":"period";}
+function impTimeSwitch(){return timeSwitch("impact");}
 function impactChartHTML(W){
   const cm=chartMode("impact");
   const dimId=IMPACT_DIMS.some(d=>d.id===cm)?cm:"composite";  // period/live default -> composite
@@ -5314,7 +5424,7 @@ function impactChartHTML(W){
 
   const total=pool.length;
   if(!pts.length){
-    return chooser+`<p class="chartNote">${IMPACT_LIVE?"Nothing has been reached yet \u2014 press Play, or drag the timeline, to build the picture up. ":""}No incidents in the current view carry a <b>${dim.label.toLowerCase()}</b> figure yet. ${
+    return chooser+`<p class="chartNote">${follows("impact")?"Nothing has been reached yet \u2014 press Play, or drag the timeline, to build the picture up. ":""}No incidents in the current view carry a <b>${dim.label.toLowerCase()}</b> figure yet. ${
       total?`${total.toLocaleString()} filtered incidents have some impact data, but none this dimension.`:
       "Impact data comes from EuRepoC's coded records (after the data pack rebuilds) and the curated landmark set."}</p>`;
   }
@@ -5397,8 +5507,8 @@ function impactChartHTML(W){
   }).join("");
 
   // a marker showing where the timeline has reached, while building
-  IMPACT_PLAYHEAD_FRAC=IMPACT_LIVE?(xOf(Math.max(vs,Math.min(ve,timelineIndex)))/Math.max(1,W)):null;
-  const playhead=IMPACT_LIVE?(()=>{
+  IMPACT_PLAYHEAD_FRAC=follows("impact")?(xOf(Math.max(vs,Math.min(ve,timelineIndex)))/Math.max(1,W)):null;
+  const playhead=follows("impact")?(()=>{
     const px=xOf(Math.max(vs,Math.min(ve,timelineIndex)));
     return `<line x1="${px.toFixed(1)}" y1="${padT}" x2="${px.toFixed(1)}" y2="${(padT+innerH).toFixed(1)}"
       stroke="#4dd8ff" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.8"/>
@@ -5409,7 +5519,7 @@ function impactChartHTML(W){
     ${gridY}${xticks}${playhead}${dots}${labels}</svg>`;
 
   // coverage honesty
-  const builtNote=IMPACT_LIVE?` Building to ${mon(fromIdx(timelineIndex).month)} ${fromIdx(timelineIndex).year}.`:"";
+  const builtNote=follows("impact")?` Building to ${mon(fromIdx(timelineIndex).month)} ${fromIdx(timelineIndex).year}.`:"";
   const covLine=(dimId==="composite")
     ? `${pts.length.toLocaleString()} of ${total.toLocaleString()} filtered incidents with impact data are plotted; each blends the dimensions it has (mean ${(pts.reduce((s,p)=>s+(impComposite(p.a)?impComposite(p.a).n:0),0)/pts.length).toFixed(1)} of 6).`
     : `${pts.length.toLocaleString()} of ${total.toLocaleString()} filtered incidents with impact data carry a ${dim.label.toLowerCase()} figure. The rest are not plotted for this dimension rather than shown as zero.`;
@@ -5479,7 +5589,7 @@ function epssOf(cve){
 /* ── 1. Exploited flaws over time (the CVE counterpart of the impact chart) ── */
 function vulnTimeHTML(W){
   const kev=vulnKev();
-  if(!kev.length)return vulnVendorChips()+'<p class="chartNote">No known-exploited vulnerabilities loaded, or none for the chosen vendors.</p>';
+  if(!kev.length)return timeSwitch("vulntime")+vulnVendorChips()+'<p class="chartNote">No known-exploited vulnerabilities loaded, or none for the chosen vendors.</p>';
   const H=250, padL=44, padR=14, padT=14, padB=40;
   const innerW=Math.max(120,W-padL-padR), innerH=H-padT-padB;
   const fs=filterState("period");
@@ -5487,13 +5597,14 @@ function vulnTimeHTML(W){
   const xOf=i=>padL+((i-vs)/(ve-vs))*innerW;
   const yOf=v=>padT+(1-v)*innerH;
 
+  const cap=follows("vulntime")?timelineIndex:ve;
   const pts=[];
   kev.forEach(k=>{
-    const i=kevIdx(k); if(i===null||i<vs||i>ve)return;
+    const i=kevIdx(k); if(i===null||i<vs||i>ve||i>cap)return;
     const e=epssOf(k.cve);
     pts.push({k,i,e});
   });
-  if(!pts.length)return vulnVendorChips()+`<p class="chartNote">Nothing catalogued inside the years currently shown. Widen the range in Controls \u2014 the catalogue only starts in 2021, though the flaws themselves are often much older.</p>`;
+  if(!pts.length)return timeSwitch("vulntime")+vulnVendorChips()+`<p class="chartNote">${follows("vulntime")?"Nothing catalogued yet at this point in the timeline \u2014 press Play to build it up. ":""}Nothing catalogued inside the years currently shown. Widen the range in Controls \u2014 the catalogue only starts in 2021, though the flaws themselves are often much older.</p>`;
 
   // y: predicted exploitation probability where known; unscored sit on a base line
   const scored=pts.filter(p=>p.e!==null);
@@ -5533,9 +5644,13 @@ function vulnTimeHTML(W){
   }).join("");
 
   const ranN=pts.filter(p=>/known/i.test(p.k.ransomware||"")).length;
-  return vulnVendorChips()+
+  const ph=follows("vulntime")?(()=>{
+    const px=xOf(Math.max(vs,Math.min(ve,timelineIndex)));
+    return `<line x1="${px.toFixed(1)}" y1="${padT}" x2="${px.toFixed(1)}" y2="${(padT+innerH).toFixed(1)}" stroke="#4dd8ff" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.8"/>`;
+  })():"";
+  return timeSwitch("vulntime")+vulnVendorChips()+
    `<div class="impChartBox"><svg width="${W}" height="${H}" class="impSvg" role="img" aria-label="Exploited vulnerabilities over time">
-      ${gridY}${xticks}${ctx}${dots}</svg></div>
+      ${gridY}${xticks}${ctx}${ph}${dots}</svg></div>
     <p class="chartNote">Each dot is one flaw CISA has recorded as <b>actually exploited</b>, placed at the month it was catalogued. Height is FIRST's EPSS estimate of the chance it would be exploited in the next 30 days; dots with no published score sit along the bottom. Red dots are flagged as used in ransomware campaigns (${ranN.toLocaleString()} of ${pts.length.toLocaleString()} shown). The dashed line is the monthly volume of <i>all</i> published vulnerabilities, on its own scale, purely for context.</p>
     <p class="chartNote"><b>Read with care.</b> ${scored.length.toLocaleString()} of ${pts.length.toLocaleString()} shown carry an EPSS score, because the pack only keeps scores at or above 10%. The catalogue is a remediation list for US federal agencies, not a census of exploitation \u2014 a flaw is here because CISA saw evidence and chose to list it. The date is when it was catalogued, which can be years after the flaw was published. Click any dot for the detail.</p>`;
 }
@@ -5547,8 +5662,10 @@ function vulnTimeHTML(W){
 function vulnVsAttacksHTML(W){
   const H=240, padL=46, padR=14, padT=14, padB=40;
   const innerW=Math.max(120,W-padL-padR), innerH=H-padT-padB;
-  const y0=2016, y1=(new Date()).getFullYear();
+  const y0=2016;
+  const y1=follows("vulnvs")?Math.max(y0,playheadYear()):(new Date()).getFullYear();
   const years=[]; for(let y=y0;y<=y1;y++)years.push(y);
+  if(years.length<2)return timeSwitch("vulnvs")+'<p class="chartNote">Press Play, or move the timeline past 2017, to build this comparison up.</p>';
 
   const incByYear={}, kevByYear={}, cveByYear={};
   filterPass("all").forEach(a=>{ if(a.year>=y0)incByYear[a.year]=(incByYear[a.year]||0)+1 });
@@ -5594,7 +5711,7 @@ function vulnVsAttacksHTML(W){
   }).join("");
   const legend=series.map(s=>`<span class="lgd"><i style="background:${s.colour}"></i>${s.label}</span>`).join("");
 
-  return `${vulnVendorChips()}<div class="impChartBox"><svg width="${W}" height="${H}" role="img" aria-label="Attacks and vulnerabilities compared">
+  return `${timeSwitch("vulnvs")}${vulnVendorChips()}<div class="impChartBox"><svg width="${W}" height="${H}" role="img" aria-label="Attacks and vulnerabilities compared">
       ${grid}${xt}${lines}</svg></div>
     <div class="lgdRow">${legend}</div>
     <p class="chartNote">Each line is indexed to its own first year at 100, so the <i>shapes</i> can be compared. The absolute quantities cannot: a published vulnerability, a catalogued exploitation and a documented incident are three different things counted by three different communities.</p>
@@ -5709,6 +5826,13 @@ function showCveDetail(cveId){
   if(dr){dr.classList.remove("hidden"); if(typeof placeDetailDrawer==="function")placeDetailDrawer();}
 }
 
+/* Clip a monthly series at the playhead so the bars fill in as the timeline runs.
+   The array keeps its full length - months beyond the playhead become zero rather
+   than disappearing - so the axis stays still and the chart grows into it. */
+function clipToPlayhead(series,id){
+  if(!follows(id)||!Array.isArray(series))return series;
+  return series.map((v,i)=>i<=timelineIndex?v:0);
+}
 const CHART_DEFS=[
  {id:"incidents",title:"Documented incidents / month",group:"filtered",live:false,
   blurb:"How many attacks per month match your filters.",
@@ -5938,9 +6062,10 @@ const CHART_DEFS=[
   blurb:"Flaws attackers were seen using, over time.",
   ok:()=>!!kevMonthly(),
   build:W=>{
-    const kev=kevMonthly(); if(!kev)return "";
+    const rawK=kevMonthly(); if(!rawK)return "";
+    const kev=clipToPlayhead(rawK,"kev");
     const last12=kev.slice(Math.max(0,timelineIndex-11),timelineIndex+1).reduce((a,b)=>a+b,0);
-    return `<div class="chartBox">${svgBars(kev,{w:W,h:120,color:"#ffd24d",ticks:yearTicks(),
+    return timeSwitch("kev")+`<div class="chartBox">${svgBars(kev,{w:W,h:120,color:"#ffd24d",ticks:yearTicks(),
       label:(i,n)=>`${mon(fromIdx(i).month)} ${fromIdx(i).year}: ${n} added`})}</div>
       <p class="chartNote">A "known exploited vulnerability" is a software flaw attackers have been seen actually using. ${LAKE.kev.length.toLocaleString()} are catalogued in total; ${last12} were added in the 12 months to ${mon(month)} ${year}. Source: CISA KEV (public domain).</p>`;
   }},
@@ -5949,8 +6074,10 @@ const CHART_DEFS=[
   ok:()=>LAKE.ics.length>0,
   build:W=>{
     if(!LAKE.ics.length)return "";
-    const byYear={};LAKE.ics.forEach(a=>{if(a.year)byYear[a.year]=(byYear[a.year]||0)+1});
+    const capY=follows("icsyear")?playheadYear():9999;
+    const byYear={};LAKE.ics.forEach(a=>{if(a.year&&a.year<=capY)byYear[a.year]=(byYear[a.year]||0)+1});
     const yrs=Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+    if(!yrs.length)return timeSwitch("icsyear")+'<p class="chartNote">Nothing published yet at this point in the timeline \u2014 press Play to build it up.</p>';
     const now=fromIdx(endTimelineIndex);
     const thisYear=now.year, monthsSoFar=now.month;
     // Straight-line projection: this year's rate so far, carried to December. It is
@@ -5963,7 +6090,7 @@ const CHART_DEFS=[
             add:Math.round(rate*12)-byYear[thisYear],months:monthsSoFar};
     }
     const rows=yrs.slice(-16).map(y=>[String(y),byYear[y]]);
-    let bars=svgHBars(rows,{color:"#4ee6a5"});
+    let bars=timeSwitch("icsyear")+svgHBars(rows,{color:"#4ee6a5"});
     if(proj){
       // show the projected total as a separate, clearly-marked bar
       const max=Math.max(...rows.map(r=>r[1]),proj.est);
@@ -5997,11 +6124,13 @@ const CHART_DEFS=[
   blurb:"Overall attack surface, for context.",
   ok:()=>!!cveMonthly(),
   build:W=>{
-    const cve=cveMonthly(); if(!cve)return "";
+    const raw=cveMonthly(); if(!raw)return "";
+    const cve=clipToPlayhead(raw,"cve");
     const total=Object.values(LAKE.cve.months).reduce((a,b)=>a+(+b||0),0);
-    return `<div class="chartBox">${svgBars(cve,{w:W,h:120,color:"#8f9dff",ticks:yearTicks(),
+    const shown=follows("cve")?cve.reduce((a,b)=>a+b,0):total;
+    return timeSwitch("cve")+`<div class="chartBox">${svgBars(cve,{w:W,h:120,color:"#8f9dff",ticks:yearTicks(),
       label:(i,n)=>`${mon(fromIdx(i).month)} ${fromIdx(i).year}: ${n.toLocaleString()} published`})}</div>
-      <p class="chartNote">${total.toLocaleString()} vulnerabilities across ${Object.keys(LAKE.cve.months).length} months (NVD, public domain). This is <b>attack surface</b>, not attacks &mdash; useful as context beside the incident chart, not a like-for-like comparison. History fills in over successive nightly builds.</p>`;
+      <p class="chartNote">${follows("cve")?`Built to ${mon(month)} ${year}: ${shown.toLocaleString()} published so far, of `:""}${total.toLocaleString()} vulnerabilities across ${Object.keys(LAKE.cve.months).length} months (NVD, public domain). This is <b>attack surface</b>, not attacks &mdash; useful as context beside the incident chart, not a like-for-like comparison. History fills in over successive nightly builds.</p>`;
   }},
  {id:"epss",title:"Known-exploited flaws by predicted exploitation",group:"reference",
   blurb:"How likely each catalogued flaw is to be exploited.",
@@ -6049,9 +6178,9 @@ function renderChartFrame(id){
  host.querySelectorAll(".impDimBtn").forEach(b=>b.addEventListener("click",()=>{
    setChartMode("impact",b.dataset.dim);
  }));
- host.querySelectorAll("[data-imp]").forEach(b=>b.addEventListener("click",()=>{
-   IMPACT_LIVE=(b.dataset.imp==="live");
-   renderChartFrame("impact");
+ host.querySelectorAll("[data-follow]").forEach(b=>b.addEventListener("click",()=>{
+   const wrap=b.closest("[data-timefor]");
+   if(wrap)setFollow(wrap.dataset.timefor,b.dataset.follow==="1");
  }));
  // vendor chips are shared by every vulnerability chart, so all of them stay in step
  host.querySelectorAll(".vendChip").forEach(b=>b.addEventListener("click",()=>{
@@ -6078,7 +6207,7 @@ function renderChartFrame(id){
    redraws only the charts whose content genuinely depends on where the timeline
    sits; everything else waits for a filter or data change. */
 function chartIsLive(d){
- if(d.id==="impact")return IMPACT_LIVE;   // only while building with the timeline
+ if(TIME_CHARTS.has(d.id))return follows(d.id);   // only while building with the timeline
  if(d.live===true)return true;
  if(d.live===false)return false;
  // ranking tables move with the timeline only while in "as it happens" mode
@@ -6146,7 +6275,7 @@ const CHART_SCROLL={};
    jumping. */
 let IMPACT_PLAYHEAD_FRAC=null;
 function followPlayhead(id,host){
- if(id!=="impact"||!IMPACT_LIVE||IMPACT_PLAYHEAD_FRAC===null)return;
+ if(id!=="impact"||!follows("impact")||IMPACT_PLAYHEAD_FRAC===null)return;
  const maxL=Math.max(0,host.scrollWidth-host.clientWidth);
  if(maxL<=0)return;
  const px=IMPACT_PLAYHEAD_FRAC*host.scrollWidth;
@@ -6190,6 +6319,11 @@ function wireChartZoom(f,id){
 
 function openChartFrame(id){
  const def=chartDef(id); if(!def)return;
+ // Opened while the timeline is running? Then the viewer is watching it move, so
+ // start this chart building. Only ever on FIRST open - a chart the viewer has
+ // already set to "whole period" is never switched under them.
+ if(TIME_CHARTS.has(id)&&CHART_FOLLOW[id]===undefined&&typeof timer!=="undefined"&&timer)
+   CHART_FOLLOW[id]=true;
  let f=chartFrame(id);
  if(!f){
    f=document.createElement("section");
