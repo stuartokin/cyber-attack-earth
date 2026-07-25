@@ -1,0 +1,79 @@
+incident_id,dimension,value,unit,source_url,as_of,confidence,note
+stuxnet-2010,intensity,7,scale-0-8,https://www.cisa.gov/news-events/ics-advisories,2026-07,coded,figure taken from the incident's cited source
+stuxnet-2010,disruption,3,scale-0-4,https://www.cisa.gov/news-events/ics-advisories,2026-07,coded,figure taken from the incident's cited source
+stuxnet-2010,novelty,3,scale-0-3,https://www.cisa.gov/news-events/ics-advisories,2026-07,coded,
+sony-pictures-breach-2014,disruption,2,scale-0-4,https://www.fbi.gov/news/press-releases/update-on-sony-investigation,2026-07,coded,figure taken from the incident's cited source
+sony-pictures-breach-2014,data,2,scale-0-3,https://www.fbi.gov/news/press-releases/update-on-sony-investigation,2026-07,coded,figure taken from the incident's cited source
+sony-pictures-breach-2014,novelty,2,scale-0-3,https://www.fbi.gov/news/press-releases/update-on-sony-investigation,2026-07,coded,figure taken from the incident's cited source
+sony-pictures-breach-2014,financial,35000000,usd,https://www.fbi.gov/news/press-releases/update-on-sony-investigation,2026-07,reported,
+anthem-breach-2015,data,3,scale-0-3,https://www.hhs.gov/hipaa/for-professionals/compliance-enforcement/agreements/anthem/index.html,2026-07,coded,figure taken from the incident's cited source
+anthem-breach-2015,people,78800000,count,https://www.hhs.gov/hipaa/for-professionals/compliance-enforcement/agreements/anthem/index.html,2026-07,reported,
+opm-breach-2015,data,3,scale-0-3,https://www.gao.gov/products/gao-17-614,2026-07,coded,figure taken from the incident's cited source
+opm-breach-2015,novelty,2,scale-0-3,https://www.gao.gov/products/gao-17-614,2026-07,coded,figure taken from the incident's cited source
+opm-breach-2015,people,21500000,count,https://www.gao.gov/products/gao-17-614,2026-07,reported,
+ukraine-power-grid-2015-2015,intensity,7,scale-0-8,https://www.cisa.gov/news-events/ics-alerts/ir-alert-h-16-056-01,2026-07,coded,figure taken from the incident's cited source
+ukraine-power-grid-2015-2015,disruption,1,scale-0-4,https://www.cisa.gov/news-events/ics-alerts/ir-alert-h-16-056-01,2026-07,coded,figure taken from the incident's cited source
+ukraine-power-grid-2015-2015,novelty,3,scale-0-3,https://www.cisa.gov/news-events/ics-alerts/ir-alert-h-16-056-01,2026-07,coded,figure taken from the incident's cited source
+ukraine-power-grid-2015-2015,people,230000,count,https://www.cisa.gov/news-events/ics-alerts/ir-alert-h-16-056-01,2026-07,reported,
+bangladesh-bank-heist-2016,novelty,2,scale-0-3,https://www.justice.gov/opa/pr/north-korean-regime-backed-programmer-charged-conspiracy-conduct-multiple-cyber-attacks-and,2026-07,coded,figure taken from the incident's cited source
+bangladesh-bank-heist-2016,financial,81000000,usd,https://www.justice.gov/opa/pr/north-korean-regime-backed-programmer-charged-conspiracy-conduct-multiple-cyber-attacks-and,2026-07,reported,
+ukraine-grid-industroyer-2016-2016,intensity,7,scale-0-8,https://www.cisa.gov/news-events/alerts/2017/06/12/crashoverride-malware,2026-07,coded,figure taken from the incident's cited source
+ukraine-grid-industroyer-2016-2016,disruption,1,scale-0-4,https://www.cisa.gov/news-events/alerts/2017/06/12/crashoverride-malware,2026-07,coded,figure taken from the incident's cited source
+ukraine-grid-industroyer-2016-2016,novelty,3,scale-0-3,https://www.cisa.gov/news-events/alerts/2017/06/12/crashoverride-malware,2026-07,coded,
+wannacry-2017,intensity,8,scale-0-8,https://www.nao.org.uk/reports/investigation-wannacry-cyber-attack-and-the-nhs/,2026-07,coded,figure taken from the incident's cited source
+wannacry-2017,disruption,2,scale-0-4,https://www.nao.org.uk/reports/investigation-wannacry-cyber-attack-and-the-nhs/,2026-07,coded,
+wannacry-2017,novelty,3,scale-0-3,https://www.nao.org.uk/reports/investigation-wannacry-cyber-attack-and-the-nhs/,2026-07,coded,figure taken from the incident's cited source
+wannacry-2017,financial,4000000000,usd,https://www.nao.org.uk/reports/investigation-wannacry-cyber-attack-and-the-nhs/,2026-07,reported,
+wannacry-2017,people,200000,count,https://www.nao.org.uk/reports/investigation-wannacry-cyber-attack-and-the-nhs/,2026-07,reported,figure taken from the incident's cited source
+notpetya-2017,intensity,8,scale-0-8,https://www.cisa.gov/news-events/cybersecurity-advisories/aa20-099a,2026-07,coded,figure taken from the incident's cited source
+notpetya-2017,disruption,3,scale-0-4,https://www.cisa.gov/news-events/cybersecurity-advisories/aa20-099a,2026-07,coded,figure taken from the incident's cited source
+notpetya-2017,novelty,3,scale-0-3,https://www.cisa.gov/news-events/cybersecurity-advisories/aa20-099a,2026-07,coded,figure taken from the incident's cited source
+notpetya-2017,financial,10000000000,usd,https://www.cisa.gov/news-events/cybersecurity-advisories/aa20-099a,2026-07,reported,
+equifax-breach-2017,data,3,scale-0-3,https://www.ftc.gov/enforcement/refunds/equifax-data-breach-settlement,2026-07,coded,figure taken from the incident's cited source
+equifax-breach-2017,financial,1400000000,usd,https://www.ftc.gov/enforcement/refunds/equifax-data-breach-settlement,2026-07,reported,
+equifax-breach-2017,people,147000000,count,https://www.ftc.gov/enforcement/refunds/equifax-data-breach-settlement,2026-07,reported,
+marriott-starwood-breach-2018,data,3,scale-0-3,https://ico.org.uk/action-weve-taken/enforcement/marriott-international-inc/,2026-07,coded,figure taken from the incident's cited source
+marriott-starwood-breach-2018,financial,24000000,usd,https://ico.org.uk/action-weve-taken/enforcement/marriott-international-inc/,2026-07,reported,figure taken from the incident's cited source
+marriott-starwood-breach-2018,people,339000000,count,https://ico.org.uk/action-weve-taken/enforcement/marriott-international-inc/,2026-07,reported,
+capital-one-breach-2019,data,3,scale-0-3,https://www.occ.gov/news-issuances/news-releases/2020/nr-occ-2020-101.html,2026-07,coded,figure taken from the incident's cited source
+capital-one-breach-2019,novelty,1,scale-0-3,https://www.occ.gov/news-issuances/news-releases/2020/nr-occ-2020-101.html,2026-07,coded,figure taken from the incident's cited source
+capital-one-breach-2019,financial,270000000,usd,https://www.occ.gov/news-issuances/news-releases/2020/nr-occ-2020-101.html,2026-07,reported,figure taken from the incident's cited source
+capital-one-breach-2019,people,106000000,count,https://www.occ.gov/news-issuances/news-releases/2020/nr-occ-2020-101.html,2026-07,reported,
+baltimore-ransomware-2019,disruption,3,scale-0-4,https://www.gao.gov/products/gao-22-104766,2026-07,coded,figure taken from the incident's cited source
+baltimore-ransomware-2019,financial,18000000,usd,https://www.gao.gov/products/gao-22-104766,2026-07,reported,
+solarwinds-sunburst-2020,intensity,8,scale-0-8,https://www.gao.gov/products/gao-22-104746,2026-07,coded,figure taken from the incident's cited source
+solarwinds-sunburst-2020,disruption,1,scale-0-4,https://www.gao.gov/products/gao-22-104746,2026-07,coded,figure taken from the incident's cited source
+solarwinds-sunburst-2020,data,3,scale-0-3,https://www.gao.gov/products/gao-22-104746,2026-07,coded,figure taken from the incident's cited source
+solarwinds-sunburst-2020,novelty,3,scale-0-3,https://www.gao.gov/products/gao-22-104746,2026-07,coded,
+solarwinds-sunburst-2020,people,18000,count,https://www.gao.gov/products/gao-22-104746,2026-07,reported,
+colonial-pipeline-2021,intensity,7,scale-0-8,https://www.justice.gov/opa/pr/department-justice-seizes-23-million-cryptocurrency-paid-ransomware-extortionists-darkside,2026-07,coded,figure taken from the incident's cited source
+colonial-pipeline-2021,disruption,2,scale-0-4,https://www.justice.gov/opa/pr/department-justice-seizes-23-million-cryptocurrency-paid-ransomware-extortionists-darkside,2026-07,coded,figure taken from the incident's cited source
+colonial-pipeline-2021,novelty,2,scale-0-3,https://www.justice.gov/opa/pr/department-justice-seizes-23-million-cryptocurrency-paid-ransomware-extortionists-darkside,2026-07,coded,figure taken from the incident's cited source
+colonial-pipeline-2021,financial,4400000,usd,https://www.justice.gov/opa/pr/department-justice-seizes-23-million-cryptocurrency-paid-ransomware-extortionists-darkside,2026-07,reported,
+hse-ireland-ransomware-2021,disruption,4,scale-0-4,https://www.hse.ie/eng/services/publications/conti-cyber-attack-on-the-hse-full-report.pdf,2026-07,coded,
+hse-ireland-ransomware-2021,data,2,scale-0-3,https://www.hse.ie/eng/services/publications/conti-cyber-attack-on-the-hse-full-report.pdf,2026-07,coded,figure taken from the incident's cited source
+hse-ireland-ransomware-2021,financial,90000000,usd,https://www.hse.ie/eng/services/publications/conti-cyber-attack-on-the-hse-full-report.pdf,2026-07,reported,
+kaseya-vsa-supply-chain-2021,disruption,2,scale-0-4,https://www.cisa.gov/news-events/alerts/2021/07/02/kaseya-vsa-supply-chain-ransomware-attack,2026-07,coded,figure taken from the incident's cited source
+kaseya-vsa-supply-chain-2021,novelty,2,scale-0-3,https://www.cisa.gov/news-events/alerts/2021/07/02/kaseya-vsa-supply-chain-ransomware-attack,2026-07,coded,figure taken from the incident's cited source
+kaseya-vsa-supply-chain-2021,financial,70000000,usd,https://www.cisa.gov/news-events/alerts/2021/07/02/kaseya-vsa-supply-chain-ransomware-attack,2026-07,reported,figure taken from the incident's cited source
+kaseya-vsa-supply-chain-2021,people,1500,count,https://www.cisa.gov/news-events/alerts/2021/07/02/kaseya-vsa-supply-chain-ransomware-attack,2026-07,reported,
+viasat-ka-sat-wiper-2022,intensity,7,scale-0-8,https://www.consilium.europa.eu/en/press/press-releases/2022/05/10/russian-cyber-operations-against-ukraine-declaration-by-the-high-representative-on-behalf-of-the-european-union/,2026-07,coded,figure taken from the incident's cited source
+viasat-ka-sat-wiper-2022,disruption,2,scale-0-4,https://www.consilium.europa.eu/en/press/press-releases/2022/05/10/russian-cyber-operations-against-ukraine-declaration-by-the-high-representative-on-behalf-of-the-european-union/,2026-07,coded,figure taken from the incident's cited source
+viasat-ka-sat-wiper-2022,novelty,3,scale-0-3,https://www.consilium.europa.eu/en/press/press-releases/2022/05/10/russian-cyber-operations-against-ukraine-declaration-by-the-high-representative-on-behalf-of-the-european-union/,2026-07,coded,
+costa-rica-conti-2022,intensity,7,scale-0-8,https://www.state.gov/reward-offers-for-information-on-conti-ransomware-associates/,2026-07,coded,figure taken from the incident's cited source
+costa-rica-conti-2022,disruption,4,scale-0-4,https://www.state.gov/reward-offers-for-information-on-conti-ransomware-associates/,2026-07,coded,figure taken from the incident's cited source
+costa-rica-conti-2022,novelty,3,scale-0-3,https://www.state.gov/reward-offers-for-information-on-conti-ransomware-associates/,2026-07,coded,
+medibank-breach-2022,data,3,scale-0-3,https://www.oaic.gov.au/news/media-centre/oaic-takes-civil-penalty-action-against-medibank,2026-07,coded,figure taken from the incident's cited source
+medibank-breach-2022,people,9700000,count,https://www.oaic.gov.au/news/media-centre/oaic-takes-civil-penalty-action-against-medibank,2026-07,reported,
+moveit-cl0p-2023,intensity,7,scale-0-8,https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-158a,2026-07,coded,figure taken from the incident's cited source
+moveit-cl0p-2023,data,3,scale-0-3,https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-158a,2026-07,coded,figure taken from the incident's cited source
+moveit-cl0p-2023,novelty,2,scale-0-3,https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-158a,2026-07,coded,figure taken from the incident's cited source
+moveit-cl0p-2023,people,90000000,count,https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-158a,2026-07,reported,
+23andme-credential-stuffing-2023,data,3,scale-0-3,https://ico.org.uk/action-weve-taken/enforcement/23andme/,2026-07,coded,figure taken from the incident's cited source
+23andme-credential-stuffing-2023,people,6900000,count,https://ico.org.uk/action-weve-taken/enforcement/23andme/,2026-07,reported,
+change-healthcare-2024,intensity,8,scale-0-8,https://www.hhs.gov/hipaa/for-professionals/breach-notification/change-healthcare-cybersecurity-incident-frequently-asked-questions/index.html,2026-07,coded,figure taken from the incident's cited source
+change-healthcare-2024,disruption,4,scale-0-4,https://www.hhs.gov/hipaa/for-professionals/breach-notification/change-healthcare-cybersecurity-incident-frequently-asked-questions/index.html,2026-07,coded,figure taken from the incident's cited source
+change-healthcare-2024,data,3,scale-0-3,https://www.hhs.gov/hipaa/for-professionals/breach-notification/change-healthcare-cybersecurity-incident-frequently-asked-questions/index.html,2026-07,coded,figure taken from the incident's cited source
+change-healthcare-2024,novelty,2,scale-0-3,https://www.hhs.gov/hipaa/for-professionals/breach-notification/change-healthcare-cybersecurity-incident-frequently-asked-questions/index.html,2026-07,coded,figure taken from the incident's cited source
+change-healthcare-2024,financial,2900000000,usd,https://www.hhs.gov/hipaa/for-professionals/breach-notification/change-healthcare-cybersecurity-incident-frequently-asked-questions/index.html,2026-07,reported,
+change-healthcare-2024,people,190000000,count,https://www.hhs.gov/hipaa/for-professionals/breach-notification/change-healthcare-cybersecurity-incident-frequently-asked-questions/index.html,2026-07,reported,

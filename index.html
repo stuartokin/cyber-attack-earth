@@ -277,6 +277,9 @@
     .lookupScope{font-size:10.5px;color:#8fa6c4;background:rgba(16,32,57,.4);border:1px solid #223a58;border-radius:8px;padding:6px 9px;margin-bottom:6px;line-height:1.5}
     .histoHead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:3px}
     .chartBox{background:#0a1626;border:1px solid #1e3350;border-radius:9px;padding:6px 4px 2px;margin:5px 0}
+    .impFigs{margin-top:9px;border-top:1px solid #1e3350;padding-top:7px}
+    .impFigs h4{margin:0 0 4px;font-size:12px;color:#a8bcd6}
+    .impFigs ul{margin:0;padding-left:16px;font-size:11.5px;line-height:1.5}
     .impDimRow{display:flex;flex-wrap:wrap;gap:4px;margin:2px 0 8px}
     .impDimBtn{font-size:10.5px;padding:4px 8px;border-radius:999px;border:1px solid #2c4666;background:#0e2036;color:#a8bcd6;cursor:pointer;white-space:nowrap}
     .impDimBtn:hover{border-color:#4dd8ff;color:#dbe8f7}
@@ -547,6 +550,14 @@
           <label title="Meaningful breach or outage, contained to one organisation."><input class="severity" type="checkbox" value="Medium" checked> Medium</label>
           <label title="Limited or largely nuisance impact, or very little detail recorded."><input class="severity" type="checkbox" value="Low"> Low</label>
         </div>
+          </div>
+        </details>
+
+        <details class="ctlSec" data-sec="provenance">
+          <summary>Provenance <span class="secBadge" id="badgeProvenance"></span></summary>
+          <div class="ctlBody">
+        <p class="small" style="margin:0 0 6px">How well established each record is. These are different kinds of evidence, not degrees of severity &mdash; a criminal's leak-site claim and an expert-reviewed case file should not be read the same way. All are shown by default; switch any off to see how much of the picture rests on it.</p>
+        <div id="provChecks" class="checks"></div>
           </div>
         </details>
 
@@ -1378,7 +1389,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v60";
+const APP_VERSION="v61";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -1614,6 +1625,65 @@ const UNCAT="Uncategorised";
    An empty value has no checkbox, so it could never be switched on or off - it would
    simply vanish from every view with no way to bring it back. */
 function normCategory(v){const s=(v==null?"":String(v)).trim();return s?s:UNCAT;}
+/* ── Provenance ─────────────────────────────────────────────────────────────
+   Different records carry genuinely different kinds of evidence, and averaging
+   them silently would flatter the weakest. Four tiers, ordered by how well
+   established a record is - NOT by severity:
+
+     reviewed     expert-reviewed or official: the EuRepoC static release,
+                  CISA advisories, and curated landmarks with primary sources.
+     reported     compiled from public reporting by a reputable database, but
+                  not reviewed to that standard: VCDB, CISSM.
+     provisional  recorded but still being coded, so the values can change:
+                  EuRepoC TableView rows still marked "Open".
+     claimed      asserted by the perpetrator and not independently confirmed:
+                  ransomware leak-site listings.
+
+   All four are on by default, so counts match what the tool has always shown.
+   The point is that you can now switch one off and see how much of a pattern
+   depends on it - which is the honest use of a mixed-evidence dataset. */
+const PROV_TIERS=[
+ {id:"reviewed",label:"Expert-reviewed / official",
+  help:"Peer-reviewed research datasets, government advisories, regulator findings and curated landmark incidents cited to a primary source. The firmest ground here."},
+ {id:"reported",label:"Reported by a database",
+  help:"Compiled from public breach reports and press coverage by an established community database (VERIS Community Database, CISSM). Documented, but not expert-reviewed case by case."},
+ {id:"provisional",label:"Provisional coding",
+  help:"Recorded but still being coded by the source, so scores and details may change on review. Currently the EuRepoC TableView rows marked \u201cOpen\u201d \u2014 the most recent data, and the least settled."},
+ {id:"claimed",label:"Claimed by the attacker",
+  help:"Taken from ransomware leak-site listings, where the criminal group asserts a victim. Useful for tracking activity and volume, but unconfirmed and sometimes false or double-counted. Never read these as verified breaches."}
+];
+function provenanceOf(a){
+  if(!a)return "reported";                      // never throw on a missing record
+  if(a._prov)return a._prov;
+  let layer="";
+  try{ layer=(typeof sourceLayerName==="function")?(sourceLayerName(a)||""):"" }catch(e){ layer="" }
+  let t="reported";
+  if(a&&a._impProvenance==="curated")t="reviewed";
+  else if(/leak|ransomware\.live|claim/i.test(layer))t="claimed";
+  else if(/provisional|tableview/i.test(layer))t="provisional";
+  else if(/eurepoc|advisor|kev|cisa/i.test(layer))t="reviewed";
+  else if(a&&a._status&&/open/i.test(a._status))t="provisional";
+  if(a)a._prov=t;
+  return t;
+}
+function provLabel(id){const t=PROV_TIERS.find(x=>x.id===id);return t?t.label:id;}
+function provHelp(id){const t=PROV_TIERS.find(x=>x.id===id);return t?t.help:"";}
+/* Opt-OUT rather than opt-in, the same way sectors work. The data arrives in waves,
+   so a tier can first appear on the third refresh; keyed on what is currently ticked,
+   any late-arriving tier would have defaulted to off and silently hidden a whole
+   evidence class. Remembering only what the user deliberately switched off fixes it. */
+const provOptOut=new Set();
+function renderProvChecks(){
+  const host=document.getElementById("provChecks");
+  if(!host)return;
+  const present=new Set(attacks.map(a=>provenanceOf(a)));
+  try{ (curatedImpactIncidents()||[]).forEach(a=>present.add(provenanceOf(a))) }catch(e){}
+  host.innerHTML=PROV_TIERS.filter(t=>present.has(t.id)).map(t=>{
+    const on=!provOptOut.has(t.id);               // on unless deliberately switched off
+    const n=attacks.filter(a=>provenanceOf(a)===t.id).length;
+    return `<label title="${t.help.replace(/"/g,"&quot;")}"><input class="prov" type="checkbox" value="${t.id}" ${on?"checked":""}> ${t.label}${n?` <i style="color:#5f7a9c;font-style:normal">(${n.toLocaleString()})</i>`:""}</label>`;
+  }).join("")||'<p class="small" style="margin:0">No records loaded yet.</p>';
+}
 function refreshFilterOptions(){
  const priorSectors=new Set(checked("sector"));
 
@@ -1629,6 +1699,7 @@ function refreshFilterOptions(){
    x===UNCAT?1:y===UNCAT?-1:x.localeCompare(y));      // Uncategorised always last
  const sectors=sortCats(attacks.map(a=>a.sector).concat(curated.map(a=>a.sector)));
  const types=sortCats(attacks.map(a=>a.type).concat(curated.map(a=>a.type)));
+ renderProvChecks();
  sectorChecks.innerHTML=sectors.map(s=>`<label title="${sectorHelp(s).replace(/"/g,"&quot;")}"><input class="sector" type="checkbox" value="${s}" ${sectorOptOut.has(s)?"":"checked"}> ${s}</label>`).join("");
  typeChecks.innerHTML=types.map(t=>{
    const on=!typeOptOut.has(t);
@@ -1641,6 +1712,12 @@ function refreshFilterOptions(){
  sectorChecks.querySelectorAll("input").forEach(x=>x.addEventListener("change",()=>{
    x.checked?sectorOptOut.delete(x.value):sectorOptOut.add(x.value);
    markHistoDirty();update();updateBadges();
+ }));
+ // provenance tiers behave like any other filter group
+ const pc=document.getElementById("provChecks");
+ if(pc)pc.querySelectorAll("input").forEach(x=>x.addEventListener("change",()=>{
+   x.checked?provOptOut.delete(x.value):provOptOut.add(x.value);
+   userTouchedFilters=true; markHistoDirty(); update(); updateBadges();
  }));
  renderCountryList();renderCountrySelected();
 }
@@ -1713,6 +1790,8 @@ function filterState(when){
    sev:new Set(checked("severity")),
    sec:secBoxes.length?new Set([...secBoxes].filter(x=>x.checked).map(x=>x.value)):null,
    types:typeBoxes.length?new Set([...typeBoxes].filter(x=>x.checked).map(x=>x.value)):null,
+   prov:(()=>{const b=document.querySelectorAll(".prov");
+     return b.length?new Set([...b].filter(x=>x.checked).map(x=>x.value)):null})(),
    cumulative:document.getElementById("cumulative").checked,
    showUnattr:document.getElementById("showUnattributed").checked,
    showEx:document.getElementById("showExercise").checked,
@@ -1753,6 +1832,7 @@ function passesFilters(a,st){
  if(!inTime)return false;
  if(!st.sources.has(sourceLayerName(a)))return false;
  if(!st.sev.has(a.severity))return false;
+ if(st.prov&&!st.prov.has(provenanceOf(a)))return false;   // evidence tier
  if(st.sec&&!st.sec.has(a.sector))return false;
  if(st.types&&!st.types.has(a.type))return false;
  if(!st.showUnattr&&isUnattributed(a))return false;
@@ -2170,7 +2250,8 @@ function showDetail(a){
  <div class="kv"><b>Date</b><span>${mon(a.month||6)} ${a.year}</span><b>Actor</b><span>${a.actor}</span>
  <b>Origin</b><span>${a.originCity}, ${a.originCountry}</span><b>Victim</b><span>${a.victimCity}, ${a.victimCountry}</span>
  <b>Sector</b><span>${a.sector}</span><b>Technique</b><span>${a.type}</span>
- <b>Leader/proxy</b><span>${a.leader||"Not established"}</span><b>Confidence</b><span>${a.confidence||"Unknown"}</span></div>
+ <b>Leader/proxy</b><span>${a.leader||"Not established"}</span><b>Confidence</b><span>${a.confidence||"Unknown"}</span>
+ <b>Evidence</b><span title="${provHelp(provenanceOf(a)).replace(/"/g,"&quot;")}">${provLabel(provenanceOf(a))}</span></div>${impactFigureBlock(a)}
  <p>${a.summary}</p><p><b>Attribution note:</b> ${a.attribution||"No additional attribution note."}</p>${groupBlock}${sourceBlock}`;
  detail.innerHTML=detailHtml;
  attackDrawerBody.innerHTML=detailHtml;
@@ -3194,6 +3275,15 @@ async function loadLake(){
      }catch(e){console.warn("[lake] vcdb parse failed",e)}
    }));
  }
+ // the curated impact overlay, if the pack carries one
+ const impFiles=(T.impact&&T.impact.files)||null;
+ const impFile=impFiles?(impFiles.impact_overlay||impFiles.overlay
+     ||(typeof impFiles==="string"?impFiles:null)):null;
+ const impPath=(impFile&&typeof impFile==="object")?impFile.file:impFile;
+ if(impPath)jobs.push(grabJSON(base+impPath).then(rows=>{
+   try{ if(typeof ingestImpactOverlay==="function")ingestImpactOverlay(rows) }
+   catch(e){ console.warn("[lake] impact overlay parse failed",e) }
+ }).catch(()=>{}));
  if(inc.eurepoc_live)jobs.push(grabJSON(base+inc.eurepoc_live).then(rows=>{
    try{
      if(Array.isArray(rows)&&rows.length){
@@ -4038,6 +4128,8 @@ document.getElementById("resetDefaults").addEventListener("click",()=>{
  selectedCountries.clear();
  sectorOptOut.clear();typeOptOut.clear();
  document.querySelectorAll(".sector").forEach(x=>x.checked=true);
+ provOptOut.clear();
+ document.querySelectorAll(".prov").forEach(x=>x.checked=true);   // every evidence tier back on
  document.querySelectorAll(".severity").forEach(x=>{x.checked=(x.value!=="Low")});
  document.getElementById("showUnattributed").checked=true;
  document.getElementById("showExercise").checked=false;
@@ -4094,6 +4186,9 @@ function updateBadges(){
  const nSec=document.querySelectorAll(".sector:checked").length,
        tSec=document.querySelectorAll(".sector").length;
  b("badgeSector",!tSec?"":nSec===tSec?"all":`${nSec} of ${tSec}`);
+ const nPr=document.querySelectorAll(".prov:checked").length,
+       tPr=document.querySelectorAll(".prov").length;
+ b("badgeProvenance",!tPr?"":nPr===tPr?"all":`${nPr} of ${tPr}`);
  const nTy=document.querySelectorAll(".atype:checked").length,
        tTy=document.querySelectorAll(".atype").length;
  b("badgeType",!tTy?"":nTy===tTy?"all":`${nTy} of ${tTy}`);
@@ -5009,126 +5104,60 @@ function fmtCount(v){
   return String(Math.round(v));
 }
 
-/* Landmark incidents, mostly the big criminal-ransomware and breach events that
-   EuRepoC excludes. Compact form; `imp` holds raw dimension values + per-figure
-   sources. Dates are start month. These are plotted alongside EuRepoC-scored
-   incidents and are clickable like any other. */
-const CURATED_IMPACT=[
- {name:"Stuxnet",year:2010,month:6,victimCountry:"Iran",sector:"Energy",type:"ICS malware",severity:"Critical",
-  summary:"First known cyber weapon to cause physical damage, degrading roughly a thousand uranium-enrichment centrifuges at Natanz.",
-  source:"CISA / ICS-CERT",sourceUrl:"https://www.cisa.gov/news-events/ics-advisories",
-  imp:{novelty:3,disruption:3,intensity:7,src:{novelty:"https://www.cisa.gov/news-events/ics-advisories"}}},
- {name:"Sony Pictures breach",year:2014,month:11,victimCountry:"United States",sector:"Media",type:"Destructive malware",severity:"Critical",
-  summary:"Destructive intrusion and mass data leak attributed by the FBI to North Korea; wiped systems and exposed employee data and unreleased films.",
-  source:"FBI",sourceUrl:"https://www.fbi.gov/news/press-releases/update-on-sony-investigation",
-  imp:{financial:35e6,data:2,disruption:2,novelty:2,src:{financial:"https://www.fbi.gov/news/press-releases/update-on-sony-investigation"}}},
- {name:"Anthem breach",year:2015,month:2,victimCountry:"United States",sector:"Healthcare",type:"Data breach",severity:"Critical",
-  summary:"Health insurer breach exposing personal data of 78.8 million people; settled with US regulators.",
-  source:"US HHS OCR",sourceUrl:"https://www.hhs.gov/hipaa/for-professionals/compliance-enforcement/agreements/anthem/index.html",
-  imp:{people:78.8e6,data:3,src:{people:"https://www.hhs.gov/hipaa/for-professionals/compliance-enforcement/agreements/anthem/index.html"}}},
- {name:"OPM breach",year:2015,month:4,victimCountry:"United States",sector:"Government",type:"Data breach",severity:"Critical",
-  summary:"US Office of Personnel Management breach exposing security-clearance records of 21.5 million people, including fingerprints.",
-  source:"US GAO",sourceUrl:"https://www.gao.gov/products/gao-17-614",
-  imp:{people:21.5e6,data:3,novelty:2,src:{people:"https://www.gao.gov/products/gao-17-614"}}},
- {name:"Ukraine power grid (2015)",year:2015,month:12,victimCountry:"Ukraine",sector:"Energy",type:"ICS attack",severity:"Critical",
-  summary:"First confirmed cyberattack to take down an electricity grid, cutting power to about 230,000 people in western Ukraine.",
-  source:"CISA",sourceUrl:"https://www.cisa.gov/news-events/ics-alerts/ir-alert-h-16-056-01",
-  imp:{people:230000,disruption:1,novelty:3,intensity:7,src:{people:"https://www.cisa.gov/news-events/ics-alerts/ir-alert-h-16-056-01"}}},
- {name:"Bangladesh Bank heist",year:2016,month:2,victimCountry:"Bangladesh",sector:"Finance",type:"Financial theft",severity:"Critical",
-  summary:"Fraudulent SWIFT transfers stole US$81 million from Bangladesh Bank's account at the New York Fed; attributed to the Lazarus Group.",
-  source:"US DOJ",sourceUrl:"https://www.justice.gov/opa/pr/north-korean-regime-backed-programmer-charged-conspiracy-conduct-multiple-cyber-attacks-and",
-  imp:{financial:81e6,novelty:2,src:{financial:"https://www.justice.gov/opa/pr/north-korean-regime-backed-programmer-charged-conspiracy-conduct-multiple-cyber-attacks-and"}}},
- {name:"Ukraine grid / Industroyer (2016)",year:2016,month:12,victimCountry:"Ukraine",sector:"Energy",type:"ICS attack",severity:"Critical",
-  summary:"Purpose-built grid malware (Industroyer/CrashOverride) cut power in Kyiv; the first malware designed specifically to attack electricity infrastructure.",
-  source:"CISA",sourceUrl:"https://www.cisa.gov/news-events/alerts/2017/06/12/crashoverride-malware",
-  imp:{disruption:1,novelty:3,intensity:7,src:{novelty:"https://www.cisa.gov/news-events/alerts/2017/06/12/crashoverride-malware"}}},
- {name:"WannaCry",year:2017,month:5,victimCountry:"United Kingdom",sector:"Healthcare",type:"Ransomware",severity:"Critical",
-  summary:"Self-propagating ransomworm hit ~200,000 computers across 150 countries; forced cancellation of thousands of NHS appointments. Global cost estimates run into the billions.",
-  source:"UK NAO",sourceUrl:"https://www.nao.org.uk/reports/investigation-wannacry-cyber-attack-and-the-nhs/",
-  imp:{financial:4e9,people:200000,disruption:2,novelty:3,intensity:8,
-       src:{financial:"https://www.nao.org.uk/reports/investigation-wannacry-cyber-attack-and-the-nhs/",disruption:"https://www.nao.org.uk/reports/investigation-wannacry-cyber-attack-and-the-nhs/"}}},
- {name:"NotPetya",year:2017,month:6,victimCountry:"Ukraine",sector:"Transport",type:"Destructive malware",severity:"Critical",
-  summary:"Destructive wiper disguised as ransomware, spread via a Ukrainian tax-software update; the most financially damaging cyberattack on record, with global losses estimated around US$10 billion.",
-  source:"US White House / CISA",sourceUrl:"https://www.cisa.gov/news-events/cybersecurity-advisories/aa20-099a",
-  imp:{financial:10e9,disruption:3,novelty:3,intensity:8,
-       src:{financial:"https://www.cisa.gov/news-events/cybersecurity-advisories/aa20-099a"}}},
- {name:"Equifax breach",year:2017,month:9,victimCountry:"United States",sector:"Finance",type:"Data breach",severity:"Critical",
-  summary:"Credit bureau breach exposing personal and financial data of ~147 million people; led to a settlement of up to US$700 million.",
-  source:"US FTC",sourceUrl:"https://www.ftc.gov/enforcement/refunds/equifax-data-breach-settlement",
-  imp:{people:147e6,financial:1.4e9,data:3,src:{people:"https://www.ftc.gov/enforcement/refunds/equifax-data-breach-settlement",financial:"https://www.ftc.gov/enforcement/refunds/equifax-data-breach-settlement"}}},
- {name:"Marriott / Starwood breach",year:2018,month:11,victimCountry:"United States",sector:"Hospitality",type:"Data breach",severity:"High",
-  summary:"Long-running intrusion in the Starwood reservation system exposed up to ~339 million guest records; fined £18.4m by the UK ICO.",
-  source:"UK ICO",sourceUrl:"https://ico.org.uk/action-weve-taken/enforcement/marriott-international-inc/",
-  imp:{people:339e6,financial:24e6,data:3,src:{people:"https://ico.org.uk/action-weve-taken/enforcement/marriott-international-inc/"}}},
- {name:"Capital One breach",year:2019,month:3,victimCountry:"United States",sector:"Finance",type:"Data breach",severity:"High",
-  summary:"Misconfigured cloud storage exposed ~106 million credit-card applicants; US$80m regulatory penalty plus a US$190m settlement.",
-  source:"US OCC",sourceUrl:"https://www.occ.gov/news-issuances/news-releases/2020/nr-occ-2020-101.html",
-  imp:{people:106e6,financial:270e6,data:3,novelty:1,src:{people:"https://www.occ.gov/news-issuances/news-releases/2020/nr-occ-2020-101.html"}}},
- {name:"Baltimore ransomware",year:2019,month:5,victimCountry:"United States",sector:"Government",type:"Ransomware",severity:"High",
-  summary:"RobbinHood ransomware disrupted City of Baltimore services for weeks; recovery and lost revenue estimated at over US$18 million.",
-  source:"US GAO / city reporting",sourceUrl:"https://www.gao.gov/products/gao-22-104766",
-  imp:{financial:18e6,disruption:3,src:{financial:"https://www.gao.gov/products/gao-22-104766"}}},
- {name:"SolarWinds / SUNBURST",year:2020,month:3,victimCountry:"United States",sector:"Technology",type:"Supply-chain attack",severity:"Critical",
-  summary:"Compromised SolarWinds Orion updates reached ~18,000 organisations and were used to breach nine US federal agencies; a landmark software supply-chain espionage campaign.",
-  source:"US CISA / GAO",sourceUrl:"https://www.gao.gov/products/gao-22-104746",
-  imp:{people:18000,disruption:1,data:3,novelty:3,intensity:8,src:{people:"https://www.gao.gov/products/gao-22-104746",novelty:"https://www.gao.gov/products/gao-22-104746"}}},
- {name:"Colonial Pipeline",year:2021,month:5,victimCountry:"United States",sector:"Energy",type:"Ransomware",severity:"Critical",
-  summary:"DarkSide ransomware forced the shutdown of the largest US fuel pipeline, triggering regional shortages; US$4.4m ransom paid, much later recovered.",
-  source:"US DOJ / CISA",sourceUrl:"https://www.justice.gov/opa/pr/department-justice-seizes-23-million-cryptocurrency-paid-ransomware-extortionists-darkside",
-  imp:{financial:4.4e6,disruption:2,novelty:2,intensity:7,src:{financial:"https://www.justice.gov/opa/pr/department-justice-seizes-23-million-cryptocurrency-paid-ransomware-extortionists-darkside"}}},
- {name:"HSE Ireland ransomware",year:2021,month:5,victimCountry:"Ireland",sector:"Healthcare",type:"Ransomware",severity:"Critical",
-  summary:"Conti ransomware crippled Ireland's national health service IT for weeks; the independent review put the cost at over €80 million.",
-  source:"HSE / PwC review",sourceUrl:"https://www.hse.ie/eng/services/publications/conti-cyber-attack-on-the-hse-full-report.pdf",
-  imp:{financial:90e6,disruption:4,data:2,src:{financial:"https://www.hse.ie/eng/services/publications/conti-cyber-attack-on-the-hse-full-report.pdf",disruption:"https://www.hse.ie/eng/services/publications/conti-cyber-attack-on-the-hse-full-report.pdf"}}},
- {name:"Kaseya VSA supply-chain",year:2021,month:7,victimCountry:"United States",sector:"Technology",type:"Supply-chain attack",severity:"Critical",
-  summary:"REvil exploited Kaseya's remote-management software to push ransomware to ~1,500 downstream businesses in one weekend; a US$70m universal ransom was demanded.",
-  source:"US CISA",sourceUrl:"https://www.cisa.gov/news-events/alerts/2021/07/02/kaseya-vsa-supply-chain-ransomware-attack",
-  imp:{people:1500,financial:70e6,disruption:2,novelty:2,src:{people:"https://www.cisa.gov/news-events/alerts/2021/07/02/kaseya-vsa-supply-chain-ransomware-attack"}}},
- {name:"Viasat KA-SAT wiper",year:2022,month:2,victimCountry:"Ukraine",sector:"Telecoms",type:"Destructive malware",severity:"Critical",
-  summary:"AcidRain wiper knocked out Viasat KA-SAT modems at the start of the invasion of Ukraine, with spillover disabling remote monitoring of thousands of European wind turbines.",
-  source:"EU Council",sourceUrl:"https://www.consilium.europa.eu/en/press/press-releases/2022/05/10/russian-cyber-operations-against-ukraine-declaration-by-the-high-representative-on-behalf-of-the-european-union/",
-  imp:{disruption:2,novelty:3,intensity:7,src:{novelty:"https://www.consilium.europa.eu/en/press/press-releases/2022/05/10/russian-cyber-operations-against-ukraine-declaration-by-the-high-representative-on-behalf-of-the-european-union/"}}},
- {name:"Costa Rica / Conti",year:2022,month:4,victimCountry:"Costa Rica",sector:"Government",type:"Ransomware",severity:"Critical",
-  summary:"Conti ransomware paralysed Costa Rican government systems and tax and customs services; the president declared a national emergency - a first for a cyberattack.",
-  source:"US State Dept",sourceUrl:"https://www.state.gov/reward-offers-for-information-on-conti-ransomware-associates/",
-  imp:{disruption:4,novelty:3,intensity:7,src:{novelty:"https://www.state.gov/reward-offers-for-information-on-conti-ransomware-associates/"}}},
- {name:"Medibank breach",year:2022,month:10,victimCountry:"Australia",sector:"Healthcare",type:"Data breach",severity:"Critical",
-  summary:"Breach of Australia's largest health insurer exposed data of 9.7 million current and former customers, including sensitive health claims.",
-  source:"Australian OAIC",sourceUrl:"https://www.oaic.gov.au/news/media-centre/oaic-takes-civil-penalty-action-against-medibank",
-  imp:{people:9.7e6,data:3,src:{people:"https://www.oaic.gov.au/news/media-centre/oaic-takes-civil-penalty-action-against-medibank"}}},
- {name:"MOVEit / Cl0p",year:2023,month:5,victimCountry:"United States",sector:"Technology",type:"Supply-chain attack",severity:"Critical",
-  summary:"Cl0p exploited a zero-day in MOVEit Transfer to steal data from thousands of organisations, with tens of millions of individuals affected downstream.",
-  source:"US CISA",sourceUrl:"https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-158a",
-  imp:{people:90e6,data:3,novelty:2,intensity:7,src:{people:"https://www.cisa.gov/news-events/cybersecurity-advisories/aa23-158a"}}},
- {name:"23andMe credential-stuffing",year:2023,month:10,victimCountry:"United States",sector:"Healthcare",type:"Data breach",severity:"High",
-  summary:"Credential-stuffing exposed genetic and profile data of ~6.9 million people via the DNA-testing service.",
-  source:"UK ICO / company",sourceUrl:"https://ico.org.uk/action-weve-taken/enforcement/23andme/",
-  imp:{people:6.9e6,data:3,src:{people:"https://ico.org.uk/action-weve-taken/enforcement/23andme/"}}},
- {name:"Change Healthcare",year:2024,month:2,victimCountry:"United States",sector:"Healthcare",type:"Ransomware",severity:"Critical",
-  summary:"ALPHV/BlackCat ransomware crippled the largest US medical-claims clearinghouse, disrupting payments nationwide for months; ~190 million people affected, the largest US healthcare breach on record. Parent company costs ran into the billions.",
-  source:"US HHS OCR",sourceUrl:"https://www.hhs.gov/hipaa/for-professionals/breach-notification/change-healthcare-cybersecurity-incident-frequently-asked-questions/index.html",
-  imp:{people:190e6,financial:2.9e9,disruption:4,data:3,novelty:2,intensity:8,
-       src:{people:"https://www.hhs.gov/hipaa/for-professionals/breach-notification/change-healthcare-cybersecurity-incident-frequently-asked-questions/index.html",financial:"https://www.hhs.gov/hipaa/for-professionals/breach-notification/change-healthcare-cybersecurity-incident-frequently-asked-questions/index.html"}}}
-];
-
+/* The curated landmark layer now lives in two human-maintained CSVs in the repo -
+   impact_overlay.csv (one row per incident) and impact_figures.csv (one row per
+   figure, each with its own source URL and as_of date) - which the builder validates
+   and joins into cyber_data/impact/overlay.json. Keeping it out of this file means it
+   can be maintained without editing the app, and every figure carries its own
+   citation. If the pack has no overlay the chart simply falls back to whatever the
+   incident databases have scored, and says so. */
+let LAKE_IMPACT=[];
 /* Turn the compact curated rows into full incident-shaped objects so they filter
    and open exactly like any mapped incident. They are not added to the globe; they
    live in the impact layer only. */
 let _curatedImpactCache=null;
 function curatedImpactIncidents(){
   if(_curatedImpactCache)return _curatedImpactCache;
-  _curatedImpactCache=CURATED_IMPACT.map((c,i)=>({
-    id:"impact-"+i, year:c.year, month:c.month, name:c.name,
-    victimCountry:c.victimCountry, originCountry:"", actor:"",
+  _curatedImpactCache=(LAKE_IMPACT||[]).map(c=>({
+    id:"impact-"+c.id, year:c.year, month:c.month, name:c.name,
+    victimCountry:c.victim_country||"", originCountry:"", actor:"",
     sector:normCategory(c.sector),
     type:normCategory((typeof canonicalType==="function"&&canonicalType(c.type))||c.type),
-    severity:c.severity, impact:severityToImpact(c.severity),
-    summary:c.summary, source:c.source, sourceUrl:c.sourceUrl,
-    confidence:"Curated landmark \u2014 impact layer",
-    leader:"", attribution:"Curated from the cited primary or official source.",
-    imp:Object.assign({notable:true},c.imp), _impProvenance:"curated"
+    severity:c.severity||"High", impact:severityToImpact(c.severity),
+    summary:c.summary||"", source:c.source_name||"", sourceUrl:c.source_url||"",
+    confidence:(c.review_status==="verified"?"Curated landmark, verified against the cited source":"Curated landmark, "+(c.review_status||"unreviewed")),
+    leader:"", attribution:"Curated from the cited primary or official source"+(c.last_checked?", last checked "+c.last_checked:"")+".",
+    imp:c.imp||{}, _impFigures:c.figures||{}, _impProvenance:"curated",
+    _reviewStatus:c.review_status||""
   }));
   return _curatedImpactCache;
+}
+/* Read the overlay from the data pack. Absent is a normal state, not an error. */
+function ingestImpactOverlay(rows){
+  LAKE_IMPACT=Array.isArray(rows)?rows:[];
+  _curatedImpactCache=null;
+  if(typeof refreshFilterOptions==="function")refreshFilterOptions();
+  if(chartFrame&&chartFrame("impact"))renderChartFrame("impact");
+}
+/* Every impact figure shown with its own source and as_of date, so a reader can
+   check any single number rather than trusting the dot. */
+function impactFigureBlock(a){
+  if(!a||!a.imp)return "";
+  const figs=a._impFigures||{};
+  const rows=IMPACT_DIMS.filter(d=>d.kind!=="composite")
+    .filter(d=>a.imp[d.id]!==undefined&&a.imp[d.id]!==null)
+    .map(d=>{
+      const raw=a.imp[d.id];
+      const shown=(d.kind==="log")?d.fmt(+raw):(d.fmt?d.fmt(+raw):raw);
+      const f=figs[d.id]||{};
+      const cite=f.source_url?` <a href="${f.source_url}" target="_blank" rel="noopener">source</a>`:" <i>no source recorded</i>";
+      const when=f.as_of?` <span style="color:#5f7a9c">as of ${f.as_of}</span>`:"";
+      const note=f.note?`<br><span style="color:#6f8bad;font-size:10.5px">${escapeHtml(f.note)}</span>`:"";
+      return `<li><b>${d.label.replace(/ \(.*\)$/,"")}:</b> ${shown}${cite}${when}${note}</li>`;
+    });
+  if(!rows.length)return "";
+  return `<div class="impFigs"><h4>Impact figures</h4><ul>${rows.join("")}</ul>
+    <p class="small" style="margin:4px 0 0">Each figure is cited separately. Financial and people-affected numbers are best-available public estimates and are often revised upward for years afterwards \u2014 check the date.</p></div>`;
 }
 function severityToImpact(s){return {Critical:96,High:80,Medium:58,Low:35}[s]||60;}
 
@@ -5184,6 +5213,7 @@ function curatedPasses(a,st){
   if(!inTime)return false;
   if(!st.sources.has(sourceLayerName(a)))return false;
   if(!st.sev.has(a.severity))return false;
+  if(st.prov&&!st.prov.has(provenanceOf(a)))return false;   // evidence tier
   // Same strictness as passesFilters. Previously this skipped the test when the set
   // was empty (so unchecking every sector still showed the landmarks) and exempted
   // any category missing from Controls. Both are fixed by listing every curated
@@ -5296,8 +5326,15 @@ function impactChartHTML(W){
     const r=rOf(p.a);
     const col=severityColor[p.a.severity]||"#4dd8ff";
     const notable=p.a.imp&&p.a.imp.notable;
+    // Evidence tier is visible in the mark itself: settled records are solid,
+    // still-being-coded ones are hollow, so a provisional score never masquerades
+    // as a finished one.
+    const tier=provenanceOf(p.a);
+    const soft=(tier==="provisional"||tier==="claimed");
+    const dash=(tier==="provisional")?' stroke-dasharray="2 1.6"':"";
     return `<circle class="impDot" data-aid="${p.a.id}" cx="${p._px.toFixed(1)}" cy="${p._py.toFixed(1)}" r="${r.toFixed(1)}"
-      fill="${col}" fill-opacity="${notable?0.92:0.5}" stroke="${notable?"#fff":col}" stroke-width="${notable?1.1:0.5}"><title>${escapeHtml(p.a.name)}</title></circle>`;
+      fill="${soft?"none":col}" fill-opacity="${notable?0.92:0.5}" stroke="${notable?"#fff":col}"
+      stroke-width="${notable?1.1:soft?0.9:0.5}"${dash}><title>${escapeHtml(p.a.name)} \u2014 ${provLabel(tier)}</title></circle>`;
   }).join("");
 
   const labels=labelled.map(p=>{
@@ -5329,7 +5366,9 @@ function impactChartHTML(W){
   return chooser+
     `<div class="impChartBox">${svg}</div>
      <p class="chartNote" style="margin-top:2px">${dim.help}</p>
-     <p class="chartNote">${covLine}${builtNote} Larger dots carry more weight (people affected, where known); brighter, outlined dots are landmark incidents. Click any dot for the incident.</p>
+     <p class="chartNote">${(()=>{const c={};pts.forEach(p=>{const t=provenanceOf(p.a);c[t]=(c[t]||0)+1});
+        const bits=PROV_TIERS.filter(t=>c[t.id]).map(t=>`${c[t.id].toLocaleString()} ${t.label.toLowerCase()}`);
+        return bits.length>1?`Evidence: ${bits.join(", ")}. Hollow dots are provisional or attacker-claimed. `:"";})()}${covLine}${builtNote} Larger dots carry more weight (people affected, where known); brighter, outlined dots are landmark incidents. Click any dot for the incident.</p>
      <p class="chartNote"><b>Read with care.</b> Impact data is sparse and uneven: only EuRepoC-reviewed incidents and the curated landmarks are scored, so this is a view of the <i>documented</i> heavy hitters, not a complete ranking. Financial figures are best-available public estimates, often contested. Novelty is an editorial judgement, shown separately for that reason. Points sharing a level are fanned out slightly so they can be seen and clicked \u2014 the axis label is the true value.</p>`;
 }
 

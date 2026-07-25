@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.8.1 (2026-07-25) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.9.0 (2026-07-25) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.9.0  Curated impact overlay moved out of the app into two human-maintained CSVs
+        (impact_overlay.csv = one row per incident, impact_figures.csv = one row per
+        figure with its own source URL and as_of date). The builder validates and
+        joins them but never writes to them; a figure with no source URL is rejected
+        rather than published, and every validation note is carried into the manifest
+        as "warnings". Also stopped an overlay CSV in the repo root being mistaken for
+        an unnamed CISSM export.
  3.8.1  Fixed a decorator-placement bug introduced in 3.8.0: the new _eurepoc_impact
         helper had been dropped between the @source("eurepoc") decorator and
         build_eurepoc, so the registry bound the source to the helper and the static
@@ -121,8 +128,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.8.1"
-BUILDER_DATE = "2026-07-25b"
+BUILDER_VERSION = "3.9.0"
+BUILDER_DATE = "2026-07-25c"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -839,7 +846,10 @@ def _manual_rows(kind="cissm", allow_any=False):
                      if p.suffix.lower() in (".csv", ".json") and p.is_file()]
     named = [p for p in pool if kind in p.name.lower()]
     # never let another source's clearly-named export be claimed by this one
-    others = {"cissm", "eurepoc"} - {kind}
+    # "impact" guards the curated overlay files: they live in the repo root as plain
+    # .csv, and without this an unnamed-CISSM fallback could swallow them and emit
+    # nonsense incidents.
+    others = {"cissm", "eurepoc", "impact"} - {kind}
     generic = [p for p in pool
                if not any(o in p.name.lower() for o in others)
                and kind not in p.name.lower()]
@@ -1206,6 +1216,133 @@ VENDOR_REPORTS = [
 ]
 
 
+# ── Curated impact overlay ──────────────────────────────────────────────────
+# Two human-maintained CSVs in the repo, normalised so figures can be appended
+# without re-editing existing rows:
+#   impact_overlay.csv   one row per incident  (identity, description, status)
+#   impact_figures.csv   one row per FIGURE    (incident_id, dimension, value,
+#                                               unit, source_url, as_of, note)
+# The builder never writes to either file - they are the human's record. It only
+# validates and joins them. A figure with no source URL is REJECTED rather than
+# published, which enforces the "verified primary source" rule mechanically
+# instead of relying on memory.
+IMPACT_DIM_RANGE = {
+    "intensity": (0, 8), "disruption": (0, 4), "data": (0, 3), "novelty": (0, 3),
+    "financial": (0, 1e13), "people": (0, 1e10),
+}
+IMPACT_WARNINGS = []
+
+
+def _impact_read(namepart):
+    """Read one overlay CSV by name fragment from manual_sources/ or the repo root."""
+    for d in (MANUAL_DIR, Path(".")):
+        if not d.exists():
+            continue
+        for p in sorted(d.iterdir()):
+            if p.is_file() and p.suffix.lower() == ".csv" and namepart in p.name.lower():
+                text = p.read_text(encoding="utf-8-sig", errors="replace")  # tolerate a BOM
+                rows = list(csv.DictReader(io.StringIO(text)))
+                clean = []
+                for r in rows:
+                    clean.append({(k or "").strip().lower(): (v or "").strip()
+                                  for k, v in r.items() if k})
+                print("  [impact] %s: %d rows" % (p.name, len(clean)))
+                return clean
+    return []
+
+
+@source(id="impact_overlay", table="impact",
+        title="Curated impact overlay (human-maintained, per-figure sources)",
+        licence="Compiled from cited primary sources; figures are estimates where noted",
+        cadence="manual", homepage="", expected=0)
+def build_impact_overlay():
+    IMPACT_WARNINGS.clear()
+    incidents = _impact_read("impact_overlay")
+    figures = _impact_read("impact_figures")
+    if not incidents:
+        IMPACT_WARNINGS.append("no impact_overlay.csv found - the curated layer is empty")
+        return []
+
+    out, seen = {}, set()
+    for r in incidents:
+        iid = r.get("id", "")
+        if not iid:
+            IMPACT_WARNINGS.append("skipped an incident row with no id")
+            continue
+        if iid in seen:
+            IMPACT_WARNINGS.append("duplicate incident id %r - later row ignored" % iid)
+            continue
+        seen.add(iid)
+        try:
+            year, month = int(r.get("year") or 0), int(r.get("month") or 1)
+        except ValueError:
+            IMPACT_WARNINGS.append("%s: unreadable year/month - skipped" % iid)
+            continue
+        if not (2000 <= year <= 2100) or not (1 <= month <= 12):
+            IMPACT_WARNINGS.append("%s: year/month out of range - skipped" % iid)
+            continue
+        out[iid] = {
+            "id": iid, "name": r.get("name") or iid, "year": year, "month": month,
+            "victim_country": r.get("victim_country", ""), "sector": r.get("sector", ""),
+            "type": r.get("type", ""), "severity": r.get("severity") or "High",
+            "summary": r.get("summary", "")[:900],
+            "source_name": r.get("source_name", ""), "source_url": r.get("source_url", ""),
+            "notable": (r.get("notable", "").lower() in ("y", "yes", "true", "1")),
+            "review_status": (r.get("review_status") or "verified").lower(),
+            "last_checked": r.get("last_checked", ""),
+            "imp": {}, "figures": {},
+        }
+
+    kept = dropped = 0
+    for f in figures:
+        iid, dim = f.get("incident_id", ""), (f.get("dimension") or "").lower()
+        if iid not in out:
+            IMPACT_WARNINGS.append("figure for unknown incident %r - ignored" % iid)
+            dropped += 1
+            continue
+        if dim not in IMPACT_DIM_RANGE:
+            IMPACT_WARNINGS.append("%s: unknown dimension %r - ignored" % (iid, dim))
+            dropped += 1
+            continue
+        url = f.get("source_url", "")
+        if not url.startswith("http"):
+            # The rule that matters: no source, no figure.
+            IMPACT_WARNINGS.append("%s/%s: no source URL - figure REJECTED" % (iid, dim))
+            dropped += 1
+            continue
+        raw = (f.get("value") or "").replace(",", "").replace("$", "")
+        m = re.search(r"-?\d+(?:\.\d+)?", raw)
+        if not m:
+            IMPACT_WARNINGS.append("%s/%s: unreadable value %r - ignored" % (iid, dim, raw[:20]))
+            dropped += 1
+            continue
+        val = float(m.group(0))
+        lo, hi = IMPACT_DIM_RANGE[dim]
+        if not (lo <= val <= hi):
+            IMPACT_WARNINGS.append("%s/%s: %g outside %g..%g - ignored" % (iid, dim, val, lo, hi))
+            dropped += 1
+            continue
+        out[iid]["imp"][dim] = int(val) if dim not in ("financial", "people") else val
+        out[iid]["figures"][dim] = {
+            "source_url": url, "as_of": f.get("as_of", ""),
+            "confidence": f.get("confidence", ""), "note": f.get("note", "")[:200],
+        }
+        kept += 1
+
+    rows = list(out.values())
+    for r in rows:
+        if r["notable"]:
+            r["imp"]["notable"] = True
+    nofig = [r["id"] for r in rows if not r["figures"]]
+    for iid in nofig:
+        IMPACT_WARNINGS.append("%s: no valid figures - it will plot only if scored elsewhere" % iid)
+    print("  [impact] %d incidents, %d figures kept, %d rejected, %d warnings"
+          % (len(rows), kept, dropped, len(IMPACT_WARNINGS)))
+    for w in IMPACT_WARNINGS[:12]:
+        print("  [impact] WARNING %s" % w)
+    return rows
+
+
 @source(id="reports", table="reports", title="Vendor & agency threat reports (curated)",
         licence="Links only - reports are copyright of their publishers",
         cadence="manual", homepage="", expected=15)
@@ -1273,11 +1410,17 @@ def main():
             if hasattr(data, "__len__") and len(data) == 0:
                 raise RuntimeError("connector returned an empty result")
             results[src.id] = data
-            entries.append({"id": src.id, "title": src.title, "table": src.table,
-                            "licence": src.licence, "homepage": src.homepage,
-                            "cadence": src.cadence, "status": "ok",
-                            "expected": src.expected, "rows": count_rows(data),
-                            "seconds": round(time.time() - t0, 1)})
+            entry = {"id": src.id, "title": src.title, "table": src.table,
+                     "licence": src.licence, "homepage": src.homepage,
+                     "cadence": src.cadence, "status": "ok",
+                     "expected": src.expected, "rows": count_rows(data),
+                     "seconds": round(time.time() - t0, 1)}
+            # Surface the overlay's validation notes so a bad hand edit is visible in
+            # the manifest the next morning, rather than silently plotting a wrong dot.
+            if src.id == "impact_overlay" and IMPACT_WARNINGS:
+                entry["warnings"] = IMPACT_WARNINGS[:40]
+                entry["status"] = "ok with %d warning(s)" % len(IMPACT_WARNINGS)
+            entries.append(entry)
         except Exception as exc:                       # noqa: BLE001
             print("[error] %s failed: %s - previous output left in place" % (src.id, exc))
             entries.append({"id": src.id, "title": src.title, "table": src.table,
@@ -1356,6 +1499,13 @@ def main():
         write_json(out_dir / "reports" / "vendor.json", results["reports"])
         tables["reports"] = {"files": {"vendor": {"file": "reports/vendor.json",
                                                   "rows": len(results["reports"])}}}
+    # ---- curated impact overlay ----
+    if results.get("impact_overlay"):
+        write_json(out_dir / "impact" / "overlay.json", results["impact_overlay"])
+        figs = sum(len(r.get("figures") or {}) for r in results["impact_overlay"])
+        tables["impact"] = {"files": {"impact_overlay": {"file": "impact/overlay.json",
+                                                        "rows": len(results["impact_overlay"]),
+                                                        "figures": figs}}}
 
     # A previous version could leave a table containing "null" behind. Remove any
     # such file so the app is never asked to parse it.
