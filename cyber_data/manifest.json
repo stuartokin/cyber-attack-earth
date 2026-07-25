@@ -1,12 +1,11 @@
 {
  "schema": 3,
- "builder": "3.7.3",
- "builder_date": "2026-07-24",
- "generated": "2026-07-25T06:03:04+00:00",
+ "builder": "3.8.0",
+ "builder_date": "2026-07-25",
+ "generated": "2026-07-25T07:40:25+00:00",
  "tables": {
   "incidents": {
    "files": {
-    "eurepoc": "incidents/eurepoc.json",
     "vcdb_partitions": {
      "2000": {
       "file": "incidents/vcdb-2000.json",
@@ -122,13 +121,12 @@
     "eurepoc_live": "incidents/eurepoc_live.json"
    },
    "counts": {
-    "eurepoc": 4296,
     "vcdb": 10362,
     "rwlive": 21304,
     "cissm": 17169,
     "eurepoc_live": 992
    },
-   "total": 54123
+   "total": 49827
   },
   "vulns": {
    "files": {
@@ -180,11 +178,9 @@
    "table": "incidents",
    "licence": "See Zenodo record terms",
    "homepage": "https://eurepoc.eu/",
-   "cadence": "on release",
-   "status": "ok",
    "expected": 4300,
-   "rows": 4296,
-   "seconds": 3.3
+   "status": "failed: _eurepoc_impact() missing 1 required positional argument: 'row'",
+   "rows": 0
   },
   {
    "id": "vcdb",
@@ -196,7 +192,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10362,
-   "seconds": 5.6
+   "seconds": 5.1
   },
   {
    "id": "rwlive",
@@ -208,7 +204,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 21304,
-   "seconds": 207.2
+   "seconds": 140.3
   },
   {
    "id": "kev",
@@ -220,7 +216,7 @@
    "status": "ok",
    "expected": 1650,
    "rows": 1653,
-   "seconds": 0.1
+   "seconds": 0.2
   },
   {
    "id": "epss",
@@ -232,7 +228,7 @@
    "status": "ok",
    "expected": 17000,
    "rows": 17242,
-   "seconds": 0.9
+   "seconds": 1.0
   },
   {
    "id": "attack",
@@ -244,7 +240,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 871,
-   "seconds": 3.3
+   "seconds": 0.5
   },
   {
    "id": "icsadv",
@@ -256,7 +252,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 3902,
-   "seconds": 0.8
+   "seconds": 0.4
   },
   {
    "id": "eurepoc_live",
@@ -268,7 +264,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 992,
-   "seconds": 0.4
+   "seconds": 0.5
   },
   {
    "id": "cissm",
@@ -292,7 +288,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 319,
-   "seconds": 27.9
+   "seconds": 23.0
   },
   {
    "id": "reports",
