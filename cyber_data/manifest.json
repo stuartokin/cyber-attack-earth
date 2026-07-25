@@ -1,8 +1,8 @@
 {
  "schema": 3,
- "builder": "3.8.1",
- "builder_date": "2026-07-25b",
- "generated": "2026-07-25T07:53:08+00:00",
+ "builder": "3.9.0",
+ "builder_date": "2026-07-25c",
+ "generated": "2026-07-25T13:16:05+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -171,6 +171,15 @@
      "rows": 15
     }
    }
+  },
+  "impact": {
+   "files": {
+    "impact_overlay": {
+     "file": "impact/overlay.json",
+     "rows": 23,
+     "figures": 78
+    }
+   }
   }
  },
  "sources": [
@@ -184,7 +193,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 3.3
+   "seconds": 3.4
   },
   {
    "id": "vcdb",
@@ -196,7 +205,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10362,
-   "seconds": 5.9
+   "seconds": 5.6
   },
   {
    "id": "rwlive",
@@ -208,7 +217,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 21304,
-   "seconds": 169.9
+   "seconds": 170.8
   },
   {
    "id": "kev",
@@ -244,7 +253,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 871,
-   "seconds": 3.7
+   "seconds": 3.2
   },
   {
    "id": "icsadv",
@@ -256,7 +265,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 3902,
-   "seconds": 1.2
+   "seconds": 1.5
   },
   {
    "id": "eurepoc_live",
@@ -292,7 +301,19 @@
    "status": "ok",
    "expected": 320,
    "rows": 319,
-   "seconds": 26.3
+   "seconds": 24.8
+  },
+  {
+   "id": "impact_overlay",
+   "title": "Curated impact overlay (human-maintained, per-figure sources)",
+   "table": "impact",
+   "licence": "Compiled from cited primary sources; figures are estimates where noted",
+   "homepage": "",
+   "cadence": "manual",
+   "status": "ok",
+   "expected": 0,
+   "rows": 23,
+   "seconds": 0.0
   },
   {
    "id": "reports",
