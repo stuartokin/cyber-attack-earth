@@ -1,8 +1,8 @@
 {
  "schema": 3,
- "builder": "3.11.1",
- "builder_date": "2026-07-25f",
- "generated": "2026-07-25T20:24:29+00:00",
+ "builder": "3.11.2",
+ "builder_date": "2026-07-26",
+ "generated": "2026-07-25T23:55:53+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -198,7 +198,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 2.3
+   "seconds": 2.9
   },
   {
    "id": "vcdb",
@@ -222,7 +222,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 21304,
-   "seconds": 148.4
+   "seconds": 153.2
   },
   {
    "id": "kev",
@@ -234,7 +234,7 @@
    "status": "ok",
    "expected": 1650,
    "rows": 1653,
-   "seconds": 0.2
+   "seconds": 0.3
   },
   {
    "id": "epss",
@@ -246,7 +246,7 @@
    "status": "ok",
    "expected": 17000,
    "rows": 17242,
-   "seconds": 1.0
+   "seconds": 1.1
   },
   {
    "id": "attack",
@@ -258,7 +258,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 871,
-   "seconds": 0.5
+   "seconds": 0.6
   },
   {
    "id": "icsadv",
@@ -270,7 +270,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 3902,
-   "seconds": 0.6
+   "seconds": 0.9
   },
   {
    "id": "eurepoc_live",
@@ -282,7 +282,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 992,
-   "seconds": 0.5
+   "seconds": 0.4
   },
   {
    "id": "cissm",
@@ -306,7 +306,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 319,
-   "seconds": 23.2
+   "seconds": 23.5
   },
   {
    "id": "impact_overlay",
@@ -330,7 +330,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1653,
-   "seconds": 0.1
+   "seconds": 0.3
   },
   {
    "id": "reports",
