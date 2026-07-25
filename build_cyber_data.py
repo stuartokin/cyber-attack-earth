@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.8.0 (2026-07-25) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.8.1 (2026-07-25) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.8.1  Fixed a decorator-placement bug introduced in 3.8.0: the new _eurepoc_impact
+        helper had been dropped between the @source("eurepoc") decorator and
+        build_eurepoc, so the registry bound the source to the helper and the static
+        EuRepoC dataset failed with "missing 1 required positional argument: 'row'"
+        and returned zero rows. The helper now sits above the decorator. (Same class
+        of bug as the 3.7.3 CISSM fix - a decorator must sit directly on its build_
+        function.)
  3.8.0  EuRepoC impact coding captured. The TableView and static releases already
         score each reviewed incident on weighted cyber-intensity, functional
         disruption duration, data-breach severity and economic loss; the builder now
@@ -114,8 +121,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.8.0"
-BUILDER_DATE = "2026-07-25"
+BUILDER_VERSION = "3.8.1"
+BUILDER_DATE = "2026-07-25b"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -206,9 +213,6 @@ EUREPOC_KEEP = [
 LONG_TEXT = re.compile(r"description|summary", re.I)
 
 
-@source(id="eurepoc", table="incidents", title="EuRepoC Global Dataset",
-        licence="See Zenodo record terms", cadence="on release",
-        homepage="https://eurepoc.eu/", expected=4300)
 # ── EuRepoC impact extraction ───────────────────────────────────────────────
 # EuRepoC already scores each reviewed incident on intensity, functional
 # disruption, data impact and economic loss. We map those coded fields onto the
@@ -269,6 +273,9 @@ def _eurepoc_impact(row):
                 imp["financial"] = round(amt)
     return imp or None
 
+@source(id="eurepoc", table="incidents", title="EuRepoC Global Dataset",
+        licence="See Zenodo record terms", cadence="on release",
+        homepage="https://eurepoc.eu/", expected=4300)
 def build_eurepoc():
     r = get_first(EUREPOC_URLS, "EuRepoC")
     rows = list(csv.DictReader(io.StringIO(r.content.decode("utf-8", "replace"))))
