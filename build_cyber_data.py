@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.11.0 (2026-07-25) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.11.1 (2026-07-25) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.11.1 Cosmetic tidy of the NVD detail: truncated descriptions end with an ellipsis
+        rather than stopping mid-word, and records sort by CVE year and number rather
+        than as text (so CVE-2025-9242 precedes CVE-2025-10035). No refetch needed;
+        existing cached records keep their descriptions until next refreshed.
  3.11.0 NVD per-CVE detail added for the exploited catalogue only: severity and
         CVSS version, weakness identifiers, publication date, reference count and a
         short description, for the ~1,600 flaws CISA records as actually exploited.
@@ -141,8 +145,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.11.0"
-BUILDER_DATE = "2026-07-25e"
+BUILDER_VERSION = "3.11.1"
+BUILDER_DATE = "2026-07-25f"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -1424,7 +1428,9 @@ def _nvd_parse_cve(item):
         if (d.get("lang") or "") == "en":
             txt = " ".join(str(d.get("value") or "").split())
             if txt:
-                out["desc"] = txt[:320]
+                # mark the cut so a truncated description does not read as a
+                # sentence that simply stops mid-word
+                out["desc"] = txt if len(txt) <= 320 else txt[:319].rstrip() + "\u2026"
             break
     return out
 
@@ -1507,7 +1513,14 @@ def build_nvd_detail(out_dir=None):
                 print("  [nvd] too many consecutive failures - stopping this run")
                 break
 
-    rows = [cached[c] for c in sorted(cached) if c in cached]
+    def _cve_key(c):
+        # sort by year then number, so CVE-2025-9242 precedes CVE-2025-10035
+        parts = c.split("-")
+        try:
+            return (int(parts[1]), int(parts[2]))
+        except (IndexError, ValueError):
+            return (0, 0)
+    rows = [cached[c] for c in sorted(cached, key=_cve_key)]
     scored = sum(1 for r in rows if "cvss" in r)
     print("  [nvd] %d records held, %d with a CVSS score (%d fetched this run)"
           % (len(rows), scored, fetched))
