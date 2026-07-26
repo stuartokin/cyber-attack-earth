@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.14.1 (2026-07-26) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.15.0 (2026-07-26) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.15.0 Two fixes to the advisory enrichment. First, it was reading
+        techniques/attack.json, which is not written until every connector has
+        finished - so it always saw the PREVIOUS build and produced nothing. This
+        run's ATT&CK data is now passed in memory. Second, and better: the CVE-to-
+        advisory link is recovered from NVD. NVD lists the government advisories for
+        each flaw, and the detail for every catalogued vulnerability is already
+        fetched, so inverting that mapping restores the half of this feature that
+        cisa.gov blocking had cost - with no request to cisa.gov at all. Cached NVD
+        records predating the scan are re-read once, over a few runs.
  3.14.1 Advisory extraction from ATT&CK now works two independent ways: reference
         URLs containing an advisory identifier (whatever the host path), and the
         "(Citation: CISA AA20-239A ...)" markers MITRE writes into its prose, scanned
@@ -189,8 +198,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.14.1"
-BUILDER_DATE = "2026-07-26f"
+BUILDER_VERSION = "3.15.0"
+BUILDER_DATE = "2026-07-26g"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -215,6 +224,7 @@ class Source:
 
 
 REGISTRY = []
+ATTACK_RESULT = {}          # this run's ATT&CK data, for connectors that follow
 
 
 def source(**kw):
@@ -751,6 +761,12 @@ def build_attack():
     adv_total = len({a["id"] for g in groups for a in (g.get("advisories") or [])})
     print("  [attack] %d techniques, %d groups; %d groups cite %d distinct CISA "
           "advisories" % (len(techniques), len(groups), adv_groups, adv_total))
+    # Kept in memory for connectors later in the run. techniques/attack.json is not
+    # written until after every connector has finished, so reading the file made the
+    # advisory enrichment permanently one build out of date - it saw the PREVIOUS
+    # run's data, which is why it produced nothing the first time this shipped.
+    ATTACK_RESULT.clear()
+    ATTACK_RESULT.update({"techniques": techniques, "groups": groups})
     if not adv_total:
         print("  [attack] NOTE: no CISA advisory citations found. The advisory "
               "enrichment will be empty - paste a group's external_references to fix "
@@ -1645,6 +1661,25 @@ def _nvd_parse_cve(item):
     refs = cve.get("references") or []
     if refs:
         out["refs"] = len(refs)
+    # NVD's reference list routinely includes the government advisories about a flaw,
+    # tagged as US Government Resource. Keeping the identifiers gives the CVE-to-
+    # advisory link directly from data we already fetch - no request to cisa.gov,
+    # which refuses us anyway. This is the half of the enrichment I had written off.
+    advs = []
+    for rf in refs:
+        if not isinstance(rf, dict):
+            continue
+        u = str(rf.get("url") or "")
+        if "cisa" not in u.lower() and "us-cert" not in u.lower():
+            continue
+        m = re.search(r"(?<![a-z0-9])(a{1,2}\d{2}-\d{3}[a-z]?)(?![a-z0-9])", u, re.I)
+        if m and m.group(1).lower() not in advs:
+            advs.append(m.group(1).lower())
+    if advs:
+        out["advs"] = advs[:8]
+    # Version marker for the advisory scan. Records cached before this existed carry
+    # no marker and are re-read once, rather than silently lacking the links forever.
+    out["av"] = 1
     for d in (cve.get("descriptions") or []):
         if not isinstance(d, dict):
             continue
@@ -1695,6 +1730,11 @@ def build_nvd_detail(out_dir=None):
     # (NVD sometimes publishes a record before it has been analysed).
     todo = [c for c in wanted if c not in cached]
     todo += [c for c in wanted if c in cached and "cvss" not in cached[c]]
+    stale = [c for c in wanted if c in cached and cached[c].get("av") != 1]
+    if stale:
+        print("  [nvd] %d cached records predate the advisory scan and will be "
+              "re-read (a few runs)" % len(stale))
+        todo += stale
     print("  [nvd] %s; %d catalogued, %d cached, %d to fetch (cap %d this run)"
           % ("API key in use" if key else "no API key - slow mode",
              len(wanted), len(cached), len(todo), cap))
@@ -1945,14 +1985,38 @@ def build_cisa_aa(out_dir=None):
     # such as the KEV catalogue, are served from cache and do work). MITRE
     # publishes the bundle for programmatic use and attributes each advisory to a
     # group itself, so this is both the reliable route and the better-sourced one.
-    listed, via = [], None
-    attack_early = None
-    apath0 = (out_dir or Path("cyber_data")) / "techniques" / "attack.json"
-    if apath0.exists():
+    # ── CVE links, from NVD rather than from CISA ──────────────────────────
+    # Advisory bodies are unreachable, but NVD lists the government advisories for
+    # each flaw, and we already hold that for every catalogued vulnerability. Invert
+    # it: advisory -> the CVEs whose NVD record cites it.
+    cve_by_adv = {}
+    npath = (out_dir or Path("cyber_data")) / "vulns" / "nvd.json"
+    if npath.exists():
         try:
-            attack_early = json.loads(apath0.read_text(encoding="utf-8"))
+            for r in json.loads(npath.read_text(encoding="utf-8")):
+                for aid in (r.get("advs") or []):
+                    cve_by_adv.setdefault(aid, [])
+                    if r.get("cve") and r["cve"] not in cve_by_adv[aid]:
+                        cve_by_adv[aid].append(r["cve"])
         except Exception:                                 # noqa: BLE001
-            attack_early = None
+            cve_by_adv = {}
+    if cve_by_adv:
+        print("  [cisaaa] NVD references link %d advisories to catalogued flaws"
+              % len(cve_by_adv))
+
+    listed, via = [], None
+    # This run's ATT&CK data if it has already run (it is registered earlier, so it
+    # has); the file only as a fallback for a partial build.
+    attack_early = ATTACK_RESULT or None
+    if not attack_early:
+        apath0 = (out_dir or Path("cyber_data")) / "techniques" / "attack.json"
+        if apath0.exists():
+            try:
+                attack_early = json.loads(apath0.read_text(encoding="utf-8"))
+                print("  [cisaaa] using the previous build's ATT&CK file "
+                      "(this run's data was not available)")
+            except Exception:                             # noqa: BLE001
+                attack_early = None
     if attack_early:
         seen, byid = set(), {}
         for g in (attack_early.get("groups") or []):
@@ -1966,6 +2030,14 @@ def build_cisa_aa(out_dir=None):
                 if g.get("id") and g["id"] not in rec["groups"]:
                     rec["groups"].append(g["id"])
                 seen.add(aid)
+        # and any advisory NVD links to a flaw but MITRE does not cite
+        for aid in cve_by_adv:
+            if aid not in byid:
+                byid[aid] = {"id": aid,
+                             "url": "https://www.cisa.gov/news-events/"
+                                    "cybersecurity-advisories/" + aid,
+                             "title": "", "date": "", "groups": [],
+                             "cves": [], "techniques": []}
         listed = list(byid.values())
         if listed:
             via = "MITRE ATT&CK citations (%d advisories, attributed by MITRE)" % len(listed)
@@ -1997,17 +2069,10 @@ def build_cisa_aa(out_dir=None):
     # the @source decorator returns the original function, so that would re-download
     # the whole ATT&CK bundle for nothing. If the file is not there yet, group
     # matching simply waits for the next run.
-    attack = None
-    apath = (out_dir or Path("cyber_data")) / "techniques" / "attack.json"
-    if apath.exists():
-        try:
-            attack = json.loads(apath.read_text(encoding="utf-8"))
-        except Exception:                                 # noqa: BLE001
-            attack = None
-    gidx = _aa_group_index(attack) if attack else {}
-    if not gidx:
-        print("  [cisaaa] no ATT&CK groups available yet - advisory group matching "
-              "will fill in on the next run")
+    # Alias index, used only when an advisory page body can be read (it names groups
+    # in prose). Same source as above, so it does not go looking for a file that has
+    # not been written yet.
+    gidx = _aa_group_index(attack_early) if attack_early else {}
 
     todo = [a for a in listed if a["id"] not in cached or not cached[a["id"]].get("scanned")]
     print("  [cisaaa] %d advisories listed, %d cached, %d to read (cap %d)"
@@ -2057,6 +2122,10 @@ def build_cisa_aa(out_dir=None):
             rec["body"] = False
         cached[rec["id"]] = rec
 
+    for aid, cves in cve_by_adv.items():
+        if aid in cached:
+            have = cached[aid].get("cves") or []
+            cached[aid]["cves"] = sorted(set(have) | set(cves))[:60]
     rows = sorted(cached.values(), key=lambda r: (r.get("date") or "", r.get("id") or ""),
                   reverse=True)
     withcve = sum(1 for r in rows if r.get("cves"))
