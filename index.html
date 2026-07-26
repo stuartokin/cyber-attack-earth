@@ -1563,7 +1563,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v73";
+const APP_VERSION="v74";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -2703,9 +2703,9 @@ const FLATFX={cv:null,ctx:null,run:false,raf:null,shots:[],trails:[],last:0,
 function flatFxDensity(){
   const v=(document.getElementById("densityMode")||{}).value||"cinematic";
   // concurrent missiles, and how often a new one leaves
-  if(v==="full")return {max:150,every:60};
-  if(v==="some")return {max:70,every:110};
-  return {max:34,every:190};                     // cinematic: few, but legible
+  if(v==="full")return {max:260,every:34};
+  if(v==="some")return {max:130,every:60};
+  return {max:60,every:105};                     // cinematic: few, but always moving
 }
 
 function flatFxResize(){
@@ -2762,13 +2762,38 @@ function flatFxSetData(arcs){
     const t=src[i]; src[i]=src[j]; src[j]=t;
   }
   FLATFX.pool=src;
+  /* Split once, because the two behave differently on screen. Roughly two-thirds of
+     the record has no established origin and can only be shown as a strike landing;
+     if the sample were left purely random, a busy month would be almost all strikes
+     and hardly any flight, which reads as static. Launches therefore alternate
+     between the two pools so there is always something travelling - a presentation
+     choice about the illustration, not a claim about the data. The counts, shading
+     and charts are untouched by it. */
+  FLATFX.known=[]; FLATFX.unknown=[];
+  const un=(typeof isUnattributed==="function")?isUnattributed:(()=>false);
+  for(const a of src){
+    (un(a)?FLATFX.unknown:FLATFX.known).push(a);
+  }
+  FLATFX.kc=0; FLATFX.uc=0; FLATFX.flip=0;
   if(FLATFX.cursor>=FLATFX.pool.length)FLATFX.cursor=0;
 }
 
 function flatFxLaunch(now){
   const pool=FLATFX.pool;
   if(!pool.length)return;
-  const d=pool[FLATFX.cursor++ % pool.length];
+  // Alternate: flight, flight, strike - so arcs are always present even though most
+  // of the record cannot honestly be given a direction.
+  const K=FLATFX.known||[], U=FLATFX.unknown||[];
+  let d;
+  if(K.length&&U.length){
+    d=((FLATFX.flip++%3)<2)?K[FLATFX.kc++%K.length]:U[FLATFX.uc++%U.length];
+  }else{
+    d=K.length?K[FLATFX.kc++%K.length]:(U.length?U[FLATFX.uc++%U.length]:pool[FLATFX.cursor++%pool.length]);
+  }
+  FLATFX.cursor++;
+  // A target sitting on the neutral anchor means the victim location is not known
+  // either. Drawing an impact in open ocean invents a place, so draw nothing.
+  if(Math.abs((d.endLat||0))<0.01&&Math.abs((d.endLng||0)+30)<0.01)return;
   const b=flatFxPt(d.endLng,d.endLat);
   if(!b)return;
   /* Most records have no established origin, and the tool anchors those to a neutral
@@ -2815,9 +2840,9 @@ function flatFxFrame(now){
   ctx.lineWidth=0.6;
   for(let i=FLATFX.trails.length-1;i>=0;i--){
     const tr=FLATFX.trails[i];
-    const age=(now-tr.t0)/9000;
+    const age=(now-tr.t0)/3200;      // brief: the map should never look drawn-on
     if(age>=1){FLATFX.trails.splice(i,1);continue}
-    ctx.globalAlpha=0.16*(1-age);
+    ctx.globalAlpha=0.13*(1-age);
     ctx.strokeStyle=tr.col;
     ctx.beginPath();
     ctx.moveTo(tr.a[0],tr.a[1]);
@@ -2843,11 +2868,24 @@ function flatFxFrame(now){
         FLATFX.shots.splice(i,1);
         continue;
       }
-      const r=3+it*16, al=(1-it);
-      ctx.globalAlpha=al*0.9; ctx.strokeStyle=s.col; ctx.lineWidth=1.6*(1-it)+0.4;
-      ctx.beginPath(); ctx.arc(s.b[0],s.b[1],r,0,6.283); ctx.stroke();
-      ctx.globalAlpha=al*0.5;
-      ctx.beginPath(); ctx.arc(s.b[0],s.b[1],r*0.45,0,6.283); ctx.fillStyle=s.col; ctx.fill();
+      const al=(1-it);
+      ctx.strokeStyle=s.col; ctx.fillStyle=s.col;
+      // outer shock ring
+      ctx.globalAlpha=al*0.85; ctx.lineWidth=1.7*al+0.4;
+      ctx.beginPath(); ctx.arc(s.b[0],s.b[1],3+it*19,0,6.283); ctx.stroke();
+      // a second, slower ring gives the bloom depth
+      ctx.globalAlpha=al*0.45; ctx.lineWidth=1.1*al+0.3;
+      ctx.beginPath(); ctx.arc(s.b[0],s.b[1],2+it*9,0,6.283); ctx.stroke();
+      // hot core, fading fast
+      ctx.globalAlpha=al*al*0.9;
+      ctx.beginPath(); ctx.arc(s.b[0],s.b[1],3.4*(1-it)+1,0,6.283); ctx.fill();
+      if(it<0.35){                              // brief spark cross
+        const L=4+it*10; ctx.globalAlpha=(1-it/0.35)*0.7; ctx.lineWidth=0.9;
+        ctx.beginPath();
+        ctx.moveTo(s.b[0]-L,s.b[1]); ctx.lineTo(s.b[0]+L,s.b[1]);
+        ctx.moveTo(s.b[0],s.b[1]-L); ctx.lineTo(s.b[0],s.b[1]+L);
+        ctx.stroke();
+      }
       continue;
     }
 
@@ -2860,14 +2898,14 @@ function flatFxFrame(now){
 
     // ── flight: a comet with a tapering tail ──
     const head=flatFxQuad(s.a,s.c,s.b,t);
-    const TAIL=10;
+    const TAIL=16;
     ctx.lineCap="round";
     for(let k=0;k<TAIL;k++){
-      const t1=Math.max(0,t-k*0.016), t2=Math.max(0,t-(k+1)*0.016);
+      const t1=Math.max(0,t-k*0.019), t2=Math.max(0,t-(k+1)*0.019);
       if(t2<=0)break;
       const p1=flatFxQuad(s.a,s.c,s.b,t1), p2=flatFxQuad(s.a,s.c,s.b,t2);
-      ctx.globalAlpha=(1-k/TAIL)*0.85;
-      ctx.lineWidth=(1-k/TAIL)*2.2+0.3;
+      ctx.globalAlpha=(1-k/TAIL)*0.95;
+      ctx.lineWidth=(1-k/TAIL)*2.6+0.35;
       ctx.strokeStyle=s.col;
       ctx.beginPath(); ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.stroke();
     }
@@ -2945,22 +2983,14 @@ function renderFlat(data,arcData){
    // origin and target markers.
    // Past a few hundred, the faint routes are an indistinguishable wash and cost a
    // path node each on every tick. Cap what is drawn; the counts are unaffected.
-   const ROUTE_CAP=(document.getElementById("densityMode")||{}).value==="full"?1200:320;
-   const routeData=arcData.length>ROUTE_CAP
-     ? arcData.filter((d,i)=>i%Math.ceil(arcData.length/ROUTE_CAP)===0)
-     : arcData;
-   const paths=layer.selectAll("path.flat-arc").data(routeData).join("path")
-    .attr("class","flat-arc")
-    .attr("d",d=>{
-      const a=flatProjection([d.startLng,d.startLat]), b=flatProjection([d.endLng,d.endLat]);
-      const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2-Math.hypot(b[0]-a[0],b[1]-a[1])*0.22;
-      return `M${a[0]},${a[1]} Q${mx},${my} ${b[0]},${b[1]}`;
-    })
-    .attr("fill","none")
-    .attr("stroke",d=>severityColor[d.severity])
-    .attr("stroke-width",0.6)
-    .attr("opacity",routeData.length>600?0.05:0.09)
-    .on("click",(e,d)=>showDetail(d));
+   /* No standing route lines. They were the reason a busy month read as a fixed
+      diagram rather than anything moving: hundreds of permanent strokes, and because
+      most records have no known origin, a great fan of them radiating out of the
+      middle of the Atlantic. Movement now comes entirely from the canvas engine -
+      comets that fly and fade - and the clickable targets are the victim markers
+      below. Nothing is drawn between two points unless something is travelling
+      along it right now. */
+   layer.selectAll("path.flat-arc").remove();
    flatFxSetData(arcData);
    flatFxStart();
    layer.selectAll("circle.flat-origin").data(data).join("circle").attr("class","flat-origin")
@@ -3296,6 +3326,7 @@ async function loadEnrichmentLayers(){
  const _ss1=document.getElementById("splashStatus"); if(_ss1)_ss1.textContent="Merging and de-duplicating…";
  await Promise.allSettled(jobs); renderSourceMenu();
  if(typeof dataHealth==="function")dataHealth();
+ if(typeof splashStats==="function")splashStats();   // figures, regardless of ready state
  if(typeof splashReady==="function")splashReady();
  if(selectedAttack)showDetail(selectedAttack);
 }
@@ -4710,6 +4741,7 @@ function splashDismiss(then){
  // failsafe dismisses the splash while fetches are still in flight.
  SPLASH.done=true;
  clearInterval(SPLASH.jokeTimer);
+ try{ clearInterval(_splashStatsTimer) }catch(e){}
  // honour the lighter-load choice before revealing the map
  if(document.getElementById("splashLite").checked){
    window.__perfCap=380;
@@ -4759,6 +4791,16 @@ document.getElementById("splashKiosk").addEventListener("click",()=>splashDismis
    which is what happened in every sandboxed preview, blocked network or offline load.
    Let them in early, keep loading in the background, and update the figures when (or
    if) the pack lands. */
+/* The headline figure used to be a single snapshot, and on a cold load the failsafe
+   took that snapshot before the pack had finished arriving - after which splashReady
+   refused to run again because it had already marked itself done, so the number stayed
+   wrong until the page was reloaded. The figures are now refreshed on a light interval
+   for as long as the welcome screen is on screen, so whatever is showing is always
+   what is actually loaded. */
+const _splashStatsTimer=setInterval(()=>{
+  if(!document.getElementById("splash")){clearInterval(_splashStatsTimer);return}
+  try{ if(typeof splashStats==="function")splashStats() }catch(e){}
+},700);
 setTimeout(function earlyEntry(){
   if(SPLASH.done)return;
   if(!attacks||!attacks.length){ setTimeout(earlyEntry,1200); return }
@@ -7470,7 +7512,8 @@ async function canFetchRemote(){
     // failsafe whenever the pack could not be reached - which is every sandboxed
     // preview, every blocked network and every offline load. The embedded set is
     // ready in seconds, so say so and let people in.
-    if(typeof splashReady==="function")splashReady();
+    if(typeof splashStats==="function")splashStats();   // figures, regardless of ready state
+ if(typeof splashReady==="function")splashReady();
   });
  }
 })();
