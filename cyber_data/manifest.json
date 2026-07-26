@@ -1,8 +1,8 @@
 {
  "schema": 3,
- "builder": "3.11.2",
- "builder_date": "2026-07-26",
- "generated": "2026-07-26T06:20:42+00:00",
+ "builder": "3.12.0",
+ "builder_date": "2026-07-26b",
+ "generated": "2026-07-26T14:02:36+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -138,7 +138,7 @@
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17242,
+     "rows": 17239,
      "min_score": 0.1
     },
     "cve": {
@@ -198,7 +198,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 2.1
+   "seconds": 5.2
   },
   {
    "id": "vcdb",
@@ -210,7 +210,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10362,
-   "seconds": 5.3
+   "seconds": 5.7
   },
   {
    "id": "rwlive",
@@ -222,7 +222,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 21306,
-   "seconds": 141.5
+   "seconds": 174.2
   },
   {
    "id": "kev",
@@ -245,8 +245,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17242,
-   "seconds": 1.1
+   "rows": 17239,
+   "seconds": 0.9
   },
   {
    "id": "attack",
@@ -258,7 +258,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 871,
-   "seconds": 0.5
+   "seconds": 3.3
   },
   {
    "id": "icsadv",
@@ -270,7 +270,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 3902,
-   "seconds": 0.4
+   "seconds": 0.6
   },
   {
    "id": "eurepoc_live",
@@ -306,7 +306,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 319,
-   "seconds": 22.6
+   "seconds": 27.1
   },
   {
    "id": "impact_overlay",
@@ -344,5 +344,16 @@
    "rows": 15,
    "seconds": 0.0
   }
- ]
+ ],
+ "releases": {
+  "eurepoc": {
+   "record": 14965395,
+   "concept": "14965394",
+   "version": "1.3.2",
+   "doi": "10.5281/zenodo.14965395",
+   "published": "2025-03-04",
+   "title": "Global Dataset of Cyber Incidents",
+   "file": "eurepoc_dyadic_dataset_0_1.csv"
+  }
+ }
 }
