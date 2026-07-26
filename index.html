@@ -62,12 +62,20 @@
     .splashCard{width:min(560px,94vw);max-height:92vh;overflow:auto;background:rgba(6,13,26,.96);
       border:1px solid #34506f;border-radius:16px;padding:20px 22px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
     .splashCard h1{margin:0 0 6px;font-size:clamp(20px,3vw,27px);letter-spacing:-.02em}
-    .splashLead{margin:0 0 14px;font-size:13.5px;line-height:1.6;color:#c9d8ec}
-    .splashGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:13px}
-    .splashGrid div{background:rgba(10,22,38,.8);border:1px solid #1e3350;border-radius:9px;padding:9px 6px;text-align:center}
-    .splashGrid b{display:block;font-size:17px;color:#fff;font-variant-numeric:tabular-nums}
-    .splashGrid span{font-size:9.5px;color:#7f95b4;line-height:1.3;display:block}
-    .splashNote{font-size:11.5px;line-height:1.55;color:#a8bcd6;border-left:2px solid var(--orange);padding-left:9px;margin:0 0 12px}
+    .splashLead{margin:0 0 11px;font-size:13px;line-height:1.55;color:#c9d8ec}
+    /* The headline figure earns its own row; the rest are supporting detail at a
+       deliberately smaller weight, so the eye lands on the incident count first. */
+    .splashHero{background:linear-gradient(135deg,rgba(19,58,84,.55),rgba(10,22,38,.85));
+      border:1px solid #2c5a7a;border-radius:12px;padding:12px 14px;margin-bottom:8px;
+      display:flex;align-items:baseline;gap:10px}
+    .splashHero b{font-size:31px;line-height:1;color:#fff;font-variant-numeric:tabular-nums;letter-spacing:-.5px}
+    .splashHero span{font-size:11.5px;color:#a8bcd6}
+    .splashGrid{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;margin-bottom:13px}
+    .splashGrid div{background:rgba(10,22,38,.7);border:1px solid #1b3350;border-radius:8px;padding:7px 4px;text-align:center}
+    .splashGrid b{display:block;font-size:14px;color:#dbe8f7;font-variant-numeric:tabular-nums}
+    .splashGrid span{font-size:8.8px;color:#7f95b4;line-height:1.25;display:block;margin-top:1px}
+    @media (max-width:520px){ .splashGrid{grid-template-columns:repeat(3,1fr)} }
+    .splashNote{font-size:11px;line-height:1.5;color:#a8bcd6;border-left:2px solid var(--orange);padding-left:9px;margin:0 0 10px}
     .splashAttrib{font-size:10.5px;line-height:1.5;color:#7f95b4;margin-bottom:12px}
     .splashAttrib a{color:var(--accent)}
     .splashLight{display:flex;gap:8px;align-items:flex-start;font-size:11.5px;color:#c9d8ec;margin-bottom:12px}
@@ -216,6 +224,17 @@
     #timeline{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(5,12,25,.96);border-top:1px solid var(--line);padding:7px 14px 8px}
     /* One control row instead of three. The occasional controls live in #tlOptsPop. */
     .tlStep{padding:3px 8px;min-width:26px;font-size:13px;line-height:1;font-weight:700}
+    .tlMapToggle{display:inline-flex;border:1px solid #2c4666;border-radius:8px;overflow:hidden}
+    .tlMapToggle button{background:transparent;border:0;border-radius:0;padding:4px 9px;font-size:14px;line-height:1;color:var(--muted)}
+    .tlMapToggle button.on{background:rgba(77,216,255,.18);color:#eaf6ff}
+    .tlMapToggle button:not(.on):hover{background:rgba(20,38,63,.8);color:var(--text)}
+    /* A single pulse to say "start here", stopping the moment it is used or after a
+       few seconds - a permanent animation would just be noise. */
+    @keyframes playNudge{
+      0%,100%{box-shadow:0 0 0 0 rgba(77,216,255,0)}
+      50%{box-shadow:0 0 0 7px rgba(77,216,255,.22)}
+    }
+    #playBtn.nudge{animation:playNudge 1.5s ease-in-out 4;border-color:var(--accent)}
     .tlYears{display:inline-flex;align-items:center;gap:3px;color:#7f95b4;font-size:11px}
     .tlYears select{width:auto;padding:2px 4px;font-size:11px}
     .tlStatus{min-width:52px;color:#7f95b4;white-space:nowrap}
@@ -330,27 +349,20 @@
     .vendChip:hover{border-color:#4dd8ff;color:#dbe8f7}
     .vendChip.on{background:#173a54;border-color:var(--accent);color:#eaf6ff}
     .vendChip.on i{color:#9fd8ef}
-    .hbar{display:grid;grid-template-columns:minmax(96px,32%) minmax(0,1fr) auto;gap:9px;align-items:center;font-size:12px}
-    .hbar>span{color:#dbe8f7;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-    .hbar>i{font-style:normal;color:#dbe8f7;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap}
-    /* On a narrow panel the row would squeeze the number into nothing, so the label
-       takes its own line and the bar and number share the next one. */
-    /* The panel, not the screen, decides. A 340px window on a 2560px display still
-       needs the stacked layout, and the old viewport media query never fired there -
-       which is why the numbers disappeared behind the labels. */
+    /* Label and figure share one flex line; the bar sits under them. The previous
+       grid with named areas collapsed on a narrow panel and printed the figure
+       BEHIND the label. This cannot overlap at any width. */
+    .hbar{display:block;font-size:12px;margin-bottom:7px}
+    .hbarLabel{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:3px}
+    .hbarLabel>span{color:#dbe8f7;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .hbarLabel>i{font-style:normal;color:#fff;font-weight:600;font-variant-numeric:tabular-nums;white-space:nowrap;flex:0 0 auto}
+    /* League rows stack their value under the name when the PANEL is narrow - the
+       panel, not the screen, because a 340px window on a 2560px display needs the
+       same treatment and a viewport media query never fired there. */
     .chartHost{container-type:inline-size}
     @container (max-width:430px){
-      .hbar{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name name" "bar val";row-gap:2px;margin-bottom:6px}
-      .hbar>span{grid-area:name;white-space:normal}
-      .hbarTrack{grid-area:bar}
-      .hbar>i{grid-area:val}
       .lgRow{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"rank name" "val move";row-gap:1px}
       .lgRank{grid-area:rank}.lgName{grid-area:name}.lgVal{grid-area:val}.lgMove{grid-area:move;text-align:left}
-    }
-    /* Fallback for engines without container queries: never let the value be hidden. */
-    @supports not (container-type:inline-size){
-      .hbar{grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"name name" "bar val";row-gap:2px;margin-bottom:6px}
-      .hbar>span{grid-area:name}.hbarTrack{grid-area:bar}.hbar>i{grid-area:val}
     }
     .hbarTrack{position:relative;height:13px;background:#0a1626;border:1px solid #1e3350;border-radius:4px;overflow:hidden}
     .hbarFill{position:absolute;left:0;top:0;bottom:0;background:linear-gradient(90deg,#2f6f96,#4dd8ff);border-radius:3px}
@@ -442,8 +454,13 @@
     .chartPickS{grid-row:1;grid-column:2;font-size:10.5px;color:var(--accent);white-space:nowrap}
     #chartsBody h3{font-size:12.5px;margin:14px 0 4px;color:#dbe7f5}
     .hbars{display:flex;flex-direction:column;gap:3px;margin:5px 0}
-    .hbar{position:relative;background:#0a1626;border:1px solid #1e3350;border-radius:6px;padding:4px 8px;font-size:11px;display:flex;justify-content:space-between;gap:8px;overflow:hidden}
-    .hbar i{position:absolute;left:0;top:0;bottom:0;opacity:.22}
+    /* This is a DIFFERENT bar convention from .hbar above: here the <i> is the bar
+       itself, drawn behind the text. The two shared a class name, and because this
+       rule comes later it won - which absolutely positioned the vulnerability charts'
+       value at the left edge, behind the row label. That is the "number hidden under
+       the title". Renamed so the two cannot collide. */
+    .hbarLite{position:relative;background:#0a1626;border:1px solid #1e3350;border-radius:6px;padding:4px 8px;font-size:11px;display:flex;justify-content:space-between;gap:8px;overflow:hidden}
+    .hbarLite i{position:absolute;left:0;top:0;bottom:0;opacity:.22}
     .hbarK,.hbarT{position:relative;z-index:1}
     .hbarK{color:#c9d8ec;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .hbarT{color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
@@ -905,13 +922,16 @@
     <div class="splashCard">
       <h1>Cyber Attack Earth</h1>
       <p class="splashLead">Every missile is one publicly documented cyber attack, from 2000 to today. Press play and two decades pass a month at a time.</p>
+      <div class="splashHero">
+        <b id="splashCount">&mdash;</b>
+        <span id="splashCountLbl">documented incidents</span>
+      </div>
       <div class="splashGrid">
-        <div><b id="splashCount">&mdash;</b><span id="splashCountLbl">documented incidents</span></div>
-        <div><b id="splashSources">&mdash;</b><span>data sources loaded</span></div>
-        <div><b id="splashCharts">&mdash;</b><span>charts and tables</span></div>
-        <div><b id="splashYears">&mdash;</b><span>years covered</span></div>
-        <div><b id="splashCountries">&mdash;</b><span>countries hit</span></div>
         <div><b id="splashRoutes">&mdash;</b><span>mapped routes</span></div>
+        <div><b id="splashYears">&mdash;</b><span>years covered</span></div>
+        <div><b id="splashCountries">&mdash;</b><span>countries</span></div>
+        <div><b id="splashSources">&mdash;</b><span>sources</span></div>
+        <div><b id="splashCharts">&mdash;</b><span>charts</span></div>
       </div>
       <p class="splashNote">It records what was <i>disclosed</i>, which is a small and uneven fraction of what happened. Growth over time reflects both real escalation and much better recording. The Help window explains the limitations before you quote anything from it.</p>
       <div class="splashAttrib" id="splashAttrib"></div>
@@ -961,6 +981,10 @@
     <div id="histo" role="slider" aria-label="Attacks per month, 2000 to 2026. Click to jump to a month." title="Attacks per month — click to jump"></div>
     <div class="timelineTop">
       <button id="playBtn" class="primary">▶ Play</button>
+      <span class="tlMapToggle" role="group" aria-label="Map style">
+        <button id="tlGlobeBtn" type="button" class="on" title="Show the globe">&#127760;</button>
+        <button id="tlFlatBtn" type="button" title="Show the flat map">&#9707;</button>
+      </span>
       <button id="prevBtn" class="tlStep" title="Back one month" aria-label="Back one month">&#8722;</button>
       <strong id="yearLabel">Jun 2026</strong>
       <button id="nextBtn" class="tlStep" title="Forward one month" aria-label="Forward one month">+</button>
@@ -1512,7 +1536,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v71";
+const APP_VERSION="v72";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -2015,18 +2039,59 @@ function update(){
  if(yearSlider.max!=String(endTimelineIndex))yearSlider.max=String(endTimelineIndex);
  if(yearSlider.step!=="any")yearSlider.step="any";
  const mode=viewMode.value;
- globe.arcsData(mode==="attacks"?arcSet:[]);
- // Impact rings are expensive; with a large cumulative field, only pulse the freshest salvo (current month) plus the highest-impact strikes.
- const ringSrc=mode!=="attacks"?[]:(data.length>400
-   ? [...new Map([...data.filter(a=>idx(a.year,a.month)===timelineIndex),
-      ...[...data].sort((x,y)=>y.impact-x.impact).slice(0,120)].map(a=>[a.id,a])).values()].slice(0,400)
-   : data);
- globe.ringsData(ringSrc.map(a=>({...a,lat:a.endLat,lng:a.endLng})));
- const attackPoints=data.flatMap(a=>[
-   {lat:a.startLat,lng:a.startLng,role:"origin",city:a.originCity,country:a.originCountry,impact:a.impact,severity:a.severity,attack:a},
-   {lat:a.endLat,lng:a.endLng,role:"victim",city:a.victimCity,country:a.victimCountry,impact:a.impact,severity:a.severity,attack:a}
- ]);
- globe.pointsData(mode==="attacks"?[...(citiesBox.checked?cities:[]),...attackPoints]:(citiesBox.checked?cities:[]));
+
+ /* ── What the globe is actually given ──────────────────────────────────────
+    This was the reason playback staggered in the busy years even with nothing
+    else open. Every visible attack produced TWO point objects, rebuilt from
+    scratch on every tick: with build-up switched on at the end of the record
+    that is forty thousand-plus objects handed to the 3D scene twelve times a
+    second, and the renderer has to rebuild its geometry for all of them.
+
+    Nothing about the picture needs that. Beyond a few hundred markers the globe
+    is a solid crust and individual points cannot be seen, let alone clicked. So
+    the scene gets a bounded, deliberately chosen subset - this month's activity
+    first, then the heaviest incidents - while the counter, the heat shading and
+    every chart continue to use the complete set. The number in the corner is
+    still the truth; the globe is the illustration. */
+ const dens=(document.getElementById("densityMode")||{}).value||"cinematic";
+ // Deliberately tight. These are the numbers the 3D scene rebuilds geometry for on
+ // every tick, and past a few hundred markers nothing is distinguishable anyway.
+ const CAPS=(dens==="full")?{pts:1800,rings:220,arcs:1400}
+          :(dens==="some")?{pts:900, rings:130,arcs:700}
+                          :{pts:420, rings:70, arcs:340};
+ const pickForScene=(arr,limit)=>{
+   if(arr.length<=limit)return arr;
+   const now=[],rest=[];
+   for(const a of arr){
+     ((a._i!==undefined?a._i:(a._i=idx(a.year,a.month)))===timelineIndex?now:rest).push(a);
+   }
+   if(now.length>=limit)return now.slice(0,limit);
+   rest.sort((x,y)=>y.impact-x.impact);
+   return now.concat(rest.slice(0,limit-now.length));
+ };
+
+ const arcShown=(mode==="attacks")?pickForScene(arcSet,CAPS.arcs):[];
+ /* Handing the same array to the scene again still costs a full geometry rebuild, and
+    update() runs for plenty of reasons that do not change what is drawn - a hover, a
+    resize, a chart opening. A cheap signature skips those. */
+ const sceneSig=mode+"|"+timelineIndex+"|"+arcShown.length+"|"+data.length+"|"+dens+"|"+_filterEpoch+"|"
+   +(arcShown.length?arcShown[0].id+","+arcShown[arcShown.length-1].id:"")+"|"+(citiesBox.checked?1:0);
+ const sceneChanged=(sceneSig!==window.__sceneSig);
+ window.__sceneSig=sceneSig;
+ if(sceneChanged)globe.arcsData(arcShown);
+
+ const ringSrc=(mode!=="attacks"||!sceneChanged)?[]:pickForScene(data,CAPS.rings);
+ // minimal objects rather than spreading the whole incident: the ring layer only
+ // needs a position, a colour and a size
+ if(sceneChanged)globe.ringsData(ringSrc.map(a=>({lat:a.endLat,lng:a.endLng,severity:a.severity,impact:a.impact,id:a.id})));
+
+ const pointSrc=(mode==="attacks"&&sceneChanged)?pickForScene(data,Math.ceil(CAPS.pts/2)):[];
+ const attackPoints=[];
+ for(const a of pointSrc){
+   attackPoints.push({lat:a.startLat,lng:a.startLng,role:"origin",city:a.originCity,country:a.originCountry,impact:a.impact,severity:a.severity,attack:a});
+   attackPoints.push({lat:a.endLat,lng:a.endLng,role:"victim",city:a.victimCity,country:a.victimCountry,impact:a.impact,severity:a.severity,attack:a});
+ }
+ if(sceneChanged)globe.pointsData(mode==="attacks"?[...(citiesBox.checked?cities:[]),...attackPoints]:(citiesBox.checked?cities:[]));
  const unattrCount=(mode==="attacks")?data.filter(isUnattributed).length:0;
  const anchorLabel=unattrCount?[{lat:0,lng:-30,unknownAnchor:true,
    name:`\u2691 Unknown / unattributed origin \u00b7 ${unattrCount.toLocaleString()}`}]:[];
@@ -2037,7 +2102,9 @@ function update(){
    const bits=[];
    if(data.__capped)bits.push(`Showing a representative ${data.length.toLocaleString()} of ${data.__capped.toLocaleString()} on the map — narrow the years or filters to see them all.`);
    // A short trail window is the usual reason the map looks emptier than the count.
-   if(trail<999&&arcSet.length<data.length){
+   if(arcShown.length<arcSet.length){
+     bits.push(`${arcShown.length.toLocaleString()} of ${arcSet.length.toLocaleString()} flight paths drawn \u2014 the globe is capped so it stays smooth and legible. All ${(data.__capped||data.length).toLocaleString()} still count towards the totals, the shading and every chart. Raise it with <b>Missile density</b> in Controls.`);
+   }else if(trail<999&&arcSet.length<data.length){
      const word=trail===1?"this month":`the last ${trail} months`;
      bits.push(`${arcSet.length.toLocaleString()} flight paths in the air — only ${word}. All ${(data.__capped||data.length).toLocaleString()} still count towards the totals, the shading and every chart. Change this with <b>Missile trails</b> in Controls.`);
    }
@@ -2105,7 +2172,11 @@ function computeHistoCounts(){
  for(let i=0;i<histoCounts.length;i++){run+=histoCounts[i];histoPrefix[i]=run}
  histoDirty=false;
 }
-function markHistoDirty(){_filterMemo.clear();histoDirty=true;chartsNeedFullRefresh=true}
+let _filterEpoch=0;
+/* Anything that changes what passes the filters bumps this. The scene signature
+   includes it, so a filter change always redraws even when the visible COUNT
+   happens to be identical - which it can be. */
+function markHistoDirty(){_filterMemo.clear();histoDirty=true;chartsNeedFullRefresh=true;_filterEpoch++}
 /* The bars are redrawn into a child container so the playhead element survives
    between renders. Recreating it every month was why it stepped instead of
    gliding: a brand-new element has nothing to transition from. */
@@ -2384,7 +2455,12 @@ function showDetail(a){
  impactLabel.classList.remove("hidden");
  if(mapMode==="sphere"){
    impactLabel.style.left="52%"; impactLabel.style.top="46%";
-   globe.pointOfView({lat:a.endLat,lng:a.endLng,altitude:1.15},900);
+   // A record without usable coordinates must never reach the camera: three.js
+   // takes the NaN, the projection matrix becomes invalid and the globe vanishes
+   // entirely. That is what happened when a curated impact incident - which
+   // carries a country but no latitude - was clicked on the impact chart.
+   if(isFinite(a.endLat)&&isFinite(a.endLng))
+     globe.pointOfView({lat:a.endLat,lng:a.endLng,altitude:1.15},900);
  } else if(typeof flatProjection==="function"){
    // Guarded: the flat map may not have finished building (slow or blocked CDN).
    const p=flatProjection([a.endLng,a.endLat]);
@@ -3739,12 +3815,47 @@ async function loadResearchDataset(){
  loadRansomwareLiveProgressive();
 }
 
+
+/* ── After the welcome screen ───────────────────────────────────────────────
+   Two small things that make the first thirty seconds obvious: draw the eye to
+   Play, and - where there is room for it - open Details alongside, so the first
+   thing that happens is accompanied by an explanation rather than silence. */
+function afterWelcome(){
+ const play=document.getElementById("playBtn");
+ if(play){
+   play.classList.add("nudge");
+   const stop=()=>play.classList.remove("nudge");
+   play.addEventListener("click",stop,{once:true});
+   setTimeout(stop,6500);                        // never becomes wallpaper
+ }
+}
+/* Only on a screen with genuine room: on anything smaller a second window would
+   cover the very thing it is describing. */
+function roomForCompanion(){
+ return window.innerWidth>=1250 && window.innerHeight>=760;
+}
+/* The map-style toggle on the timeline mirrors the pair in Controls; both call the
+   same function, and both stay in step because setMapMode refreshes them. */
+function syncMapToggle(){
+ const g=document.getElementById("tlGlobeBtn"), f=document.getElementById("tlFlatBtn");
+ if(!g||!f)return;
+ const sphere=(mapMode!=="flat");
+ g.classList.toggle("on",sphere); f.classList.toggle("on",!sphere);
+ g.setAttribute("aria-pressed",String(sphere)); f.setAttribute("aria-pressed",String(!sphere));
+}
+(function(){
+ const g=document.getElementById("tlGlobeBtn"), f=document.getElementById("tlFlatBtn");
+ if(g)g.addEventListener("click",()=>setMapMode("sphere"));
+ if(f)f.addEventListener("click",()=>setMapMode("flat"));
+ syncMapToggle();
+})();
 function setMapMode(mode){
  if(mode==="flat"&&typeof flatReset==="function")setTimeout(()=>flatReset(false),60);
  mapMode=mode;
  const sphere=mode==="sphere";
  globeEl.style.display=sphere?"block":"none";
  flatMapEl.style.display=sphere?"none":"block";
+ if(typeof syncMapToggle==="function")syncMapToggle();
  const st=document.getElementById("stars");           // stars are for space only
  if(st)st.style.display=sphere?"block":"none";
  if(sphere&&typeof flatFxStop==="function")flatFxStop();   // no point animating a hidden map
@@ -3764,10 +3875,31 @@ attackDrawer.addEventListener("keydown",e=>{if(e.key==="Escape")closeAttackDetai
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeAttackDetails()});
 sphereBtn.addEventListener("click",()=>setMapMode("sphere"));
 flatBtn.addEventListener("click",()=>setMapMode("flat"));
-function setTimeline(v,smooth){playheadJump=!smooth;timelineIndex=clampToView(+v);update()}
+/* Coalesce updates onto animation frames. Dragging the slider fires input events
+   far faster than a full redraw can complete, and each one used to run the whole
+   pass - so the work queued up behind the browser and the globe visibly stuttered.
+   Now the newest position wins and only one redraw happens per frame. */
+let _updRaf=null;
+function updateSoon(){
+  if(_updRaf)return;
+  _updRaf=requestAnimationFrame(()=>{_updRaf=null;update()});
+}
+function setTimeline(v,smooth){playheadJump=!smooth;timelineIndex=clampToView(+v);updateSoon()}
 function play(){
  if(timer){clearInterval(timer);timer=null;playBtn.textContent="▶ Play";update();return}
  playBtn.textContent="❚❚ Pause";
+ // On a large screen, bring up Details as playback starts: there is room for it,
+ // and the most significant incident of each month is the natural companion to a
+ // moving map. Only ever on the first press, and never if it is already open or the
+ // viewer has closed it themselves.
+ if(!window.__companionOffered&&typeof roomForCompanion==="function"&&roomForCompanion()){
+   window.__companionOffered=true;
+   const f=document.getElementById("frame-details");
+   if(f&&f.classList.contains("hidden")&&typeof openFrame==="function"){
+     openFrame("details");
+     if(typeof tidyFrames==="function")tidyFrames();
+   }
+ }
  const intervalMs=Number(speed.value);
  timer=setInterval(()=>{
    const nxt=nextIndex(timelineIndex,1);
@@ -4435,7 +4567,11 @@ function splashDismiss(then){
    markHistoDirty();
  }
  s.classList.add("gone");
- setTimeout(()=>{s.remove();update();if(then)then()},600);
+ setTimeout(()=>{
+   s.remove();update();
+   if(then)then();
+   else if(typeof afterWelcome==="function")afterWelcome();   // no tour: point at Play
+ },600);
 }
 (function(){ const v=document.getElementById("splashVer"); if(v)v.textContent="Version "+APP_VERSION; })();
 document.getElementById("splashGo").addEventListener("click",()=>splashDismiss());
@@ -4935,7 +5071,7 @@ function svgHBars(pairs,opts){
  opts=opts||{};
  const max=Math.max(1,...pairs.map(p=>p[1]));
  return `<div class="hbars">`+pairs.map(([k,v])=>
-   `<div class="hbar"><span class="hbarK">${k}</span><span class="hbarT">${v.toLocaleString()}</span>
+   `<div class="hbarLite"><span class="hbarK">${k}</span><span class="hbarT">${v.toLocaleString()}</span>
     <i style="width:${(v/max*100).toFixed(1)}%;background:${opts.color||"#4dd8ff"}"></i></div>`).join("")+`</div>`;
 }
 function yearTicks(){
@@ -5694,6 +5830,16 @@ function curatedImpactIncidents(){
   _curatedImpactCache=(LAKE_IMPACT||[]).map(c=>({
     id:"impact-"+c.id, year:c.year, month:c.month, name:c.name,
     victimCountry:c.victim_country||"", originCountry:"", actor:"",
+    // Real coordinates from the victim country, so a curated landmark behaves like
+    // any other incident when clicked - the camera flies to it rather than being
+    // handed nothing.
+    ...(()=>{
+      let p=null;
+      try{ p=centroidForCountry(c.victim_country||"") }catch(e){ p=null }
+      if(!p||!isFinite(p.lat)||!isFinite(p.lng))return {};
+      return {endLat:p.lat,endLng:p.lng,startLat:p.lat,startLng:p.lng,
+              victimCity:c.victim_country||"",originCity:""};
+    })(),
     sector:normCategory(c.sector),
     type:normCategory((typeof canonicalType==="function"&&canonicalType(c.type))||c.type),
     severity:c.severity||"High", impact:severityToImpact(c.severity),
@@ -6243,9 +6389,7 @@ function vulnLagHTML(W){
     const col=b.kind==="artefact"?"linear-gradient(90deg,#3a4a5c,#6f8bad)"
              :b.kind==="zeroday" ?"linear-gradient(90deg,#8f2233,#ff4d66)"
                                  :"linear-gradient(90deg,#2f6f96,#4dd8ff)";
-    return `<div class="hbar"><span>${b.lab}</span>
-      <div class="hbarTrack"><div class="hbarFill" style="width:${(n/max*100).toFixed(1)}%;background:${col}"></div></div>
-      <i>${n.toLocaleString()} (${pct.toFixed(0)}%)</i></div>`;
+    return `<div class="hbar"><div class="hbarLabel"><span>${b.lab}</span><i>${n.toLocaleString()} (${pct.toFixed(0)}%)</i></div><div class="hbarTrack"><div class="hbarFill" style="width:${(n/max*100).toFixed(1)}%;background:${col}"></div></div></div>`;
   }).join("");
   const real=rows.filter(o=>lagKind(o.d)!=="artefact").map(o=>o.d).sort((a,b)=>a-b);
   const median=real.length?real[Math.floor(real.length/2)]:0;
@@ -6271,8 +6415,7 @@ function vulnCweHTML(W){
   const max=Math.max(...rows.map(r=>r[1]));
   const bars=rows.map(([w,n])=>{
     const nm=CWE_NAMES[w]||w;
-    return `<div class="hbar"><span title="${escapeHtml(w)}">${escapeHtml(nm)}</span>
-      <div class="hbarTrack"><div class="hbarFill" style="width:${(n/max*100).toFixed(1)}%"></div></div><i>${n}</i></div>`;
+    return `<div class="hbar"><div class="hbarLabel"><span title="${escapeHtml(w)}">${escapeHtml(nm)}</span><i>${n}</i></div><div class="hbarTrack"><div class="hbarFill" style="width:${(n/max*100).toFixed(1)}%"></div></div></div>`;
   }).join("");
   return vulnVendorChips()+`<div class="league">${bars}</div>
     <p class="chartNote">The underlying weakness in flaws attackers were actually seen using, from CISA's own classification. ${withCwe.length.toLocaleString()} of ${kev.length.toLocaleString()} catalogued entries carry one. This is where the recurring themes show: the same handful of mistakes, made repeatedly, across different vendors and decades.</p>
@@ -6305,9 +6448,7 @@ function vulnRansomHTML(W){
   if(years.length<2)return vulnVendorChips()+'<p class="chartNote">Not enough years catalogued to show a trend.</p>';
   const rows=years.map(y=>{
     const {n,r}=byYear[y], pct=n?r/n*100:0;
-    return `<div class="hbar"><span>${y}</span>
-      <div class="hbarTrack"><div class="hbarFill" style="width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#ff4d66,#ff9d3c)"></div></div>
-      <i>${pct.toFixed(0)}% of ${n}</i></div>`;
+    return `<div class="hbar"><div class="hbarLabel"><span>${y}</span><i>${pct.toFixed(0)}% of ${n}</i></div><div class="hbarTrack"><div class="hbarFill" style="width:${pct.toFixed(1)}%;background:linear-gradient(90deg,#ff4d66,#ff9d3c)"></div></div></div>`;
   }).join("");
   const tot=kev.length, totR=kev.filter(k=>/known/i.test(k.ransomware||"")).length;
   return vulnVendorChips()+`<div class="league">${rows}</div>
@@ -6330,9 +6471,8 @@ function vulnVendorHTML(W){
   const top10=Object.values(c).sort((a,b)=>b-a).slice(0,10).reduce((x,y)=>x+y,0);
   const bars=rows.map(([v,n])=>{
     const r=ran[v]||0;
-    return `<div class="hbar"><span>${escapeHtml(v)}</span>
-      <div class="hbarTrack"><div class="hbarFill" style="width:${(n/max*100).toFixed(1)}%"></div>
-      <div class="hbarFill hbarOver" style="width:${(r/max*100).toFixed(1)}%"></div></div><i>${n}${r?` (${r} ransomware)`:""}</i></div>`;
+    return `<div class="hbar"><div class="hbarLabel"><span>${escapeHtml(v)}</span><i>${n}${r?` (${r} ransomware)`:""}</i></div><div class="hbarTrack"><div class="hbarFill" style="width:${(n/max*100).toFixed(1)}%"></div>
+      <div class="hbarFill hbarOver" style="width:${(r/max*100).toFixed(1)}%"></div></div></div>`;
   }).join("");
   return `<div class="league">${bars}</div>
     <p class="chartNote">Vendors whose products appear most often among flaws seen being exploited, with the ransomware-linked portion shaded darker. The ten largest account for ${(top10/kev.length*100).toFixed(0)}% of the catalogue.</p>
