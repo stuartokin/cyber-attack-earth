@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.13.0 (2026-07-26) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.13.1 (2026-07-26) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.13.1 The CISA advisory connector returned nothing on its first real run and the
+        manifest could not say why, because both failure paths looked identical. It now
+        tries three feed paths and then falls back to scraping the advisories index for
+        the /advisories/aaNN-NNNx link pattern, which has been stable far longer than
+        any feed URL. Every attempt logs its HTTP status, content type, body size and
+        how many advisories were recognised, so a failure names its own cause. Dates
+        missing from a listing are recovered from the advisory page.
  3.13.0 CISA cybersecurity advisories (AA series) added as an ENRICHMENT source, not
         an incident source: a joint advisory says what a named actor does and which
         flaws they use, never who was attacked, so it adds nothing to the incident
@@ -164,8 +171,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.13.0"
-BUILDER_DATE = "2026-07-26c"
+BUILDER_VERSION = "3.13.1"
+BUILDER_DATE = "2026-07-26d"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -1683,9 +1690,19 @@ def build_nvd_detail(out_dir=None):
 # referenced, any ATT&CK technique identifiers, and any threat-group names that
 # match an alias already in the ATT&CK data. Group matching is deliberately
 # conservative - see _aa_match_groups.
+# Several candidates, because CISA has reorganised these paths before and a feed that
+# 404s is indistinguishable from one that returns an empty list unless you look.
 AA_FEEDS = [
     "https://www.cisa.gov/cybersecurity-advisories/all.xml",
+    "https://www.cisa.gov/news.xml",
     "https://www.cisa.gov/uscert/ncas/alerts.xml",
+]
+# Last resort: read the advisories index pages directly. The section URL and the
+# /advisories/aaNN-NNNx link pattern have been stable for years, so scraping the
+# index is more dependable than any single feed path.
+AA_INDEX_PAGES = [
+    "https://www.cisa.gov/news-events/cybersecurity-advisories?f%5B0%5D=advisory_type%3A94",
+    "https://www.cisa.gov/news-events/cybersecurity-advisories",
 ]
 AA_MAX_PAGES_PER_RUN = 60          # advisory pages fetched per build
 AA_MAX_SECONDS = 240
@@ -1792,6 +1809,56 @@ def _aa_group_index(attack):
     return idx
 
 
+
+
+def _aa_from_index(html, base="https://www.cisa.gov"):
+    """Advisory links out of an index page, when no feed is usable.
+
+    Looks only for the /cybersecurity-advisories/aaNN-NNNx URL shape, so ICS and
+    medical advisories on the same page are ignored along with ordinary news.
+    """
+    out, seen = [], set()
+    for m in re.finditer(r'href="([^"]*?/(a{1,2}\d{2}-\d{3}[a-z]?))"([^>]*)>(.{0,240}?)</a>',
+                         html or "", re.I | re.S):
+        href, aid, _attrs, label = m.group(1), m.group(2).lower(), m.group(3), m.group(4)
+        if aid in seen:
+            continue
+        seen.add(aid)
+        url = href if href.startswith("http") else base + href
+        out.append({"id": aid, "title": _aa_strip_html(label).strip()[:220],
+                    "url": url, "date": ""})
+    return out
+
+
+def _aa_listing():
+    """Advisory list from whichever source works, with enough logging to tell which."""
+    for u in AA_FEEDS:
+        try:
+            r = requests.get(u, headers=UA, timeout=60)
+            ctype = (r.headers.get("content-type") or "").split(";")[0]
+            body = r.content.decode("utf-8", "replace")
+            items = _aa_parse_feed(body) if r.status_code == 200 else []
+            print("  [cisaaa] feed %s -> HTTP %s, %s, %d bytes, %d advisories"
+                  % (u, r.status_code, ctype or "no type", len(body), len(items)))
+            if items:
+                return items, u
+            if r.status_code == 200 and len(body) < 400:
+                print("  [cisaaa]   body starts: %s" % body[:160].replace("\n", " "))
+        except Exception as exc:                          # noqa: BLE001
+            print("  [cisaaa] feed %s -> error (%s)" % (u, exc))
+    for u in AA_INDEX_PAGES:
+        try:
+            r = requests.get(u, headers=UA, timeout=60)
+            body = r.text if r.status_code == 200 else ""
+            items = _aa_from_index(body)
+            print("  [cisaaa] index %s -> HTTP %s, %d bytes, %d advisory links"
+                  % (u, r.status_code, len(body), len(items)))
+            if items:
+                return items, u
+        except Exception as exc:                          # noqa: BLE001
+            print("  [cisaaa] index %s -> error (%s)" % (u, exc))
+    return [], None
+
 @source(id="cisaaa", table="advisories",
         title="CISA cybersecurity advisories (AA series)",
         licence="US Government work - public domain",
@@ -1800,15 +1867,12 @@ def _aa_group_index(attack):
 def build_cisa_aa(out_dir=None):
     # The feed gives the list; the identifiers we want are in the page bodies, so
     # pages are fetched a bounded number at a time and cached between runs.
-    try:
-        r = get_first(AA_FEEDS, "CISA advisories feed")
-        listed = _aa_parse_feed(r.content.decode("utf-8", "replace"))
-    except Exception as exc:                              # noqa: BLE001
-        print("  [cisaaa] could not read the advisory feed (%s)" % exc)
-        return []
+    listed, via = _aa_listing()
     if not listed:
-        print("  [cisaaa] feed parsed but no advisories recognised")
+        print("  [cisaaa] no advisory list could be obtained from any feed or index "
+              "page - see the lines above for the status of each attempt")
         return []
+    print("  [cisaaa] using %s" % via)
 
     cached = {}
     cache = (out_dir or Path("cyber_data")) / "advisories" / "aa.json"
@@ -1855,6 +1919,11 @@ def build_cisa_aa(out_dir=None):
             pr = requests.get(a["url"], headers=UA, timeout=45)
             pr.raise_for_status()
             text = _aa_strip_html(pr.text)
+            if not rec.get("date"):
+                dm = re.search(r"(?:Release Date|Last Revised)[:\s]*([A-Za-z]+ \d{1,2},\s*\d{4})",
+                               text, re.I)
+                if dm:
+                    rec["date"] = _aa_date(dm.group(1))
             cves = sorted({c.upper() for c in _AA_CVE.findall(text)})
             techs = sorted({t for t in _AA_TECH.findall(text)})
             rec["cves"] = cves[:60]
