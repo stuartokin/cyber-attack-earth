@@ -94,6 +94,7 @@
     .splashSecondary>.small{color:#7f95b4;font-size:10.5px}
     .splashVidRow{display:flex;gap:5px;justify-content:center;margin-top:5px;flex-wrap:wrap}
     .splashVidRow button{font-size:10.5px;padding:5px 9px;color:#a8bcd6;border-color:#2c4666;background:#0e2036}
+    .splashVidRow button i{font-style:normal;color:#6f8bad;font-size:9px;margin-left:3px}
     .splashVidRow button:hover{border-color:var(--accent);color:#eaf6ff}
     .splashVer{font-size:10.5px;color:#7f97b6;margin-top:6px;letter-spacing:.05em;font-variant-numeric:tabular-nums}
     .splashJoke{margin-top:10px;min-height:2.6em;font-size:11.5px;line-height:1.5;color:#8fa6c4;
@@ -420,6 +421,7 @@
     .helpPlay b{font-size:12px;color:#dbe8f7}
     .helpPlay .btnrow{flex-wrap:wrap;gap:5px}
     .helpPlay button{font-size:11.5px;padding:5px 9px}
+    .helpPlay button i{font-style:normal;color:#7f95b4;font-size:10px;margin-left:4px}
     .chartHost{min-height:60px;overflow:auto;touch-action:pan-x pan-y;overscroll-behavior:contain}
     /* Unzoomed, a tall chart grows and the panel scrolls as before. Zoomed, the chart
        gets its own bounded viewport so it scrolls in place rather than stretching the
@@ -850,19 +852,19 @@
           <button id="tbHealth" class="healthChip" type="button" title="Data status — click for the source table"><span class="tbDot" id="tbHealthDot"></span><span id="tbHealthLabel">Data</span></button>
           <span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Help" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Help">&#215;</button></span></div>
         <div class="frameBody">
+        <div class="miniLinks" style="margin:0 0 8px"><button id="helpExpandAll" type="button">Expand all</button><button id="helpCollapseAll" type="button">Collapse all</button></div>
         <details class="ctlSec" data-sec="walkthrough">
           <summary>Guided walk-throughs</summary>
           <div class="ctlBody helpPlay">
           <p class="small" style="margin:0 0 6px">Narrated by the browser's voice. Press Escape at any time to stop.</p>
           <div class="btnrow">
-            <button id="helpPlayDemo" type="button">&#9654; Training video</button>
-            <button id="helpPlayPres" type="button">&#9654; Presentation</button>
-            <button id="helpPlayKiosk" type="button">&#9654; Kiosk loop</button>
+            <button id="helpPlayDemo" type="button">&#9654; Training video <i>2&#189; min</i></button>
+            <button id="helpPlayPres" type="button">&#9654; Presentation <i>under 3 min</i></button>
+            <button id="helpPlayKiosk" type="button">&#9654; Kiosk loop <i>1 min, loops</i></button>
             <button id="helpPlayMore" type="button">Options &amp; script</button>
           </div>
           </div>
         </details>
-        <div class="miniLinks" style="margin:0 0 8px"><button id="helpExpandAll" type="button">Expand all</button><button id="helpCollapseAll" type="button">Collapse all</button></div>
         <details class="ctlSec" data-sec="about">
           <summary>About this map</summary>
           <div class="ctlBody">
@@ -1008,9 +1010,9 @@
         <div class="splashSecondary">
           <span class="small">or watch instead</span>
           <div class="splashVidRow">
-            <button id="splashTour" type="button">&#9654; Training video</button>
-            <button id="splashStory" type="button">&#9654; Presentation</button>
-            <button id="splashKiosk" type="button">&#9654; Kiosk loop</button>
+            <button id="splashTour" type="button">&#9654; Training video <i>2½ min</i></button>
+            <button id="splashStory" type="button">&#9654; Presentation <i>3 min</i></button>
+            <button id="splashKiosk" type="button">&#9654; Kiosk loop <i>1 min</i></button>
           </div>
         </div>
       </div>
@@ -1600,7 +1602,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v77";
+const APP_VERSION="v78";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -5793,123 +5795,137 @@ function groupRows(list,basis,limit){
    Written to be spoken. Short sentences, one idea each, and the caveats stated
    rather than buried - a presentation that overclaims is worse than none.
    Landmarks favour the recent period, where the audience's own memory helps. */
-const NARR_SCRIPTS={
- presentation:{
-  title:"Cyber Attack Earth",
-  blurb:"Two decades of publicly documented cyber incidents, and what the record cannot tell you.",
-  fullscreen:true, loop:false,
-  steps:[
-   {title:"One missile, one documented attack",dwell:11,
-    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2000,1],cumulative:false,arcWindow:1,play:false,wide:true},
-    say:"Every missile is one publicly documented cyber attack, flying from where it was attributed to where it landed. We start in the year two thousand and move forward a month at a time."},
-   {title:"A decade you can count",dwell:10,
-    do:{month:[2003,1],play:true,speed:250},
-    say:"Through the first decade, incidents are sparse enough to name individually. That is not evidence of safety. It is evidence that almost nobody was obliged to tell anyone."},
-   {title:"Ukraine, December 2015",dwell:12,
-    do:{play:false,month:[2015,12],countries:["Ukraine"],countryMode:"victim",severity:["Critical","High"],arcWindow:3,focus:"Ukraine",altitude:1.35},
-    say:"December two thousand and fifteen. Attackers open breakers at three Ukrainian distribution companies and a quarter of a million people lose power. Engineers restore supply by driving to substations and working them by hand. This is the moment cyber attack becomes an engineering problem."},
-   {title:"NotPetya, and the cost of being connected",dwell:13,
-    do:{countries:[],month:[2017,6],cumulative:true,arcWindow:3,focus:{lat:50,lng:15},altitude:1.9},
-    say:"June two thousand and seventeen. Malware hidden in a Ukrainian tax software update escapes its target and does around ten billion dollars of damage. Shipping lines, pharmaceutical firms and food producers lose weeks of operations. Nobody aimed at them. They were simply connected to something that was."},
-   {title:"The shape of the map changes",dwell:12,
-    do:{month:[2021,5],play:true,speed:500,severity:["Critical","High","Medium"],arcWindow:3,focus:{lat:37,lng:-90},altitude:1.7},
-    say:"From twenty twenty the picture thickens. Ransomware becomes an industry, with brands, affiliates and leak sites. Colonial Pipeline halts fuel to the American east coast. Almost all of this new volume is criminal, financially motivated, and published by the attackers themselves."},
-   {title:"Who is actually being hit",dwell:12,
-    do:{play:false,month:[2026,7],closeAll:true,chart:"targets",flash:"#frame-chart-targets"},
-    say:"Rank the victims and the table is led by the United States and the United Kingdom. Read carefully. That is substantially a statement about breach notification law and research attention, not about where risk is greatest."},
-   {title:"The same table, adjusted for population",dwell:12,
-    do:{closeAll:true,chart:"percapita",flash:"#frame-chart-percapita"},
-    say:"Adjust for population and the order changes. Neither ranking is the truth. One is distorted by country size, the other by who is required to report. Holding both in view at once is the honest position."},
-   {title:"Critical infrastructure",dwell:12,
-    do:{closeAll:true,sectors:["Energy","Utilities","Water","Transport","Government","Healthcare","Telecoms","Manufacturing"],map:"flat",arcWindow:6,focus:"Poland"},
-    say:"Filtered to critical infrastructure, and shown flat. These are the sectors where an outage is not an inconvenience but a public safety matter. In twenty twenty five a group tracked as Electrum attacked Polish energy infrastructure, in what Dragos called the first major coordinated operation against distributed energy resources at scale."},
-   {title:"Attribution is thinner than it looks",dwell:13,
-    do:{map:"sphere",sectors:"all",closeAll:true,chart:"dyads",wide:true,flash:"#frame-chart-dyads"},
-    say:"Now the uncomfortable part. Most attacks on this map have no named origin at all. Where a country is shown as a source it usually reflects an indictment, sanctions or a public accusation, rather than a verified launch point. The structure you can see is drawn from the minority where somebody was willing to point a finger."},
-   {title:"And the record itself is late",dwell:13,
-    do:{closeAll:true,chart:"lag",flash:"#frame-chart-lag"},
-    say:"We can measure the delay rather than assume it. Ransomware crews publish within weeks, because publishing is the point. Expert-coded records enter the database quickly too. But the fully reviewed release still ends in December twenty twenty four, and most recent records are still being coded. The lag is in review, not in recording."},
-   {title:"What that means for the trend",dwell:12,
-    do:{closeAll:true,chart:"coverage",flash:"#frame-chart-coverage"},
-    say:"Which produces a trap. Only some sources ever assign the highest severity, and those sources are the ones still catching up. So severe incidents appear to fall away in the last two years. That is an artefact of who has finished coding. It is not a safer world."},
-   {title:"The question worth asking",dwell:12,
-    do:{closeAll:true,map:"sphere",month:[2026,7],cumulative:true,arcWindow:3,sectors:"all",wide:true},
-    say:"So: measured escalation, uneven visibility, and attribution that thins the closer you look. The useful question is not how many attacks there were. It is how much of this we would see at all, without rules that compel somebody to say so."}
-  ]},
+/* ── Narrated runs ──────────────────────────────────────────────────────────
+   Three scripts, each with a hard time budget, because a walk-through nobody
+   finishes teaches nothing:
 
+     demo          under three minutes. What the tool is FOR, in plain English,
+                   then the handful of controls that matter.
+     presentation  under three minutes. What two decades of the record actually
+                   show - including the parts that are uncomfortable.
+     kiosk         under one minute. No teaching, no argument: a large screen in
+                   a foyer, meant to make someone stop walking.
+
+   Timing rule of thumb: browser speech runs near 150 words a minute, so each
+   step's dwell is set close to its own spoken length. Word counts are noted per
+   script and checked by the test harness, because prose grows quietly. */
+const NARR_SCRIPTS={
+
+ /* ── TRAINING ── ~380 words, ~160s ────────────────────────────────────── */
  demo:{
-  title:"How to use this map",
-  blurb:"A full tour of the controls, charts and windows.",
+  title:"How this works",
+  blurb:"A guided tour of the tool: what it is for, and the controls worth knowing. Under three minutes.",
   fullscreen:false, loop:false,
   steps:[
-   {title:"The tool bar",dwell:9,
-    do:{reset:true,closeAll:true,play:false,flash:"#toolbar"},
-    say:"Everything opens from the tool bar. Drag the six dots to move it, or click them to fold it away. Every window it opens can be moved by its title, resized from the bottom-right corner, or maximised."},
-   {title:"The globe",dwell:9,
-    do:{map:"sphere",wide:true,flash:"#globe"},
-    say:"The globe turns on its own and stops as soon as you touch it, resuming after a pause. Drag to spin, scroll to zoom, and click any missile to open its details."},
-   {title:"Controls, and the filters",dwell:11,
-    do:{frame:"controls",open:["sector"],flash:"#frame-controls"},
-    say:"Controls holds the filters in collapsible sections: severity, sector, attack type and countries. Hover any option to see what it covers. Reset everything, at the top, returns the map to how it started."},
-   {title:"Missile trails",dwell:10,
-    do:{cumulative:true,arcWindow:1,month:[2024,6],open:["display"],flash:"#arcWindow"},
-    say:"Missile trails decides how much flight path stays on screen. On this month only, the map is clear. Widen it and you see more at once, at the cost of hiding the globe underneath. The counter and the charts always use every attack regardless."},
-   {title:"The timeline",dwell:10,
-    do:{arcWindow:12,play:true,speed:1000,closeAll:true,flash:"#timeline"},
-    say:"The timeline runs along the bottom. Play advances a month at a time, and clicking any bar jumps straight there. The green line is a twelve-month average, and the trend menu can switch it to a long-run fit across the whole record."},
-   {title:"Narrowing the years",dwell:10,
-    do:{play:false,years:[2022,2026],month:[2026,7],flash:"#rangeStart"},
-    say:"Narrow the year range and the columns widen, which makes individual months readable and easier to tap. Everything follows the filter: the map, the counter and every open chart."},
-   {title:"Charts open in their own windows",dwell:11,
-    do:{frame:"charts",chart:"sectors",flash:"#frame-chart-sectors"},
-    say:"Charts opens the full gallery. Pick one and it opens in its own window, so you can put several side by side and compare them. Each can be resized, and the text redraws rather than stretching."},
-   {title:"League tables that move",dwell:11,
-    do:{closeAll:true,chart:"targets",chartMode:{targets:"live"},play:true,speed:500,flash:"#frame-chart-targets"},
-    say:"The ranking tables can run live as the timeline plays, with arrows showing who is climbing and falling, or you can switch them to the finished standings for the whole selected period. Collapse them to the top ten or show every entry."},
-   {title:"Studying a pair of countries",dwell:11,
-    do:{play:false,closeAll:true,frame:"controls",open:["countries"],countries:["Russia","Ukraine"],countryMode:"between",month:[2026,7],flash:"#countryChecks"},
-    say:"Pick two or more countries and choose how to relate them: only attacks between them, any attack involving them, or one direction only. There are shortcuts for whole regions. The shading follows your selection too."},
-   {title:"Threat groups",dwell:11,
-    do:{countries:[],closeAll:true,chart:"groups",flash:"#frame-chart-groups"},
-    say:"The threat group chart keeps two tables apart. Attributed groups, named by expert coding, and leak-site claims, which are the attacker's own branding. They are never added together, because the second always outnumbers the first."},
-   {title:"Search",dwell:9,
-    do:{closeAll:true,frame:"search",search:"lockbit",flash:"#frame-search"},
-    say:"Search finds a specific attack, a threat group or a country. Choosing a result opens its details with the sources behind it. Threat groups open a card you can page through."},
-   {title:"Checking the map against others",dwell:11,
-    do:{closeAll:true,frame:"bench",flash:"#frame-bench"},
-    say:"Compare tests this map against published findings from ENISA, Verizon, Dragos and EuRepoC, and says where it agrees and where it differs. Cards marked same data come from EuRepoC's own analysis of the database this map uses, so a disagreement there would mean a fault in this tool."},
-   {title:"Help, and the limitations",dwell:11,
-    do:{closeAll:true,frame:"help",open:["severity"],flash:"#frame-help"},
-    say:"Help explains the sources, how healthy each one is, the licences, and the limitations. Read the limitations before quoting anything from here. The severity caveat in particular changes how the recent years should be read."},
-   {title:"Tidying up",dwell:9,
-    do:{frame:"charts",chart:"incidents",flash:"#tbCloseAll"},
-    say:"When several windows are open, Close all appears in the tool bar with a count. Reset everything in Controls puts every setting back to first load. And the Present button holds this tour, a full presentation, and a sixty second loop for an unattended screen."}
-  ]},
+   {title:"What this is",dwell:14,
+    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2000,1],cumulative:false,arcWindow:1,play:false,wide:true,spin:true},
+    say:"This is a map of publicly documented cyber attacks since the year two thousand. Every missile is one recorded attack, flying from where it was attributed to where it landed. It makes two decades of scattered records something you can look at."},
 
+   {title:"Press play and it builds",dwell:14,
+    do:{play:true,speed:250,cumulative:true,arcWindow:6},
+    say:"Press play and it builds month by month. Watch the first ten years: almost empty. Not a safer world \u2014 a world where hardly anyone had to tell anyone. The rise that follows is real attacks and better recording, tangled together."},
+
+   {title:"The number in the corner",dwell:13,
+    do:{play:false,month:[2026,7]},
+    say:"The count in the corner is records held, not attacks that happened. Several projects catalogue these events and overlap, so one attack can arrive three times under three names. Some duplicates survive."},
+
+   {title:"Controls: narrow it down",dwell:12,
+    do:{frame:"controls",open:["sector","severity"],sectors:["Energy","Utilities","Water","Transport"],flash:"#frame-controls"},
+    say:"Controls is where you narrow things: sector, severity, country, and how strong the evidence is. Here, only energy, water and transport. Everything updates together \u2014 map, counter, shading and charts."},
+
+   {title:"Two views of the same data",dwell:13,
+    do:{closeAll:true,map:"flat",heat:true,sectors:"all",arcWindow:6},
+    say:"The globe and the flat map show the same thing differently. Shading is volume: paler where less has been recorded, deeper where more has. Early on the whole map stays pale, because early on very little was written down."},
+
+   {title:"Charts do the measuring",dwell:13,
+    do:{map:"sphere",heat:false,closeAll:true,chart:"incidents",flash:"#frame-chart-incidents"},
+    say:"The map is the illustration; the charts are the measurement. Around twenty, each in its own movable window. Open one while the clock runs and it builds along with the timeline."},
+
+   {title:"Every point leads to a source",dwell:13,
+    do:{closeAll:true,chart:"impact",flash:"#frame-chart-impact"},
+    say:"Click almost anything and you get the detail behind it, with a link to where it came from. If a number has no source, it is not in the tool."},
+
+   {title:"Read the limits before you quote it",dwell:13,
+    do:{closeAll:true,frame:"help",flash:"#frame-help"},
+    say:"Help explains what this data cannot support, in plain English. Origins are usually proxies, not verified launch points. Sparse regions mean sparse reporting, not safety. Read it before you quote anything."},
+
+   {title:"Have a look",dwell:9,
+    do:{closeAll:true,map:"sphere",wide:true,spin:true,month:[2026,7],cumulative:true},
+    say:"Windows, in the tool bar, tidies your panels or saves the arrangement you like. That is the whole tool. Press play, change a filter, and see what you find."}
+  ]
+ },
+
+ /* ── PRESENTATION ── ~390 words, ~165s ────────────────────────────────── */
+ presentation:{
+  title:"Two decades, and what they show",
+  blurb:"What the record reveals when you play it end to end &mdash; and what it still cannot tell you. Under three minutes.",
+  fullscreen:true, loop:false,
+  steps:[
+   {title:"Fifty-four thousand records",dwell:13,
+    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2000,1],cumulative:false,arcWindow:1,play:false,wide:true,spin:true},
+    say:"Fifty-four thousand publicly documented cyber attacks since the year two thousand. Every missile is one of them. Played end to end, the record shows what no single incident report can: the shape of how this changed."},
+
+   {title:"A decade you could count on your hands",dwell:14,
+    do:{month:[2003,1],play:true,speed:250,cumulative:true,arcWindow:6},
+    say:"The first decade is nearly empty. Not because little happened, but because almost nobody had to say so. What follows is a rise in attacks and a rise in disclosure law, arriving together."},
+
+   {title:"Ukraine, December 2015",dwell:15,
+    do:{play:false,month:[2015,12],countries:["Ukraine"],countryMode:"victim",arcWindow:3,focus:"Ukraine",altitude:1.35},
+    say:"December two thousand and fifteen. Attackers open breakers at three Ukrainian distribution companies and a quarter of a million people lose power. Engineers restore supply by driving to substations and working them by hand. Cyber attack becomes an engineering problem."},
+
+   {title:"NotPetya: the cost of being connected",dwell:15,
+    do:{countries:[],month:[2017,6],cumulative:true,arcWindow:3,focus:{lat:50,lng:15},altitude:1.9},
+    say:"Two thousand and seventeen. Malware hidden in a Ukrainian tax update escapes and does around ten billion dollars of damage worldwide. Shipping, pharmaceuticals, food production. Nobody aimed at them. They were merely connected."},
+
+   {title:"Then it becomes an industry",dwell:12,
+    do:{month:[2026,7],play:true,speed:400,arcWindow:6,focus:{lat:37,lng:-90},altitude:1.8},
+    say:"From twenty twenty the volume changes character. Ransomware becomes an industry, and most of what now fills this map is criminal, published by the attackers themselves."},
+
+   {title:"Most attacks have no known origin",dwell:14,
+    do:{play:false,map:"flat",closeAll:true,arcWindow:6},
+    say:"The first uncomfortable finding: around two thirds of these records have no established origin at all. Where a country is named it usually reflects an indictment or a public accusation, not a verified launch point."},
+
+   {title:"The league table measures disclosure",dwell:15,
+    do:{map:"sphere",closeAll:true,chart:"targets",flash:"#frame-chart-targets"},
+    say:"Rank the victims and the United States and United Kingdom lead comfortably. Read that carefully: it measures disclosure law and research attention. Adjust for population and the order changes completely."},
+
+   {title:"Almost nothing carries a cost",dwell:15,
+    do:{closeAll:true,chart:"impact",flash:"#frame-chart-impact"},
+    say:"And the thinnest part of the record: of fifty-four thousand incidents, forty-three carry a verified cost. Forty-three. We know a great deal about what happened and almost nothing about what it cost."},
+
+   {title:"What it cannot tell you",dwell:16,
+    do:{closeAll:true,map:"sphere",wide:true,spin:true,month:[2026,7],cumulative:true},
+    say:"Disclosed by whoever chose to disclose it, mostly without a cost, usually without a confirmed origin \u2014 and some flaws here were exploited before anyone published them. A narrow window on a large problem, but the clearest we have."}
+  ]
+ },
+
+ /* ── KIOSK ── ~105 words, ~50s ────────────────────────────────────────── */
  kiosk:{
-  title:"Sixty seconds",
-  blurb:"An unattended loop for a stand or a foyer screen.",
+  title:"Cyber Attack Earth",
+  blurb:"A short looping display for a large screen. Under a minute.",
   fullscreen:true, loop:true,
   steps:[
-   {title:"Two decades, one map",dwell:9,
-    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2000,1],cumulative:false,arcWindow:1,severity:["Critical","High"],play:false},
-    say:"Every missile is one publicly documented cyber attack, from the year two thousand to today."},
-   {title:"The early years are quiet",dwell:9,
-    do:{month:[2004,1],play:true,speed:250},
-    say:"For a decade, incidents are rare. Not because the world was safe, but because almost nobody had to report anything."},
-   {title:"Then it changes",dwell:11,
-    do:{severity:["Critical","High","Medium"],arcWindow:3},
-    say:"From twenty twenty the map fills. Ransomware becomes an industry, and its victims are published by the attackers themselves."},
-   {title:"Critical infrastructure",dwell:10,
-    do:{play:false,sectors:["Energy","Utilities","Water","Transport","Healthcare","Government"],month:[2026,7],cumulative:true},
-    say:"Filtered to critical infrastructure: energy, water, transport, health and government. Sectors where an outage becomes a public safety matter."},
-   {title:"But look again",dwell:11,
-    do:{sectors:"all"},
-    say:"This is a map of what was documented, not what happened. Most attacks are never disclosed, and most of these have no named origin at all."},
-   {title:"Cyber Attack Earth",dwell:10,
-    do:{closeAll:true,map:"sphere",arcWindow:3},
-    say:"Cyber Attack Earth. Built from public data as a personal project. Sources and limitations are in the Help window."}
-  ]}
+   {title:"Two decades of recorded attacks",dwell:10,
+    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2000,1],cumulative:true,arcWindow:8,play:false,wide:true,spin:true,heat:false},
+    say:"Every missile is one publicly documented cyber attack. Two decades of them, from the year two thousand."},
+
+   {title:"Watch it accumulate",dwell:12,
+    do:{play:true,speed:120,arcWindow:10},
+    say:"Watch twenty-six years arrive in twenty seconds. The first decade is nearly empty. What comes after is not."},
+
+   {title:"Where it lands",dwell:11,
+    do:{heat:true,focus:{lat:30,lng:10},altitude:2.1},
+    say:"The shading is volume. Deeper means more has been recorded there, which is not the same as more having happened."},
+
+   {title:"Fifty-four thousand and counting",dwell:11,
+    do:{map:"flat",heat:true,arcWindow:8},
+    say:"Fifty-four thousand records, from a dozen independent sources, rebuilt every night."},
+
+   {title:"Look closer",dwell:10,
+    do:{map:"sphere",play:false,month:[2026,7],wide:true,spin:true},
+    say:"Everything here is public, sourced, and open to anyone. Have a look for yourself."}
+  ]
+ }
 };
 
 const NARR={running:false,mode:null,step:0,timer:null,muted:false,script:null,startedAt:0,seq:0,speaking:false,estSpeakMs:0};
