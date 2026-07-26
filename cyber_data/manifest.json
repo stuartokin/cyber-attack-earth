@@ -1,8 +1,8 @@
 {
  "schema": 3,
- "builder": "3.13.1",
- "builder_date": "2026-07-26d",
- "generated": "2026-07-26T14:54:48+00:00",
+ "builder": "3.14.1",
+ "builder_date": "2026-07-26f",
+ "generated": "2026-07-26T15:34:21+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -198,7 +198,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 5.3
+   "seconds": 4.8
   },
   {
    "id": "vcdb",
@@ -222,7 +222,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 21306,
-   "seconds": 170.3
+   "seconds": 169.3
   },
   {
    "id": "kev",
@@ -234,7 +234,7 @@
    "status": "ok",
    "expected": 1650,
    "rows": 1653,
-   "seconds": 0.2
+   "seconds": 0.1
   },
   {
    "id": "epss",
@@ -246,7 +246,7 @@
    "status": "ok",
    "expected": 17000,
    "rows": 17239,
-   "seconds": 0.8
+   "seconds": 0.9
   },
   {
    "id": "attack",
@@ -270,7 +270,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 3902,
-   "seconds": 0.6
+   "seconds": 1.5
   },
   {
    "id": "eurepoc_live",
@@ -306,7 +306,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 319,
-   "seconds": 27.5
+   "seconds": 27.6
   },
   {
    "id": "impact_overlay",
