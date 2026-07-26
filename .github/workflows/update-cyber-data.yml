@@ -8,6 +8,9 @@
 # SECRETS (Settings > Secrets and variables > Actions). All optional:
 #   CISSM_API_KEY   API key from the portal, if you are granted one
 #   NVD_API_KEY     free key from nvd.nist.gov, speeds up the CVE backfill
+# GITHUB_TOKEN is provided by Actions itself - you do not create it. It is used to
+# raise an issue when a hand-downloaded export goes stale, and to close it again
+# once refreshed. That needs "issues: write" in the permissions block below.
 # Never put credentials in this file or in build_cyber_data.py: this repo is public.
 name: Update cyber data pack
 
@@ -18,6 +21,8 @@ on:
 
 permissions:
   contents: write             # required for the commit step to push
+  issues: write               # lets the build raise a reminder when a hand-downloaded
+                              # export goes stale, and close it once refreshed
 
 jobs:
   refresh:
@@ -44,6 +49,10 @@ jobs:
         env:
           CISSM_API_KEY: ${{ secrets.CISSM_API_KEY }}
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          # Supplied automatically by Actions - not a secret you create. Used only to
+          # raise or close the "data refresh due" issue in this repository.
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
         run: |
           pip install requests
           python3 build_cyber_data.py cyber_data
