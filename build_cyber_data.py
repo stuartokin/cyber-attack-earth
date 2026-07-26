@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.12.0 (2026-07-26) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.13.0 (2026-07-26) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.13.0 CISA cybersecurity advisories (AA series) added as an ENRICHMENT source, not
+        an incident source: a joint advisory says what a named actor does and which
+        flaws they use, never who was attacked, so it adds nothing to the incident
+        count and nothing to the review queue. Each advisory carries its identifier,
+        date, the CVEs it references, ATT&CK technique identifiers, and any threat
+        group whose ATT&CK alias it names. Group matching ignores aliases shorter
+        than five characters and requires a word boundary, because attaching an
+        advisory to the wrong actor is worse than attaching it to none. Pages are
+        read a bounded number per run and cached.
  3.12.0 EuRepoC static release now follows Zenodo's own versioning instead of two
         hard-coded URLs pinned to version 1.3.2. The build resolves the newest release
         in the series, says so in the log when it moves, and records the version and
@@ -155,8 +164,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.12.0"
-BUILDER_DATE = "2026-07-26b"
+BUILDER_VERSION = "3.13.0"
+BUILDER_DATE = "2026-07-26c"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -1662,6 +1671,214 @@ def build_nvd_detail(out_dir=None):
     return rows
 
 
+# ── CISA cybersecurity advisories (AA series) ──────────────────────────────
+# This is deliberately NOT an incident source. A joint advisory does not tell you
+# who was attacked; it tells you what a named actor does, which flaws they use,
+# and which techniques to look for. So it enriches two things the app already
+# holds - the ATT&CK groups and the exploited-vulnerability catalogue - rather
+# than adding rows to the incident count. Nothing here reaches the review queue,
+# which is why it was worth building first: it costs no human attention at all.
+#
+# What we extract per advisory: the AA identifier, title, date, URL, any CVEs
+# referenced, any ATT&CK technique identifiers, and any threat-group names that
+# match an alias already in the ATT&CK data. Group matching is deliberately
+# conservative - see _aa_match_groups.
+AA_FEEDS = [
+    "https://www.cisa.gov/cybersecurity-advisories/all.xml",
+    "https://www.cisa.gov/uscert/ncas/alerts.xml",
+]
+AA_MAX_PAGES_PER_RUN = 60          # advisory pages fetched per build
+AA_MAX_SECONDS = 240
+AA_PAGE_DELAY = 0.4
+
+_AA_ID = re.compile(r"\b(a{1,2}\d{2}-\d{3}[a-z]?)\b", re.I)
+_AA_CVE = re.compile(r"\bCVE-\d{4}-\d{4,7}\b", re.I)
+_AA_TECH = re.compile(r"\bT\d{4}(?:\.\d{3})?\b")
+
+
+def _aa_strip_html(html):
+    """Crude but sufficient: we only need the text to search for identifiers."""
+    txt = re.sub(r"(?is)<(script|style).*?</\1>", " ", html or "")
+    txt = re.sub(r"(?s)<[^>]+>", " ", txt)
+    txt = txt.replace("&amp;", "&").replace("&nbsp;", " ").replace("&#039;", "'")
+    return re.sub(r"\s+", " ", txt)
+
+
+def _aa_parse_feed(xml_text):
+    """Pull items out of the advisory feed without an XML dependency.
+
+    Returns a list of {id, title, url, date}. Only entries that look like an
+    advisory identifier are kept, so ordinary news items are ignored.
+    """
+    out, seen = [], set()
+    items = re.findall(r"(?is)<(?:item|entry)\b.*?</(?:item|entry)>", xml_text or "")
+    for it in items:
+        def tag(name):
+            m = re.search(r"(?is)<%s[^>]*>(.*?)</%s>" % (name, name), it)
+            if m:
+                return m.group(1)
+            m = re.search(r'(?is)<%s[^>]*href="([^"]+)"' % name, it)   # atom <link href=…>
+            return m.group(1) if m else ""
+        title = _aa_strip_html(tag("title")).strip()
+        link = _aa_strip_html(tag("link")).strip()
+        date = (_aa_strip_html(tag("pubDate")) or _aa_strip_html(tag("updated"))
+                or _aa_strip_html(tag("published"))).strip()
+        if not link:
+            continue
+        m = _AA_ID.search(link) or _AA_ID.search(title)
+        if not m:
+            continue                      # not an advisory
+        aid = m.group(1).lower()
+        if aid in seen:
+            continue
+        seen.add(aid)
+        out.append({"id": aid, "title": title[:220], "url": link, "date": _aa_date(date)})
+    return out
+
+
+def _aa_date(raw):
+    """Normalise whatever the feed gives us to YYYY-MM-DD, or empty."""
+    raw = (raw or "").strip()
+    if not raw:
+        return ""
+    m = re.search(r"(\d{4})-(\d{2})-(\d{2})", raw)
+    if m:
+        return m.group(0)
+    MONTHS = {m: i for i, m in enumerate(
+        ["jan", "feb", "mar", "apr", "may", "jun",
+         "jul", "aug", "sep", "oct", "nov", "dec"], 1)}
+    m = re.search(r"(\d{1,2})\s+([A-Za-z]{3})[a-z]*\s+(\d{4})", raw)
+    if m:
+        mon = MONTHS.get(m.group(2).lower())
+        if mon:
+            return "%s-%02d-%02d" % (m.group(3), mon, int(m.group(1)))
+    m = re.search(r"([A-Za-z]{3})[a-z]*\s+(\d{1,2}),\s*(\d{4})", raw)
+    if m:
+        mon = MONTHS.get(m.group(1).lower())
+        if mon:
+            return "%s-%02d-%02d" % (m.group(3), mon, int(m.group(2)))
+    return ""
+
+
+def _aa_match_groups(text, group_index):
+    """Which known ATT&CK groups does this advisory name?
+
+    Conservative on purpose. Short or generic aliases ("Sandworm" is fine,
+    "APT" or "TA" alone is not) produce false positives that would attach an
+    advisory to the wrong actor, which is worse than attaching nothing. Only
+    aliases of five characters or more are matched, and only on a word boundary.
+    """
+    hits, low = [], text.lower()
+    for alias, gid in group_index.items():
+        if len(alias) < 5:
+            continue
+        if re.search(r"(?<![a-z0-9])" + re.escape(alias) + r"(?![a-z0-9])", low):
+            if gid not in hits:
+                hits.append(gid)
+    return hits[:8]
+
+
+def _aa_group_index(attack):
+    """alias (lowercased) -> group id, from the ATT&CK data already fetched."""
+    idx = {}
+    for g in ((attack or {}).get("groups") or []):
+        gid = g.get("id") or ""
+        if not gid:
+            continue
+        for nm in [g.get("name") or ""] + list(g.get("aliases") or []):
+            nm = (nm or "").strip().lower()
+            if nm:
+                idx.setdefault(nm, gid)
+    return idx
+
+
+@source(id="cisaaa", table="advisories",
+        title="CISA cybersecurity advisories (AA series)",
+        licence="US Government work - public domain",
+        cadence="daily", homepage="https://www.cisa.gov/news-events/cybersecurity-advisories",
+        expected=0)
+def build_cisa_aa(out_dir=None):
+    # The feed gives the list; the identifiers we want are in the page bodies, so
+    # pages are fetched a bounded number at a time and cached between runs.
+    try:
+        r = get_first(AA_FEEDS, "CISA advisories feed")
+        listed = _aa_parse_feed(r.content.decode("utf-8", "replace"))
+    except Exception as exc:                              # noqa: BLE001
+        print("  [cisaaa] could not read the advisory feed (%s)" % exc)
+        return []
+    if not listed:
+        print("  [cisaaa] feed parsed but no advisories recognised")
+        return []
+
+    cached = {}
+    cache = (out_dir or Path("cyber_data")) / "advisories" / "aa.json"
+    if cache.exists():
+        try:
+            for rec in json.loads(cache.read_text(encoding="utf-8")):
+                if rec.get("id"):
+                    cached[rec["id"]] = rec
+        except Exception:                                 # noqa: BLE001
+            cached = {}
+
+    # Group aliases come from the ATT&CK file this build has already written (or the
+    # previous build left behind). Deliberately NOT by calling build_attack() again:
+    # the @source decorator returns the original function, so that would re-download
+    # the whole ATT&CK bundle for nothing. If the file is not there yet, group
+    # matching simply waits for the next run.
+    attack = None
+    apath = (out_dir or Path("cyber_data")) / "techniques" / "attack.json"
+    if apath.exists():
+        try:
+            attack = json.loads(apath.read_text(encoding="utf-8"))
+        except Exception:                                 # noqa: BLE001
+            attack = None
+    gidx = _aa_group_index(attack) if attack else {}
+    if not gidx:
+        print("  [cisaaa] no ATT&CK groups available yet - advisory group matching "
+              "will fill in on the next run")
+
+    todo = [a for a in listed if a["id"] not in cached or not cached[a["id"]].get("scanned")]
+    print("  [cisaaa] %d advisories listed, %d cached, %d to read (cap %d)"
+          % (len(listed), len(cached), len(todo), AA_MAX_PAGES_PER_RUN))
+
+    fetched, t0 = 0, time.time()
+    for a in todo:
+        if fetched >= AA_MAX_PAGES_PER_RUN:
+            print("  [cisaaa] per-run cap reached; the rest fills in on later runs")
+            break
+        if time.time() - t0 > AA_MAX_SECONDS:
+            print("  [cisaaa] time budget reached; stopping cleanly")
+            break
+        rec = dict(cached.get(a["id"]) or {})
+        rec.update({k: a[k] for k in ("id", "title", "url", "date") if a.get(k)})
+        try:
+            pr = requests.get(a["url"], headers=UA, timeout=45)
+            pr.raise_for_status()
+            text = _aa_strip_html(pr.text)
+            cves = sorted({c.upper() for c in _AA_CVE.findall(text)})
+            techs = sorted({t for t in _AA_TECH.findall(text)})
+            rec["cves"] = cves[:60]
+            rec["techniques"] = techs[:40]
+            if gidx:
+                rec["groups"] = _aa_match_groups(text, gidx)
+            rec["scanned"] = True
+            fetched += 1
+            time.sleep(AA_PAGE_DELAY)
+        except Exception as exc:                          # noqa: BLE001
+            print("  [warn] cisaaa %s: %s" % (a["id"], exc))
+            rec.setdefault("cves", [])
+            rec.setdefault("techniques", [])
+        cached[rec["id"]] = rec
+
+    rows = sorted(cached.values(), key=lambda r: (r.get("date") or "", r.get("id") or ""),
+                  reverse=True)
+    withcve = sum(1 for r in rows if r.get("cves"))
+    withgrp = sum(1 for r in rows if r.get("groups"))
+    print("  [cisaaa] %d advisories held; %d reference CVEs, %d name a known group "
+          "(%d pages read this run)" % (len(rows), withcve, withgrp, fetched))
+    return rows
+
+
 @source(id="reports", table="reports", title="Vendor & agency threat reports (curated)",
         licence="Links only - reports are copyright of their publishers",
         cadence="manual", homepage="", expected=15)
@@ -1812,6 +2029,18 @@ def main():
         tables["techniques"] = {"files": {"attack": {
             "file": "techniques/attack.json",
             "techniques": len(a["techniques"]), "groups": len(a["groups"])}}}
+
+    # ---- CISA advisories (enrichment, not incidents) ----
+    if results.get("cisaaa"):
+        aa = results["cisaaa"]
+        write_json(out_dir / "advisories" / "aa.json", aa)
+        tables.setdefault("advisories", {"files": {}})
+        tables["advisories"]["files"]["aa"] = {
+            "file": "advisories/aa.json",
+            "rows": len(aa),
+            "with_cves": sum(1 for r in aa if r.get("cves")),
+            "with_groups": sum(1 for r in aa if r.get("groups")),
+        }
 
     # ---- reports ----
     if results.get("reports"):

@@ -402,6 +402,14 @@
     .lgd i{width:11px;height:3px;border-radius:2px;display:inline-block}
     .impSvg .vulnDot{cursor:pointer;transition:fill-opacity .12s}
     .impSvg .vulnDot:hover{fill-opacity:1}
+    .aaBox{margin-top:9px;border-top:1px solid #1e3350;padding-top:8px}
+    .aaBox h4{margin:0 0 5px;font-size:11.5px;color:#a8bcd6}
+    .aaItem{display:grid;grid-template-columns:auto 1fr auto;gap:7px;align-items:baseline;
+      padding:4px 6px;border-radius:6px;text-decoration:none;font-size:11px}
+    .aaItem:hover{background:rgba(77,216,255,.1)}
+    .aaItem b{color:#7fe6ff;font-family:ui-monospace,monospace;font-size:10.5px}
+    .aaItem span{color:#dbe8f7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .aaItem i{font-style:normal;color:#6f8bad;font-size:10px;white-space:nowrap}
     .healthChip{display:inline-flex;align-items:center;gap:6px;margin-left:auto;margin-right:6px;
       font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid #2c4666;background:#0e2036;color:#a8bcd6}
     .healthChip:hover{border-color:var(--accent);color:#eaf6ff}
@@ -1589,7 +1597,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v75";
+const APP_VERSION="v76";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -3799,7 +3807,7 @@ async function cachedLoad(key,ttlMs,loader){
    (plotted as missiles); vulns, advisories and techniques are reference data
    that drive charts and enrichment but are NOT attacks. Falls back to the
    legacy flat pack, then to remote fetching, so older deployments keep working. */
-const LAKE={manifest:null,kev:[],epss:null,epssMap:null,nvd:[],nvdMap:null,ics:[],attack:null,reports:[],cve:null};
+const LAKE={manifest:null,kev:[],epss:null,epssMap:null,nvd:[],nvdMap:null,aa:[],aaByCve:null,aaByGroup:null,ics:[],attack:null,reports:[],cve:null};
 async function grabJSON(p){try{const r=await fetch(p,{cache:"no-cache"});return r.ok?await r.json():null}catch(e){return null}}
 async function loadLake(){
  const base="cyber_data/";
@@ -3894,6 +3902,23 @@ async function loadLake(){
  }));
  const af=(T.advisories&&T.advisories.files)||{};
  if(af.ics)jobs.push(grabJSON(base+af.ics.file).then(a=>{if(Array.isArray(a))LAKE.ics=a}));
+ /* CISA advisories: enrichment for groups and vulnerabilities, never incidents.
+    Indexed by CVE and by ATT&CK group id so both panels can look up instantly. */
+ if(af.aa)jobs.push(grabJSON(base+af.aa.file).then(a=>{
+   if(!Array.isArray(a))return;
+   LAKE.aa=a;
+   LAKE.aaByCve=new Map(); LAKE.aaByGroup=new Map();
+   a.forEach(r=>{
+     (r.cves||[]).forEach(c=>{
+       if(!LAKE.aaByCve.has(c))LAKE.aaByCve.set(c,[]);
+       LAKE.aaByCve.get(c).push(r);
+     });
+     (r.groups||[]).forEach(g=>{
+       if(!LAKE.aaByGroup.has(g))LAKE.aaByGroup.set(g,[]);
+       LAKE.aaByGroup.get(g).push(r);
+     });
+   });
+ }).catch(()=>{}));
  const tf=(T.techniques&&T.techniques.files)||{};
  if(tf.attack)jobs.push(grabJSON(base+tf.attack.file).then(a=>{
    if(a&&Array.isArray(a.groups)){
@@ -6917,6 +6942,43 @@ function vulnVendorHTML(W){
 
 /* Clicking a flaw opens the same movable panel as an incident, with links out to the
    authoritative records rather than a summary you would have to take on trust. */
+/* Government advisories touching a flaw or an actor. Rendered as links out, never
+   as a summary: the advisory itself is the authority, and paraphrasing it here would
+   just add a layer to be wrong in. */
+function aaBlock(list,heading,note){
+  if(!list||!list.length)return "";
+  const rows=list.slice(0,6).map(r=>
+    `<a href="${escapeHtml(r.url)}" target="_blank" rel="noopener" class="aaItem">
+       <b>${escapeHtml((r.id||"").toUpperCase())}</b>
+       <span>${escapeHtml(r.title||"")}</span>
+       <i>${escapeHtml(r.date||"")}</i></a>`).join("");
+  const more=list.length>6?`<p class="small" style="margin:4px 0 0">and ${list.length-6} more.</p>`:"";
+  return `<div class="aaBox"><h4>${heading}</h4>${rows}${more}
+    ${note?`<p class="small" style="margin:5px 0 0;color:#7f95b4">${note}</p>`:""}</div>`;
+}
+function aaForCve(cve){
+  return (LAKE.aaByCve&&LAKE.aaByCve.get(cve))||[];
+}
+function aaForGroup(gid){
+  return (LAKE.aaByGroup&&LAKE.aaByGroup.get(gid))||[];
+}
+/* The group panel works from a display name; the advisories are keyed by ATT&CK id.
+   Resolve one to the other through the ATT&CK names and aliases we already loaded. */
+function aaForGroupName(name){
+  const n=String(name||"").trim().toLowerCase();
+  if(!n||n.length<4)return [];
+  const groups=(LAKE.attack&&LAKE.attack.groups)||[];
+  const ids=[];
+  groups.forEach(g=>{
+    const names=[g.name||""].concat(g.aliases||[]).map(x=>String(x).trim().toLowerCase());
+    if(names.some(x=>x&&(x===n||(x.length>=5&&n.includes(x))||(n.length>=5&&x.includes(n))))){
+      if(g.id&&ids.indexOf(g.id)<0)ids.push(g.id);
+    }
+  });
+  const out=[];
+  ids.forEach(id=>aaForGroup(id).forEach(r=>{ if(out.indexOf(r)<0)out.push(r) }));
+  return out;
+}
 function showCveDetail(cveId){
   const k=(LAKE.kev||[]).find(x=>x.cve===cveId);
   if(!k)return;
@@ -6946,6 +7008,8 @@ function showCveDetail(cveId){
    ${n.desc?`<p style="color:#a8bcd6">${escapeHtml(n.desc)}</p>`:""}
    ${cwes?`<p><b>Weakness:</b> ${cwes}</p>`:""}
    <p class="small">"Catalogued" is the date CISA added it, which can be long after the flaw was published \u2014 and exploitation usually began before either date. The predicted probability is FIRST's EPSS model, an estimate rather than an observation; severity is NVD's judgement of how bad exploitation would be, not how likely. Scores from different CVSS versions are not strictly comparable, so the version is shown. "Not established" for ransomware means no evidence was recorded, not that it never happened.</p>
+   ${aaBlock(aaForCve(cveId),"Government advisories naming this flaw",
+     "Joint advisories from CISA and partner agencies that reference this CVE. They describe the campaigns exploiting it, not the victims.")}
    <div class="miniLinks">
      <a href="https://nvd.nist.gov/vuln/detail/${encodeURIComponent(k.cve)}" target="_blank" rel="noopener">NVD record</a>
      <a href="https://www.cisa.gov/known-exploited-vulnerabilities-catalog" target="_blank" rel="noopener">CISA catalogue</a>
@@ -7680,6 +7744,8 @@ function showGroupCarouselInner(name){
        ${gp&&gp.links?`<div class="sourceLinks">${gp.links.map(l=>`<a href="${l.url}" target="_blank" rel="noopener">${l.name}</a>`).join("")}</div>`:""}
      </div>
    </div>
+   ${aaBlock(aaForGroupName(name),"Government advisories naming this group",
+     "Joint advisories from CISA and partner agencies. Their attribution is the agencies\u2019, not this tool\u2019s.")}
    <div class="carousel">
      <button id="carPrev" class="carBtn" aria-label="Previous">‹</button>
      <div id="carCard" class="carCard"></div>
