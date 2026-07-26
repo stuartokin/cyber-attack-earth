@@ -1,8 +1,8 @@
 {
  "schema": 3,
- "builder": "3.12.0",
- "builder_date": "2026-07-26b",
- "generated": "2026-07-26T14:02:36+00:00",
+ "builder": "3.13.0",
+ "builder_date": "2026-07-26c",
+ "generated": "2026-07-26T14:43:50+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -198,7 +198,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 5.2
+   "seconds": 4.5
   },
   {
    "id": "vcdb",
@@ -210,7 +210,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10362,
-   "seconds": 5.7
+   "seconds": 4.7
   },
   {
    "id": "rwlive",
@@ -222,7 +222,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 21306,
-   "seconds": 174.2
+   "seconds": 197.7
   },
   {
    "id": "kev",
@@ -234,7 +234,7 @@
    "status": "ok",
    "expected": 1650,
    "rows": 1653,
-   "seconds": 0.1
+   "seconds": 0.2
   },
   {
    "id": "epss",
@@ -258,7 +258,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 871,
-   "seconds": 3.3
+   "seconds": 2.9
   },
   {
    "id": "icsadv",
@@ -270,7 +270,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 3902,
-   "seconds": 0.6
+   "seconds": 1.1
   },
   {
    "id": "eurepoc_live",
@@ -282,7 +282,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 992,
-   "seconds": 0.5
+   "seconds": 0.3
   },
   {
    "id": "cissm",
@@ -306,7 +306,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 319,
-   "seconds": 27.1
+   "seconds": 26.8
   },
   {
    "id": "impact_overlay",
@@ -331,6 +331,16 @@
    "expected": 0,
    "rows": 1653,
    "seconds": 0.1
+  },
+  {
+   "id": "cisaaa",
+   "title": "CISA cybersecurity advisories (AA series)",
+   "table": "advisories",
+   "licence": "US Government work - public domain",
+   "homepage": "https://www.cisa.gov/news-events/cybersecurity-advisories",
+   "expected": 0,
+   "status": "failed: connector returned an empty result",
+   "rows": 0
   },
   {
    "id": "reports",
