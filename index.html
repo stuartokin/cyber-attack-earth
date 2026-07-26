@@ -63,10 +63,10 @@
       border:1px solid #34506f;border-radius:16px;padding:20px 22px;box-shadow:0 30px 80px rgba(0,0,0,.6)}
     .splashCard h1{margin:0 0 6px;font-size:clamp(20px,3vw,27px);letter-spacing:-.02em}
     .splashLead{margin:0 0 14px;font-size:13.5px;line-height:1.6;color:#c9d8ec}
-    .splashGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+    .splashGrid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:13px}
     .splashGrid div{background:rgba(10,22,38,.8);border:1px solid #1e3350;border-radius:9px;padding:9px 6px;text-align:center}
-    .splashGrid b{display:block;font-size:19px;color:#fff;font-variant-numeric:tabular-nums}
-    .splashGrid span{font-size:10px;color:#7f95b4}
+    .splashGrid b{display:block;font-size:17px;color:#fff;font-variant-numeric:tabular-nums}
+    .splashGrid span{font-size:9.5px;color:#7f95b4;line-height:1.3;display:block}
     .splashNote{font-size:11.5px;line-height:1.55;color:#a8bcd6;border-left:2px solid var(--orange);padding-left:9px;margin:0 0 12px}
     .splashAttrib{font-size:10.5px;line-height:1.5;color:#7f95b4;margin-bottom:12px}
     .splashAttrib a{color:var(--accent)}
@@ -213,7 +213,21 @@
 .detailDrawer .frameHead h2{font-size:13px}
 .missile-dot{filter:drop-shadow(0 0 4px currentColor)}
 .flat-ring{transform-box:fill-box;transform-origin:center;animation:flatBlast 6s ease-out forwards}@keyframes flatBlast{0%{transform:scale(.15);opacity:.95}100%{transform:scale(1);opacity:.08}}
-    #timeline{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(5,12,25,.96);border-top:1px solid var(--line);padding:11px 16px}
+    #timeline{position:fixed;left:0;right:0;bottom:0;z-index:40;background:rgba(5,12,25,.96);border-top:1px solid var(--line);padding:7px 14px 8px}
+    /* One control row instead of three. The occasional controls live in #tlOptsPop. */
+    .tlStep{padding:3px 8px;min-width:26px;font-size:13px;line-height:1;font-weight:700}
+    .tlYears{display:inline-flex;align-items:center;gap:3px;color:#7f95b4;font-size:11px}
+    .tlYears select{width:auto;padding:2px 4px;font-size:11px}
+    .tlStatus{min-width:52px;color:#7f95b4;white-space:nowrap}
+    #tlOptsPop{position:absolute;right:14px;bottom:calc(100% - 4px);z-index:60;width:min(320px,calc(100vw - 28px));
+      background:#0a1526;border:1px solid #34506f;border-radius:11px;padding:10px 12px;box-shadow:0 18px 46px rgba(0,0,0,.6)}
+    #tlOptsPop.hidden{display:none}
+    .tlOptRow{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 7px}
+    .tlOptRow select{width:auto;max-width:62%;padding:3px 6px;font-size:11px}
+    @media (max-width:720px){
+      .tlYears,.tlStatus{display:none}      /* the popover still has the year range */
+      #timeline{padding:6px 10px 7px}
+    }
     #timeline button{padding:7px 10px;font-size:12.5px}
     .timelineBottom{flex-wrap:wrap;row-gap:6px}
     h1{font-size:20px;margin:0 0 5px} h2{font-size:14px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:22px 0 10px}
@@ -892,9 +906,12 @@
       <h1>Cyber Attack Earth</h1>
       <p class="splashLead">Every missile is one publicly documented cyber attack, from 2000 to today. Press play and two decades pass a month at a time.</p>
       <div class="splashGrid">
-        <div><b id="splashCount">&mdash;</b><span>documented incidents</span></div>
-        <div><b>5</b><span>independent sources</span></div>
-        <div><b>15</b><span>charts</span></div>
+        <div><b id="splashCount">&mdash;</b><span id="splashCountLbl">documented incidents</span></div>
+        <div><b id="splashSources">&mdash;</b><span>data sources loaded</span></div>
+        <div><b id="splashCharts">&mdash;</b><span>charts and tables</span></div>
+        <div><b id="splashYears">&mdash;</b><span>years covered</span></div>
+        <div><b id="splashCountries">&mdash;</b><span>countries hit</span></div>
+        <div><b id="splashRoutes">&mdash;</b><span>mapped routes</span></div>
       </div>
       <p class="splashNote">It records what was <i>disclosed</i>, which is a small and uneven fraction of what happened. Growth over time reflects both real escalation and much better recording. The Help window explains the limitations before you quote anything from it.</p>
       <div class="splashAttrib" id="splashAttrib"></div>
@@ -938,45 +955,53 @@
   </div>
 
   <section id="timeline">
-    <div class="histoHead">
-      <span class="small">Click a bar to jump there</span>
-      <span class="histoHeadRight">
-        <label class="small" style="margin:0;display:flex;align-items:center;gap:5px">Years
-          <select id="rangeStart" style="width:auto;padding:3px 5px;font-size:11px"></select>
-          <span>to</span>
-          <select id="rangeEnd" style="width:auto;padding:3px 5px;font-size:11px"></select>
-        </label>
-        <label class="small" style="margin:0;display:flex;align-items:center;gap:5px">Trend
-          <select id="trendMode" style="width:auto;padding:3px 5px;font-size:11px">
-            <option value="avg">12-month average</option>
-            <option value="long">Long-run trend, 2000 to today</option>
-            <option value="both">Both</option>
-            <option value="off" selected>Off</option>
-          </select>
-        </label>
-        <label class="small" style="margin:0;display:flex;align-items:center;gap:6px">Overlay
-          <select id="histoOverlay" style="width:auto;padding:3px 6px;font-size:11px">
-            <option value="">None</option>
-            <option value="kev">KEV additions</option>
-            <option value="ics">ICS advisories</option>
-          <option value="cve">CVEs published</option>
-          </select>
-        </label>
-      </span>
-    </div>
+    <!-- The timeline used four stacked rows and ate a sixth of the screen. Everything
+         still exists and keeps its id; the occasional controls simply moved into the
+         options popover, leaving one compact row plus the histogram. -->
     <div id="histo" role="slider" aria-label="Attacks per month, 2000 to 2026. Click to jump to a month." title="Attacks per month — click to jump"></div>
     <div class="timelineTop">
       <button id="playBtn" class="primary">▶ Play</button>
+      <button id="prevBtn" class="tlStep" title="Back one month" aria-label="Back one month">&#8722;</button>
       <strong id="yearLabel">Jun 2026</strong>
+      <button id="nextBtn" class="tlStep" title="Forward one month" aria-label="Forward one month">+</button>
       <input id="yearSlider" type="range" min="0" max="323" value="318" step="1" aria-label="Month" />
+      <span class="tlYears">
+        <select id="rangeStart" title="First year shown"></select>
+        <span>&ndash;</span>
+        <select id="rangeEnd" title="Last year shown"></select>
+      </span>
+      <span id="status" class="small tlStatus" aria-live="polite">Paused</span>
+      <button id="tlOptsBtn" class="tlIconBtn" type="button" aria-label="Timeline options" aria-expanded="false" title="Trend line, overlay and playback options">&#9881;</button>
       <button id="timelineInfo" class="tlIconBtn" type="button" aria-label="Data and status information" aria-expanded="false" title="Data status, sources loaded and credits">ⓘ</button>
       <button id="timelineMin" class="tlIconBtn" type="button" aria-label="Minimise timeline" aria-expanded="true" title="Minimise / expand the timeline">▾</button>
     </div>
-    <div class="timelineBottom">
-      <div class="btnrow">
-        <button id="launchSeq" title="Jump to the first year you have selected and play forward">&#8634; Replay</button><button id="prevBtn">−1 mo</button><button id="nextBtn">+1 mo</button><button id="monthOnlyBtn" title="Show only the attacks in the selected month">This month only</button><button id="allToDateBtn" class="primary" title="Show every attack from 2000 up to the selected month">Everything so far</button>
+    <div id="tlOptsPop" class="hidden" role="dialog" aria-label="Timeline options">
+      <div class="tlPopHead"><b>Timeline options</b><button id="tlOptsClose" class="tlIconBtn" type="button" aria-label="Close">×</button></div>
+      <label class="small tlOptRow">Trend line
+        <select id="trendMode">
+          <option value="avg">12-month average</option>
+          <option value="long">Long-run trend, 2000 to today</option>
+          <option value="both">Both</option>
+          <option value="off" selected>Off</option>
+        </select>
+      </label>
+      <label class="small tlOptRow">Overlay
+        <select id="histoOverlay">
+          <option value="">None</option>
+          <option value="kev">KEV additions</option>
+          <option value="ics">ICS advisories</option>
+          <option value="cve">CVEs published</option>
+        </select>
+      </label>
+      <div class="btnrow" style="margin-top:8px;flex-wrap:wrap">
+        <button id="launchSeq" title="Jump to the first year you have selected and play forward">&#8634; Replay from the start</button>
+        <button id="monthOnlyBtn" title="Show only the attacks in the selected month">This month only</button>
+        <button id="allToDateBtn" class="primary" title="Show every attack from 2000 up to the selected month">Everything so far</button>
       </div>
-      <span id="status" class="small" aria-live="polite">Paused</span>
+      <p class="small" style="margin:8px 0 0;color:#7f95b4">Click any bar in the histogram to jump to that month. The year range is on the timeline bar, or here on a narrow screen:</p>
+      <label class="small tlOptRow" id="tlYearsFallback" style="margin-top:6px">Years shown
+        <span class="tlYears" id="tlYearsHost"></span>
+      </label>
     </div>
     <div id="timelineInfoPop" class="hidden" role="dialog" aria-label="Data status">
       <div class="tlPopHead"><b>Data status</b><button id="timelineInfoClose" class="tlIconBtn" type="button" aria-label="Close">×</button></div>
@@ -1487,7 +1512,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v70";
+const APP_VERSION="v71";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -4335,6 +4360,34 @@ function splashJokes(){
 /* A short ambient phrase, generated rather than downloaded: this is a single file
    with no assets, and shipping an audio track would break that. Quiet, slow, and
    muted with one tap. */
+function splashStats(){
+ /* Every figure here is counted from what actually loaded, rather than written into
+    the markup. The old card claimed a fixed "5 sources" and "15 charts", both of
+    which had been wrong for a while - and it labelled mapped ROUTES as incidents,
+    which overstates the count, because one incident with several victims or several
+    named origins becomes several routes. Both numbers are now shown, and named
+    correctly. */
+ const routes=attacks.length;
+ const incidents=(()=>{
+   try{ return new Set(attacks.map(a=>a.incidentId||a.id)).size }catch(e){ return routes }
+ })();
+ const set=(id,v)=>{const e=document.getElementById(id);if(e)e.textContent=v};
+ set("splashCount",incidents.toLocaleString());
+ // Be explicit when this is only the embedded fallback, so the figures are never
+ // mistaken for the full picture.
+ const lbl=document.getElementById("splashCountLbl");
+ if(lbl)lbl.textContent=LAKE.manifest?"documented incidents":"embedded incidents only";
+ set("splashRoutes",routes.toLocaleString());
+ const okSources=LAKE.manifest?(LAKE.manifest.sources||[]).filter(s=>s.status&&/^ok/.test(s.status)).length:0;
+ // fall back to the distinct source layers actually present on the incidents
+ const layerCount=(()=>{try{return new Set(attacks.map(a=>sourceLayerName(a))).size}catch(e){return 0}})();
+ set("splashSources",String(Math.max(okSources,layerCount)||"\u2014"));
+ set("splashCharts",String((typeof CHART_DEFS!=="undefined"?CHART_DEFS.filter(d=>{try{return d.ok?d.ok():true}catch(e){return false}}).length:0)||"\u2014"));
+ const yrs=attacks.length?attacks.map(a=>a.year).filter(y=>y>=2000):[];
+ set("splashYears",yrs.length?`${Math.min(...yrs)}\u2013${Math.max(...yrs)}`:"\u2014");
+ const countries=(()=>{try{return new Set(attacks.map(a=>a.victimCountry).filter(Boolean)).size}catch(e){return 0}})();
+ set("splashCountries",countries?countries.toLocaleString():"\u2014");
+}
 function splashReady(){
  if(SPLASH.done)return;
  // A cached pack loads in a few hundred milliseconds, which flashes the bars from
@@ -4352,9 +4405,8 @@ function splashReady(){
  const v=document.getElementById("splashVer");
  if(v)v.textContent="Version "+APP_VERSION+(LAKE.manifest&&LAKE.manifest.builder?"  \u00b7  data pack "+LAKE.manifest.builder+", built "+String(LAKE.manifest.generated).slice(0,10):"  \u00b7  no data pack");
  const go=document.getElementById("splashGo");
- const n=attacks.length;
- const cnt=document.getElementById("splashCount");
- if(cnt)cnt.textContent=n.toLocaleString();
+ splashStats();
+ const n=(()=>{try{return new Set(attacks.map(a=>a.incidentId||a.id)).size}catch(e){return attacks.length}})();
  // credit the sources actually loaded, drawn from the pack rather than hard-coded
  const names=LAKE.manifest
    ? (LAKE.manifest.sources||[]).filter(s=>s.status==="ok").map(s=>s.title.replace(/\s*\(.*\)/,""))
@@ -4414,7 +4466,28 @@ document.getElementById("splashKiosk").addEventListener("click",()=>splashDismis
  },1500);
 })();
 // never strand anyone behind the screen if a source hangs
-setTimeout(()=>{splashProgress(100);splashReady()},20000);
+/* The embedded set is ready within a couple of seconds. There is no reason to hold
+   anyone behind a disabled button while a data pack that may never arrive is chased -
+   which is what happened in every sandboxed preview, blocked network or offline load.
+   Let them in early, keep loading in the background, and update the figures when (or
+   if) the pack lands. */
+setTimeout(function earlyEntry(){
+  if(SPLASH.done)return;
+  if(!attacks||!attacks.length){ setTimeout(earlyEntry,1200); return }
+  const go=document.getElementById("splashGo");
+  if(go&&go.disabled){
+    go.disabled=false;
+    go.textContent="Explore now";
+    go.title="The embedded set is ready. Any further data will appear as it loads.";
+  }
+  const st=document.getElementById("splashStatus");
+  if(st&&/Looking for/.test(st.textContent||""))
+    st.textContent="Still fetching the full data pack \u2014 you can start now";
+  // show what we have rather than dashes
+  if(typeof splashStats==="function")splashStats();
+},2600);
+/* Failsafe, in case a load neither resolves nor rejects. */
+setTimeout(()=>{splashProgress(100);splashReady()},10000);
 /* The narrated modes used to have their own tool-bar button. They now live in Help:
    three one-press launchers for the common cases, and the full frame for the script,
    voice and pacing options. */
@@ -4493,6 +4566,43 @@ function setTlInfoOpen(open){
  }
 }
 tlInfoBtn.addEventListener("click",()=>setTlInfoOpen(tlInfoPop.classList.contains("hidden")));
+
+/* ── Timeline options popover ───────────────────────────────────────────────
+   The timeline was four stacked rows deep. Everything is still here and keeps
+   its id - the handlers elsewhere are untouched - but the controls that are set
+   once and left alone now live behind a single button, which gives the map back
+   roughly a sixth of the screen height. */
+(function(){
+ const btn=document.getElementById("tlOptsBtn"), pop=document.getElementById("tlOptsPop");
+ if(!btn||!pop)return;
+ const close=()=>{pop.classList.add("hidden");btn.setAttribute("aria-expanded","false")};
+ const open=()=>{
+   // On a narrow screen the year selects are hidden on the bar, so move them into
+   // the popover rather than duplicating them (duplicate ids would break every
+   // handler that looks them up).
+   const host=document.getElementById("tlYearsHost"), bar=document.querySelector(".timelineTop .tlYears");
+   const narrow=window.matchMedia("(max-width:720px)").matches;
+   const row=document.getElementById("tlYearsFallback");
+   if(host&&bar&&row){
+     if(narrow){ host.appendChild(bar); row.style.display=""; }
+     else{ row.style.display="none"; }
+   }
+   pop.classList.remove("hidden"); btn.setAttribute("aria-expanded","true");
+ };
+ btn.addEventListener("click",e=>{e.stopPropagation();pop.classList.contains("hidden")?open():close()});
+ const cl=document.getElementById("tlOptsClose"); if(cl)cl.addEventListener("click",close);
+ document.addEventListener("click",e=>{if(!pop.contains(e.target)&&e.target!==btn)close()});
+ document.addEventListener("keydown",e=>{if(e.key==="Escape")close()});
+ // returning to a wide screen puts the selects back on the bar
+ window.addEventListener("resize",()=>{
+   const bar=document.querySelector(".timelineTop"), sel=document.querySelector(".tlYears");
+   if(!bar||!sel)return;
+   if(!window.matchMedia("(max-width:720px)").matches&&sel.parentNode&&sel.parentNode.id==="tlYearsHost"){
+     const slider=document.getElementById("yearSlider");
+     if(slider&&slider.parentNode===bar)bar.insertBefore(sel,slider.nextSibling);
+   }
+ },{passive:true});
+})();
 document.getElementById("timelineInfoClose").addEventListener("click",()=>setTlInfoOpen(false));
 document.addEventListener("click",e=>{
  if(!tlInfoPop.classList.contains("hidden")&&!tlInfoPop.contains(e.target)&&e.target!==tlInfoBtn&&!tlInfoBtn.contains(e.target))setTlInfoOpen(false);
@@ -5135,7 +5245,7 @@ const NARR_SCRIPTS={
     say:"Narrow the year range and the columns widen, which makes individual months readable and easier to tap. Everything follows the filter: the map, the counter and every open chart."},
    {title:"Charts open in their own windows",dwell:11,
     do:{frame:"charts",chart:"sectors",flash:"#frame-chart-sectors"},
-    say:"Charts opens a gallery of fifteen. Pick one and it opens in its own window, so you can put several side by side and compare them. Each can be resized, and the text redraws rather than stretching."},
+    say:"Charts opens the full gallery. Pick one and it opens in its own window, so you can put several side by side and compare them. Each can be resized, and the text redraws rather than stretching."},
    {title:"League tables that move",dwell:11,
     do:{closeAll:true,chart:"targets",chartMode:{targets:"live"},play:true,speed:500,flash:"#frame-chart-targets"},
     say:"The ranking tables can run live as the timeline plays, with arrows showing who is climbing and falling, or you can switch them to the finished standings for the whole selected period. Collapse them to the top ten or show every entry."},
@@ -7060,7 +7170,16 @@ async function canFetchRemote(){
  if(window.__LITE){
   dataStatus.textContent=`Lite mode — ${attacks.length} embedded incidents only (large research datasets skipped; remove ?lite=1 from the address for the full load)`;
  }else{
-  loadResearchDataset().catch(err=>{console.warn("Research loading failed",err);dataStatus.textContent=`Research datasets unavailable — showing ${attacks.length} embedded incidents`;update();});
+  loadResearchDataset().catch(err=>{
+    console.warn("Research loading failed",err);
+    dataStatus.textContent=`Research datasets unavailable — showing ${attacks.length} embedded incidents`;
+    update();
+    // The welcome screen used to sit on a disabled button until the 20-second
+    // failsafe whenever the pack could not be reached - which is every sandboxed
+    // preview, every blocked network and every offline load. The embedded set is
+    // ready in seconds, so say so and let people in.
+    if(typeof splashReady==="function")splashReady();
+  });
  }
 })();
 update();
