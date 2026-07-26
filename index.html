@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Cyber Attack Earth v17 — Escalation Atlas (2000 → today)</title>
+  <title>Cyber Attack Earth &mdash; Escalation Atlas (2000 &rarr; today)</title>
   <script src="https://cdn.jsdelivr.net/npm/globe.gl@2.46.1/dist/globe.gl.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
@@ -230,7 +230,8 @@
     .country{fill:#10213b;stroke:#38506f;stroke-width:.35}
     .flat-arc{fill:none;stroke-linecap:round}
     .flat-origin{fill:#4dd8ff;stroke:#dff8ff;stroke-width:.5}
-    .flat-victim{stroke:#fff;stroke-width:.5}
+    .flat-victim{stroke:#fff;stroke-width:.5;animation:victimPulse 1.8s ease-out infinite}
+    @keyframes victimPulse{0%{opacity:.85}55%{opacity:.35}100%{opacity:.85}}
     .impact-label{position:absolute;z-index:15;max-width:220px;background:rgba(5,12,25,.94);border:1px solid #ff6b78;border-radius:9px;padding:8px 10px;color:#fff;font-size:12px;cursor:pointer;box-shadow:0 6px 22px rgba(0,0,0,.32)}
     .impact-label b{display:block;margin-bottom:3px}
     .impact-label span{color:#b8c8dc}
@@ -1616,7 +1617,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v79";
+const APP_VERSION="v80";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -2648,7 +2649,7 @@ function heatColor(n,max,counts){
  const t=(0.10+0.90*pct)*Math.max(0.10,maturity);
  return d3.interpolateRgbBasis(HEAT_RAMP)(Math.max(0,Math.min(1,t)));
 }
-let _lastHeatCounts=null;
+let _lastHeatCounts=null, _lastHeatEpoch=-1;
 /* Busiest single country across the WHOLE record under the current filters. Cached
    against the filter epoch, so it is computed once rather than every tick. */
 let _hgm={epoch:-1,val:1};
@@ -3034,8 +3035,15 @@ function renderFlat(data,arcData){
  if(!arcData)arcData=data;
  // update() has just computed these for the sphere; reuse rather than recount the
  // whole filtered set a second time on every tick.
- const hits=_lastHeatCounts||heatCounts();
- const mx=Math.max(1,...Object.values(hits)); _lastHeatCounts=hits;
+ /* Reuse the sphere's tally only if it actually holds something. `{}` is truthy, so
+    the previous `_lastHeatCounts||heatCounts()` locked onto an empty cache and every
+    country rendered at the palest step - which is how the heat shading disappeared
+    from the flat map entirely. Also recompute when the filters have moved on. */
+ const cacheOk=_lastHeatCounts&&Object.keys(_lastHeatCounts).length
+               &&_lastHeatEpoch===_filterEpoch;
+ const hits=cacheOk?_lastHeatCounts:heatCounts();
+ const mx=Math.max(1,...Object.values(hits));
+ _lastHeatCounts=hits; _lastHeatEpoch=_filterEpoch;
  flatZoomLayer.selectAll(".country").style("fill",d=>heatColor(hits[String(d.id).padStart(3,"0")]||0,mx,hits));
  flatZoomLayer.selectAll(".flat-attack-layer").remove();
  const layer=flatZoomLayer.append("g").attr("class","flat-attack-layer");
@@ -3078,9 +3086,19 @@ function renderFlat(data,arcData){
    // landed. That animation is gone - impacts are drawn on the canvas now - so they
    // are placed immediately. (The delay variable went with the animation, which is
    // what left a dangling reference here.)
-   layer.selectAll("circle.flat-victim").data(data).join("circle").attr("class","flat-victim")
+   /* Only THIS month's targets, and only a handful of them. Drawing one circle per
+      visible attack meant thousands of unmoving dots covering the map - static, so
+      they read as noise rather than events, and they hid the shading underneath.
+      The accumulated picture is the shading's job; these are the clickable markers
+      for what is landing right now, and they change as the clock moves. */
+   const nowIdx=timelineIndex;
+   const hitsNow=data.filter(d=>{
+     const i=(d._i!==undefined?d._i:(d._i=idx(d.year,d.month)));
+     return i===nowIdx;
+   }).sort((a,b)=>b.impact-a.impact).slice(0,60);
+   layer.selectAll("circle.flat-victim").data(hitsNow,d=>d.id).join("circle").attr("class","flat-victim")
     .attr("cx",d=>flatProjection([d.endLng,d.endLat])[0]).attr("cy",d=>flatProjection([d.endLng,d.endLat])[1])
-    .attr("r",d=>5+d.impact/22).attr("fill",d=>severityColor[d.severity]).attr("opacity",.72)
+    .attr("r",d=>3.5+d.impact/30).attr("fill",d=>severityColor[d.severity]).attr("opacity",.8)
     .on("click",(e,d)=>showDetail(d));
  } else {
    const key=mode==="origins"?"originCountry":"victimCountry";
@@ -5159,7 +5177,12 @@ setTimeout(()=>{splashProgress(100);splashReady()},10000);
    three one-press launchers for the common cases, and the full frame for the script,
    voice and pacing options. */
 (function(){
- const go=(mode)=>{ const f=document.getElementById("frame-help");
+ const go=(mode)=>{
+   // capture first: hiding Help would otherwise make this look like a map launch,
+   // and the run would not know to reopen Help at the end
+   if(typeof narrCaptureState==="function"&&typeof NARR!=="undefined")
+     NARR.savedState=narrCaptureState();
+   const f=document.getElementById("frame-help");
    if(f)f.classList.add("hidden");
    if(typeof narrStart==="function")narrStart(mode); };
  const b1=document.getElementById("helpPlayDemo");   if(b1)b1.addEventListener("click",()=>go("demo"));
@@ -5877,12 +5900,12 @@ const NARR_SCRIPTS={
 
    {title:"Reading the screen",dwell:15,
     do:{},
-    say:"Top right is the month and the running count \u2014 records held, not attacks that happened, because these sources overlap and some duplicates survive. Watch the first decade stay almost empty. That is disclosure law arriving, not a safer world."},
+    say:"Top right is the month and the running count \u2014 records held, not attacks that happened, because these sources overlap. Watch the first decade stay almost empty: that is disclosure law arriving, not a safer world."},
 
    /* 3. Controls and charts together, so filtering visibly changes a chart */
    {title:"Controls: narrowing the picture",dwell:14,
     do:{play:false,month:[2026,7],closeAll:true,frame:"controls",open:["sector"],chart:"targets",flash:"#frame-controls"},
-    say:"Controls is where you narrow things: sector, severity, country, and how strong the evidence is. I have opened the victims chart alongside it so you can watch what filtering actually does."},
+    say:"Controls is where you narrow things: sector, severity, country, evidence strength. I have opened the victims chart alongside, so you can watch what filtering does."},
 
    {title:"Everything moves together",dwell:14,
     do:{sectors:["Energy","Utilities","Water","Transport"],flash:"#frame-chart-targets"},
@@ -5895,20 +5918,28 @@ const NARR_SCRIPTS={
    /* 4. Search */
    {title:"Looking something up",dwell:13,
     do:{map:"sphere",heat:false,closeAll:true,frame:"search",search:"Colonial",flash:"#frame-search"},
-    say:"Search finds an incident, a threat group or a country by name. Here, Colonial Pipeline. Look-ups deliberately leave the map alone, so you can check something without losing your place."},
+    say:"Search finds an incident, a threat group or a country by name. Here, Colonial Pipeline. Look-ups leave the map alone, so you can check something without losing your place."},
 
    /* 5. Charts - the main feature - several at once, plus Windows */
    {title:"The charts are the measurement",dwell:14,
     do:{closeAll:true,chart:"incidents",flash:"#frame-chart-incidents"},
-    say:"Now the part that does the real work. The map is illustration; the charts are the measurement. Around twenty of them, each in its own window you can move, resize and keep open."},
+    say:"Now the part that does the real work. The map is illustration; the charts are the measurement. Around twenty, each in its own window you can move and resize."},
 
    {title:"Two at once, side by side",dwell:15,
     do:{chart:"impact",flash:"#frame-chart-impact"},
     say:"Open a second and compare directly. Incidents over time beside recorded impact \u2014 and the gap is the point: fifty-four thousand incidents, forty-three with a verified cost."},
 
-   {title:"A third, and tidy them",dwell:16,
+   {title:"A third, building as it goes",dwell:14,
     do:{chart:"vulntime",play:true,speed:300,month:[2012,1],flash:"#frame-chart-vulntime"},
-    say:"A third, on flaws attackers were actually seen using, opened while the clock runs so it builds with the timeline. When windows pile up, the Windows menu tidies them, or saves the arrangement you like for next time."},
+    say:"A third, on flaws attackers were actually seen using \u2014 opened while the clock runs, so it builds along with the timeline rather than arriving finished."},
+
+   {title:"When windows pile up",dwell:15,
+    do:{play:false,menu:"windows",flash:"#winMenu"},
+    say:"And when they pile up, the Windows menu handles it: tidy them so the map stays visible, reset what each chart shows, or save this arrangement for next time."},
+
+   {title:"Compare two things directly",dwell:16,
+    do:{menu:false,closeAll:true,frame:"bench",flash:"#frame-bench"},
+    say:"Compare sets what you are looking at against published findings from the major annual reports, so you can see whether this record agrees with them or not."},
 
    /* 6. Help and the sources */
    {title:"Where it all comes from",dwell:17,
@@ -6028,6 +6059,39 @@ function narrStopSpeech(){try{if("speechSynthesis" in window)speechSynthesis.can
 
 /* Apply a step's visual state. Everything is expressed declaratively so the
    scripts stay readable and can be copied out as plain prose. */
+/* Lay out whatever charts a narration step has opened: down the right-hand side,
+   each sized to its own content. Previously each frame was given a width and left to
+   take whatever height it liked, which produced tall windows mostly full of empty
+   space - and two open at once simply overlapped. */
+function narrLayoutCharts(){
+ const frames=[...document.querySelectorAll('.frame[id^="frame-chart-"]:not(.hidden)')];
+ if(!frames.length)return;
+ const tb=document.getElementById("toolbar");
+ const top=tb?Math.round(tb.getBoundingClientRect().bottom+12):80;
+ const bottom=(typeof safeBottom==="function")?safeBottom()-12:window.innerHeight-12;
+ const avail=Math.max(160,bottom-top);
+ const W=window.innerWidth;
+ const w=Math.min(560,Math.max(300,Math.round(W*(frames.length>2?0.30:0.38))));
+ const gap=10;
+ let _narrChartY=top;
+ const share=Math.floor((avail-(frames.length-1)*gap)/frames.length);
+ frames.forEach((f,i)=>{
+   f.classList.remove("maxed");
+   f.style.width=w+"px"; f.style.maxWidth=w+"px";
+   f.style.left=Math.round(W-w-18)+"px"; f.style.right="auto";
+   // height from the content, never more than its share of the column
+   f.style.height=""; f.style.maxHeight="";
+   const head=f.querySelector(".frameHead"), body=f.querySelector(".frameBody")||f.querySelector(".chartHost");
+   const want=(head?head.offsetHeight:30)+(body?body.scrollHeight:220)+18;
+   const hh=Math.max(140,Math.min(want,share));
+   // running offset: using each frame's OWN height for its position made a tall
+   // window followed by a short one overlap
+   f.style.top=Math.round(_narrChartY)+"px";
+   _narrChartY+=hh+gap;
+   f.style.height=hh+"px"; f.style.maxHeight=hh+"px";
+   f.dataset.placed="1"; f.dataset.sized="1";
+ });
+}
 function narrApply(d){
  if(!d)return;
  try{
@@ -6083,6 +6147,21 @@ function narrApply(d){
  }
  if(d.chartMode)Object.keys(d.chartMode).forEach(k=>{CHART_MODE[k]=d.chartMode[k]});
  if(d.frame)openFrame(d.frame);
+ /* Show a menu while talking about it, rather than describing something invisible.
+    The Windows button only appears once something is open, so reveal it for the
+    demonstration; refreshCloseAll takes charge of it again afterwards. */
+ if(d.menu==="windows"){
+   const wrap=document.getElementById("tbWinWrap");
+   if(wrap)wrap.classList.remove("hidden");
+   if(typeof layoutRefreshMenu==="function")layoutRefreshMenu();
+   const m=document.getElementById("winMenu"), wb=document.getElementById("tbWindows");
+   if(m)m.classList.remove("hidden");
+   if(wb){wb.classList.add("on");wb.setAttribute("aria-expanded","true")}
+ }else if(d.menu===false){
+   const m=document.getElementById("winMenu"), wb=document.getElementById("tbWindows");
+   if(m)m.classList.add("hidden");
+   if(wb){wb.classList.remove("on");wb.setAttribute("aria-expanded","false")}
+ }
  if(d.open)d.open.forEach(sec=>{
    const el=document.querySelector('.ctlSec[data-sec="'+sec+'"]');
    if(el)el.open=true;
@@ -6091,19 +6170,34 @@ function narrApply(d){
    openChartFrame(d.chart);
    // give a discussed chart real space rather than the default panel size
    const cf=document.getElementById("frame-chart-"+d.chart);
-   if(cf&&window.innerWidth>900){
-     cf.style.width=Math.min(560,Math.round(window.innerWidth*0.42))+"px";
-     cf.style.maxWidth=cf.style.width;
-     cf.style.left=Math.round(window.innerWidth*0.55)+"px";
-     cf.style.top="90px";
-     cf.dataset.placed="1"; cf.dataset.sized="1";
-     fitFrame(cf);
-     if(typeof renderChartFrame==="function")renderChartFrame(d.chart);
+   if(cf){
+     if(window.innerWidth>900){
+       cf.dataset.placed="1"; cf.dataset.sized="1";
+       if(typeof renderChartFrame==="function")renderChartFrame(d.chart);
+       narrLayoutCharts();
+     }else{
+       /* A narrow screen cannot show two charts side by side, and leaving the older
+          one open simply stacks them on top of each other. Keep the one being talked
+          about and close the rest - the commentary still works, and the viewer sees
+          one legible chart instead of two illegible ones. */
+       document.querySelectorAll('.frame[id^="frame-chart-"]:not(.hidden)').forEach(f=>{
+         if(f===cf)return;
+         f.classList.add("hidden");
+         const btn=tbBtn(f.id.replace("frame-",""));
+         if(btn)btn.classList.remove("on");
+       });
+       if(typeof refreshCloseAll==="function")refreshCloseAll();
+       if(typeof renderChartFrame==="function")renderChartFrame(d.chart);
+     }
    }
  }
    if(d.month)setTimeline(idx(d.month[0],d.month[1]));
    markHistoDirty();update();
-   if(d.play)play(); else if(d.play===false)pausePlayback();
+   // play() toggles, so calling it while already running stops the clock - which is
+   // exactly what happened when one narration step asked to play after another
+   // already had. Ask for the state, not the switch.
+   if(d.play){ if(typeof timer==="undefined"||!timer)play(); }
+   else if(d.play===false){ if(typeof timer!=="undefined"&&timer)pausePlayback(); }
    // Point at whatever is being described, so the words and the screen agree.
    if(d.flash){
      setTimeout(()=>{
@@ -6168,7 +6262,56 @@ function narrGo(i){
    }
  });
 }
+/* Everything a narrated run is about to disturb, so it can be handed back exactly as
+   it was found. A walk-through that leaves you somewhere else has cost you your place
+   - and these are launched from Help or the welcome screen, in the middle of whatever
+   the viewer was already doing. */
+function narrCaptureState(){
+ const st={
+   launchedFrom:(document.getElementById("frame-help")&&
+                 !document.getElementById("frame-help").classList.contains("hidden"))?"help":"map",
+   timelineIndex:(typeof timelineIndex!=="undefined")?timelineIndex:0,
+   mapMode:(typeof mapMode!=="undefined")?mapMode:"sphere",
+   playing:!!(typeof timer!=="undefined"&&timer),
+   layout:(typeof layoutCapture==="function")?layoutCapture():null,
+   controls:{}
+ };
+ ["cumulative","heatToggle","cities","showUnattributed","showExercise","skipEmpty"]
+   .forEach(id=>{const e=document.getElementById(id); if(e)st.controls[id]=e.checked});
+ ["densityMode","arcWindow","viewMode","speed","trendMode","histoOverlay","rangeStart","rangeEnd"]
+   .forEach(id=>{const e=document.getElementById(id); if(e)st.controls[id]=e.value});
+ st.boxes={};
+ [".severity",".sector",".atype",".prov"].forEach(sel=>{
+   st.boxes[sel]=[...document.querySelectorAll(sel)].map(x=>x.checked);
+ });
+ return st;
+}
+function narrRestoreState(st){
+ if(!st)return;
+ try{
+   Object.keys(st.controls||{}).forEach(id=>{
+     const e=document.getElementById(id); if(!e)return;
+     if(e.type==="checkbox")e.checked=st.controls[id]; else e.value=st.controls[id];
+   });
+   Object.keys(st.boxes||{}).forEach(sel=>{
+     const els=[...document.querySelectorAll(sel)];
+     st.boxes[sel].forEach((v,i)=>{ if(els[i])els[i].checked=v });
+   });
+   if(typeof markHistoDirty==="function")markHistoDirty();
+   if(typeof setMapMode==="function"&&st.mapMode&&st.mapMode!==mapMode)setMapMode(st.mapMode);
+   if(typeof setTimeline==="function")setTimeline(st.timelineIndex);
+   // windows back where they were, including what each chart was showing
+   if(st.layout&&typeof layoutApply==="function")layoutApply(st.layout);
+   else if(typeof closeAllFrames==="function")closeAllFrames();
+   // and back to the panel it was launched from
+   if(st.launchedFrom==="help"&&typeof openFrame==="function")openFrame("help");
+   if(st.playing&&typeof play==="function"&&(typeof timer==="undefined"||!timer))play();
+   if(typeof update==="function")update();
+ }catch(e){}
+}
 function narrStart(mode){
+ // capture BEFORE anything is touched, and only on a fresh start
+ if(!NARR.running&&!NARR.savedState)NARR.savedState=narrCaptureState();
  document.body.classList.toggle("demoing",mode==="demo");
  // The globe keeps its gentle spin during a presentation; focus steps pause it
  // only for the length of the camera move.
@@ -6186,7 +6329,12 @@ function narrStart(mode){
    the first camera move arrive together and the opening line is missed - and on a
    large screen someone has usually just pressed play and stepped back. Escape
    cancels during the count, like everywhere else. */
+let _countSeq=0;
 function narrCountdown(then){
+ // Every countdown gets a token. A second start - or a stop and restart - abandons
+ // the previous one, which is why a number occasionally appeared twice.
+ const mySeq=++_countSeq;
+ if(NARR.timer){clearTimeout(NARR.timer);NARR.timer=null}
  const host=document.getElementById("narrOverlay")||document.body;
  let el=document.getElementById("narrCount");
  if(!el){
@@ -6197,6 +6345,7 @@ function narrCountdown(then){
  el.classList.remove("hidden");
  let n=3;
  const tick=()=>{
+   if(mySeq!==_countSeq){ return }                            // superseded
    if(!NARR.running){ el.classList.add("hidden"); return }   // cancelled
    if(n===0){
      el.textContent="";
@@ -6209,11 +6358,12 @@ function narrCountdown(then){
    void el.offsetWidth;                       // restart the animation
    el.classList.add("pulse");
    n--;
-   NARR.timer=setTimeout(tick,1000);
+   NARR.timer=setTimeout(()=>{ if(mySeq===_countSeq)tick() },1000);
  };
  tick();
 }
-function narrStop(){
+function narrStop(restore){
+ _countSeq++;                       // abandon any countdown in flight
  const cnt=document.getElementById("narrCount");
  if(cnt)cnt.classList.add("hidden");
  document.body.classList.remove("demoing");
@@ -6235,9 +6385,20 @@ function narrStop(){
  });
  // Also un-maximise anything the tour maximised, and drop stale placement on the
  // standing frames so they re-tile cleanly rather than reopening in a tour position.
+ const wm=document.getElementById("winMenu");
+ if(wm)wm.classList.add("hidden");
+ const wbt=document.getElementById("tbWindows");
+ if(wbt){wbt.classList.remove("on");wbt.setAttribute("aria-expanded","false")}
  document.querySelectorAll(".frame.maxed").forEach(f=>{ if(typeof toggleMaximise==="function")toggleMaximise(f); });
  if(typeof refreshCloseAll==="function")refreshCloseAll();
  pausePlayback();
+ // Hand everything back as it was found: the windows that were open and where, the
+ // month, the map, every filter, and the panel it was launched from. Skipped when
+ // the caller explicitly asks not to (a restart, say).
+ if(restore!==false&&NARR.savedState){
+   const st=NARR.savedState; NARR.savedState=null;
+   setTimeout(()=>narrRestoreState(st),260);
+ }
 }
 function narrToggle(){
  if(!NARR.script)return;
