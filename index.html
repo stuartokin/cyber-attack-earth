@@ -1487,7 +1487,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v69";
+const APP_VERSION="v70";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -2747,16 +2747,14 @@ function renderFlat(data,arcData){
    layer.selectAll("circle.flat-origin").data(data).join("circle").attr("class","flat-origin")
     .attr("cx",d=>flatProjection([d.startLng,d.startLat])[0]).attr("cy",d=>flatProjection([d.startLng,d.startLat])[1])
     .attr("r",4).on("click",(e,d)=>showDetail(d));
-   setTimeout(()=>{
-        layer.selectAll("circle.flat-victim").data(data).join("circle").attr("class","flat-victim")
-         .attr("cx",d=>flatProjection([d.endLng,d.endLat])[0]).attr("cy",d=>flatProjection([d.endLng,d.endLat])[1])
-         .attr("r",d=>5+d.impact/22).attr("fill",d=>severityColor[d.severity]).attr("opacity",.72)
-         .on("click",(e,d)=>showDetail(d));
-        layer.selectAll("circle.flat-ring").data(data).join("circle").attr("class","flat-ring")
-         .attr("cx",d=>flatProjection([d.endLng,d.endLat])[0]).attr("cy",d=>flatProjection([d.endLng,d.endLat])[1])
-         .attr("r",5).attr("fill","none").attr("stroke",d=>severityColor[d.severity]).attr("stroke-width",2)
-         .attr("r",d=>16+d.impact/3.2);
-   },flightMs);
+   // The target markers used to be deferred until the old SVG flight animation
+   // landed. That animation is gone - impacts are drawn on the canvas now - so they
+   // are placed immediately. (The delay variable went with the animation, which is
+   // what left a dangling reference here.)
+   layer.selectAll("circle.flat-victim").data(data).join("circle").attr("class","flat-victim")
+    .attr("cx",d=>flatProjection([d.endLng,d.endLat])[0]).attr("cy",d=>flatProjection([d.endLng,d.endLat])[1])
+    .attr("r",d=>5+d.impact/22).attr("fill",d=>severityColor[d.severity]).attr("opacity",.72)
+    .on("click",(e,d)=>showDetail(d));
  } else {
    const key=mode==="origins"?"originCountry":"victimCountry";
    const latKey=mode==="origins"?"startLat":"endLat", lngKey=mode==="origins"?"startLng":"endLng";
