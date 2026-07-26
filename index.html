@@ -258,6 +258,17 @@
     }
     #playBtn.nudge{animation:playNudge 1.4s ease-in-out infinite;border-color:var(--accent);
       background:linear-gradient(135deg,#1d6f96,#2f9dc4);color:#fff}
+    .narrCount{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+      z-index:400;pointer-events:none;font-size:clamp(90px,18vw,240px);font-weight:800;
+      color:#eaf6ff;letter-spacing:-.04em;text-shadow:0 8px 40px rgba(0,0,0,.7)}
+    .narrCount.hidden{display:none}
+    .narrCount.pulse{animation:narrCountPop .95s ease-out}
+    @keyframes narrCountPop{
+      0%{transform:scale(.55);opacity:0}
+      18%{transform:scale(1.06);opacity:1}
+      70%{transform:scale(1);opacity:.95}
+      100%{transform:scale(.98);opacity:.15}
+    }
     .playTip{position:fixed;z-index:70;max-width:230px;background:#0d2740;border:1px solid var(--accent);
       color:#eaf6ff;font-size:11.5px;line-height:1.4;padding:7px 10px;border-radius:9px;
       box-shadow:0 10px 28px rgba(0,0,0,.5);opacity:0;transform:translateY(6px);
@@ -300,7 +311,10 @@
     #detail{border:1px solid var(--line);border-radius:11px;background:var(--panel2);padding:14px;min-height:210px}
     #detail h3{margin:0 0 8px;font-size:17px}.kv{display:grid;grid-template-columns:90px 1fr;gap:5px;font-size:12px;margin:6px 0}.kv b{color:var(--muted)}
     .impact{font-weight:800}.critical{color:var(--red)}.high{color:var(--orange)}.medium{color:#ffe374}.low{color:var(--green)}
-    #yearBig{position:absolute;right:20px;top:16px;font-size:48px;font-weight:800;letter-spacing:-.05em;opacity:.88;pointer-events:none;text-align:right}
+    /* z-index matters here: the flat map sits at 2 and its animation canvas at 3, so
+       without this the month is painted over and simply vanishes whenever the flat
+       map is showing. #escalation below already had it; this did not. */
+    #yearBig{position:absolute;right:20px;top:16px;z-index:12;font-size:48px;font-weight:800;letter-spacing:-.05em;opacity:.88;pointer-events:none;text-align:right;text-shadow:0 2px 10px rgba(4,8,18,.85)}
     #escalation{position:absolute;right:22px;top:74px;z-index:12;pointer-events:none;font-size:12px;color:var(--muted);line-height:1.5;max-width:255px;text-align:right;text-shadow:0 1px 6px rgba(4,8,18,.9)}
     #escalation strong{display:block;font-size:27px;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
     #escalation .tempo{color:var(--orange);font-weight:700}
@@ -1602,7 +1616,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v78";
+const APP_VERSION="v79";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -2736,7 +2750,7 @@ function flatReset(animate){
    flickering, and the honest position is that the map was never the measurement:
    the counters, the heat shading and every chart still use the full set. */
 
-const FLATFX={cv:null,ctx:null,run:false,raf:null,shots:[],trails:[],last:0,
+const FLATFX={cv:null,ctx:null,run:false,raf:null,shots:[],trails:[],last:0,vp:null,
               w:0,h:0,dpr:1,tf:{k:1,x:0,y:0},pool:[],cursor:0,nextLaunch:0};
 
 function flatFxDensity(){
@@ -2778,13 +2792,37 @@ function flatFxReadTransform(){
     FLATFX.tf={k:s?+s[1]:1,x:m?+m[1]:0,y:m?+m[2]:0};
   }catch(e){ FLATFX.tf={k:1,x:0,y:0} }
 }
+/* The map SVG declares viewBox="0 0 1000 520" and is stretched to fit its box, so
+   its internal coordinates are NOT canvas pixels. The canvas was drawing raw
+   projection output, which on any element that is not exactly 1000x520 pushes every
+   point down and to the right - and the bottom of a world map is Antarctica, which
+   is precisely where the missiles were appearing.
+
+   The full chain is: longitude/latitude -> projection user units -> the zoom
+   transform (applied inside user space) -> the viewBox fit -> element pixels. All
+   four now, rather than the middle two. */
+function flatFxViewport(){
+  const svg=document.querySelector("#flatMap svg");
+  const host=(FLATFX.cv&&FLATFX.cv.parentNode)||document.getElementById("flatMap");
+  if(!svg||!host)return null;
+  const vb=String(svg.getAttribute("viewBox")||"0 0 1000 520").trim().split(/[\s,]+/).map(Number);
+  const vw=vb[2]||1000, vh=vb[3]||520;
+  const r=svg.getBoundingClientRect(), hr=host.getBoundingClientRect();
+  if(!r.width||!r.height)return null;
+  // preserveAspectRatio defaults to xMidYMid meet: fit inside, then centre
+  const s=Math.min(r.width/vw, r.height/vh);
+  return {s, ox:(r.left-hr.left)+(r.width-vw*s)/2, oy:(r.top-hr.top)+(r.height-vh*s)/2};
+}
 function flatFxPt(lng,lat){
   if(typeof flatProjection!=="function")return null;
   let p=null;
   try{ p=flatProjection([lng,lat]) }catch(e){ return null }
   if(!p||!isFinite(p[0])||!isFinite(p[1]))return null;
   const t=FLATFX.tf;
-  return [p[0]*t.k+t.x, p[1]*t.k+t.y];
+  const ux=p[0]*t.k+t.x, uy=p[1]*t.k+t.y;      // zoom lives in user space
+  const v=FLATFX.vp;
+  if(!v)return [ux,uy];                         // no SVG yet: better than nothing
+  return [v.ox+ux*v.s, v.oy+uy*v.s];
 }
 
 /* Feed the animation. Called on every render with whatever is currently in the
@@ -2873,6 +2911,7 @@ function flatFxFrame(now){
   if(!ctx){FLATFX.raf=null;return}
   const dens=flatFxDensity();
   flatFxReadTransform();
+  FLATFX.vp=flatFxViewport();
   ctx.clearRect(0,0,FLATFX.w,FLATFX.h);
 
   // faint routes already flown, so the month still builds up a picture
@@ -4144,8 +4183,17 @@ function play(){
      /* Park it top-right, below the month/count/info cluster, rather than letting the
         tiler put it wherever. That keeps the whole left side free for Controls, which
         is the panel most likely to be opened next. */
-     const anchor=document.getElementById("sigBox")||document.getElementById("yearBig");
-     const top=anchor?Math.round(anchor.getBoundingClientRect().bottom+10):86;
+     /* Clear the WHOLE top-right cluster, not just the month. That block is the
+        month, the running count and the information button beneath it, and it grows
+        while the timeline plays - so anchoring to the month alone left the panel
+        sitting on top of the count. Take the lowest edge of all of them. */
+     const cluster=["yearBig","escalation","escWords"]
+       .map(id=>document.getElementById(id))
+       .filter(el=>el&&el.offsetParent!==null);
+     const clusterBottom=cluster.length
+       ? Math.max(...cluster.map(el=>el.getBoundingClientRect().bottom))
+       : 86;
+     const top=Math.round(clusterBottom+12);
      const w=Math.min(420,Math.round(window.innerWidth*0.26));
      f.style.left=Math.round(window.innerWidth-w-14)+"px";
      f.style.right="auto";
@@ -5814,44 +5862,58 @@ const NARR_SCRIPTS={
  /* ── TRAINING ── ~380 words, ~160s ────────────────────────────────────── */
  demo:{
   title:"How this works",
-  blurb:"A guided tour of the tool: what it is for, and the controls worth knowing. Under three minutes.",
+  blurb:"A guided tour: what the tool is for, then the features worth knowing. About three minutes.",
   fullscreen:false, loop:false,
   steps:[
-   {title:"What this is",dwell:14,
-    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2000,1],cumulative:false,arcWindow:1,play:false,wide:true,spin:true},
-    say:"This is a map of publicly documented cyber attacks since the year two thousand. Every missile is one recorded attack, flying from where it was attributed to where it landed. It makes two decades of scattered records something you can look at."},
+   /* 1. Intro over a live map - purpose first, before any mechanics */
+   {title:"What this is",dwell:16,
+    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2017,6],cumulative:true,arcWindow:5,play:true,speed:600,wide:true,spin:true},
+    say:"Every missile is one publicly documented cyber attack, flying from where it was attributed to where it landed. Two decades of them, gathered from a dozen databases that rarely speak to each other, onto one map and one timeline."},
 
-   {title:"Press play and it builds",dwell:14,
-    do:{play:true,speed:250,cumulative:true,arcWindow:6},
-    say:"Press play and it builds month by month. Watch the first ten years: almost empty. Not a safer world \u2014 a world where hardly anyone had to tell anyone. The rise that follows is real attacks and better recording, tangled together."},
+   /* 2. The timeline, with Details open, explaining what is on screen */
+   {title:"Press play and watch it build",dwell:14,
+    do:{month:[2000,1],play:true,speed:220,cumulative:true,arcWindow:6,frame:"details"},
+    say:"Press play and the record builds month by month from the year two thousand. The Details panel follows along, naming the most significant incident of each month as it passes."},
 
-   {title:"The number in the corner",dwell:13,
-    do:{play:false,month:[2026,7]},
-    say:"The count in the corner is records held, not attacks that happened. Several projects catalogue these events and overlap, so one attack can arrive three times under three names. Some duplicates survive."},
+   {title:"Reading the screen",dwell:15,
+    do:{},
+    say:"Top right is the month and the running count \u2014 records held, not attacks that happened, because these sources overlap and some duplicates survive. Watch the first decade stay almost empty. That is disclosure law arriving, not a safer world."},
 
-   {title:"Controls: narrow it down",dwell:12,
-    do:{frame:"controls",open:["sector","severity"],sectors:["Energy","Utilities","Water","Transport"],flash:"#frame-controls"},
-    say:"Controls is where you narrow things: sector, severity, country, and how strong the evidence is. Here, only energy, water and transport. Everything updates together \u2014 map, counter, shading and charts."},
+   /* 3. Controls and charts together, so filtering visibly changes a chart */
+   {title:"Controls: narrowing the picture",dwell:14,
+    do:{play:false,month:[2026,7],closeAll:true,frame:"controls",open:["sector"],chart:"targets",flash:"#frame-controls"},
+    say:"Controls is where you narrow things: sector, severity, country, and how strong the evidence is. I have opened the victims chart alongside it so you can watch what filtering actually does."},
 
-   {title:"Two views of the same data",dwell:13,
+   {title:"Everything moves together",dwell:14,
+    do:{sectors:["Energy","Utilities","Water","Transport"],flash:"#frame-chart-targets"},
+    say:"Keeping only energy, water and transport, and the chart rebuilds immediately. Map, shading, counter and every open chart use the same filtered set \u2014 nothing ever shows a different slice."},
+
+   {title:"The same data, laid flat",dwell:12,
     do:{closeAll:true,map:"flat",heat:true,sectors:"all",arcWindow:6},
-    say:"The globe and the flat map show the same thing differently. Shading is volume: paler where less has been recorded, deeper where more has. Early on the whole map stays pale, because early on very little was written down."},
+    say:"The flat map shows the same thing differently, with shading for volume. Paler means less has been recorded there, which is not the same as less having happened."},
 
-   {title:"Charts do the measuring",dwell:13,
-    do:{map:"sphere",heat:false,closeAll:true,chart:"incidents",flash:"#frame-chart-incidents"},
-    say:"The map is the illustration; the charts are the measurement. Around twenty, each in its own movable window. Open one while the clock runs and it builds along with the timeline."},
+   /* 4. Search */
+   {title:"Looking something up",dwell:13,
+    do:{map:"sphere",heat:false,closeAll:true,frame:"search",search:"Colonial",flash:"#frame-search"},
+    say:"Search finds an incident, a threat group or a country by name. Here, Colonial Pipeline. Look-ups deliberately leave the map alone, so you can check something without losing your place."},
 
-   {title:"Every point leads to a source",dwell:13,
-    do:{closeAll:true,chart:"impact",flash:"#frame-chart-impact"},
-    say:"Click almost anything and you get the detail behind it, with a link to where it came from. If a number has no source, it is not in the tool."},
+   /* 5. Charts - the main feature - several at once, plus Windows */
+   {title:"The charts are the measurement",dwell:14,
+    do:{closeAll:true,chart:"incidents",flash:"#frame-chart-incidents"},
+    say:"Now the part that does the real work. The map is illustration; the charts are the measurement. Around twenty of them, each in its own window you can move, resize and keep open."},
 
-   {title:"Read the limits before you quote it",dwell:13,
-    do:{closeAll:true,frame:"help",flash:"#frame-help"},
-    say:"Help explains what this data cannot support, in plain English. Origins are usually proxies, not verified launch points. Sparse regions mean sparse reporting, not safety. Read it before you quote anything."},
+   {title:"Two at once, side by side",dwell:15,
+    do:{chart:"impact",flash:"#frame-chart-impact"},
+    say:"Open a second and compare directly. Incidents over time beside recorded impact \u2014 and the gap is the point: fifty-four thousand incidents, forty-three with a verified cost."},
 
-   {title:"Have a look",dwell:9,
-    do:{closeAll:true,map:"sphere",wide:true,spin:true,month:[2026,7],cumulative:true},
-    say:"Windows, in the tool bar, tidies your panels or saves the arrangement you like. That is the whole tool. Press play, change a filter, and see what you find."}
+   {title:"A third, and tidy them",dwell:16,
+    do:{chart:"vulntime",play:true,speed:300,month:[2012,1],flash:"#frame-chart-vulntime"},
+    say:"A third, on flaws attackers were actually seen using, opened while the clock runs so it builds with the timeline. When windows pile up, the Windows menu tidies them, or saves the arrangement you like for next time."},
+
+   /* 6. Help and the sources */
+   {title:"Where it all comes from",dwell:17,
+    do:{play:false,closeAll:true,frame:"help",open:["data","limits"],flash:"#frame-help"},
+    say:"Finally, Help. Every source is listed with its licence, what it gave and whether it loaded tonight. It also states plainly what the data cannot support: origins are usually proxies, and sparse regions mean sparse reporting, not safety. Read that once, and the rest is yours."}
   ]
  },
 
@@ -6118,9 +6180,42 @@ function narrStart(mode){
  if(script.fullscreen)document.body.classList.add("narrFull");
  document.getElementById("narrOverlay").classList.remove("hidden");
  document.getElementById("narrPlayPause").textContent="\u23f8";
- narrGo(0);
+ narrCountdown(()=>{ if(NARR.running)narrGo(0) });
+}
+/* Three seconds of warning before anything moves. Without it the first caption and
+   the first camera move arrive together and the opening line is missed - and on a
+   large screen someone has usually just pressed play and stepped back. Escape
+   cancels during the count, like everywhere else. */
+function narrCountdown(then){
+ const host=document.getElementById("narrOverlay")||document.body;
+ let el=document.getElementById("narrCount");
+ if(!el){
+   el=document.createElement("div");
+   el.id="narrCount"; el.className="narrCount"; el.setAttribute("aria-hidden","true");
+   host.appendChild(el);
+ }
+ el.classList.remove("hidden");
+ let n=3;
+ const tick=()=>{
+   if(!NARR.running){ el.classList.add("hidden"); return }   // cancelled
+   if(n===0){
+     el.textContent="";
+     el.classList.add("hidden");
+     then();
+     return;
+   }
+   el.textContent=String(n);
+   el.classList.remove("pulse");
+   void el.offsetWidth;                       // restart the animation
+   el.classList.add("pulse");
+   n--;
+   NARR.timer=setTimeout(tick,1000);
+ };
+ tick();
 }
 function narrStop(){
+ const cnt=document.getElementById("narrCount");
+ if(cnt)cnt.classList.add("hidden");
  document.body.classList.remove("demoing");
  try{ globe.controls().autoRotate=true }catch(e){}
  if(typeof flatReset==="function")flatReset(true);      // never leave the map parked off-screen
