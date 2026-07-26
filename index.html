@@ -82,6 +82,19 @@
     .splashBars{display:grid;gap:7px;margin-bottom:8px}
     .splashRow{display:grid;grid-template-columns:96px 1fr 34px;gap:8px;align-items:center;font-size:10.5px;color:#7f95b4}
     .splashRow i{font-style:normal;text-align:right;color:#a8bcd6;font-variant-numeric:tabular-nums}
+    /* One clear primary action, with the narrated options beneath it at a smaller
+       weight - the previous row of four equal buttons gave no lead. */
+    .splashCard .btnrow{display:block}
+    .splashPrimary{display:block;width:100%;font-size:15px;font-weight:600;padding:11px 14px;
+      background:linear-gradient(135deg,#1d6f96,#2f9dc4);border-color:#4dd8ff;color:#fff;
+      box-shadow:0 6px 20px rgba(45,157,196,.34)}
+    .splashPrimary:hover:not(:disabled){background:linear-gradient(135deg,#2382ae,#3cb0d8)}
+    .splashPrimary:disabled{opacity:.55;box-shadow:none}
+    .splashSecondary{margin-top:9px;text-align:center}
+    .splashSecondary>.small{color:#7f95b4;font-size:10.5px}
+    .splashVidRow{display:flex;gap:5px;justify-content:center;margin-top:5px;flex-wrap:wrap}
+    .splashVidRow button{font-size:10.5px;padding:5px 9px;color:#a8bcd6;border-color:#2c4666;background:#0e2036}
+    .splashVidRow button:hover{border-color:var(--accent);color:#eaf6ff}
     .splashVer{font-size:10.5px;color:#7f97b6;margin-top:6px;letter-spacing:.05em;font-variant-numeric:tabular-nums}
     .splashJoke{margin-top:10px;min-height:2.6em;font-size:11.5px;line-height:1.5;color:#8fa6c4;
       border-top:1px solid #1e3350;padding-top:9px;transition:opacity .4s}
@@ -234,7 +247,16 @@
       0%,100%{box-shadow:0 0 0 0 rgba(77,216,255,0)}
       50%{box-shadow:0 0 0 7px rgba(77,216,255,.22)}
     }
-    #playBtn.nudge{animation:playNudge 1.5s ease-in-out 4;border-color:var(--accent)}
+    #playBtn.nudge{animation:playNudge 1.4s ease-in-out infinite;border-color:var(--accent);
+      background:linear-gradient(135deg,#1d6f96,#2f9dc4);color:#fff}
+    .playTip{position:fixed;z-index:70;max-width:230px;background:#0d2740;border:1px solid var(--accent);
+      color:#eaf6ff;font-size:11.5px;line-height:1.4;padding:7px 10px;border-radius:9px;
+      box-shadow:0 10px 28px rgba(0,0,0,.5);opacity:0;transform:translateY(6px);
+      transition:opacity .35s,transform .35s;pointer-events:none}
+    .playTip.show{opacity:1;transform:translateY(0)}
+    .playTipArrow{position:absolute;left:18px;bottom:-6px;width:10px;height:10px;
+      background:#0d2740;border-right:1px solid var(--accent);border-bottom:1px solid var(--accent);
+      transform:rotate(45deg)}
     .tlYears{display:inline-flex;align-items:center;gap:3px;color:#7f95b4;font-size:11px}
     .tlYears select{width:auto;padding:2px 4px;font-size:11px}
     .tlStatus{min-width:52px;color:#7f95b4;white-space:nowrap}
@@ -945,10 +967,15 @@
       <div class="splashVer" id="splashVer"></div>
       <div class="splashJoke" id="splashJoke"></div>
       <div class="btnrow" style="margin-top:12px">
-        <button id="splashGo" class="primary" type="button" disabled>Loading&hellip;</button>
-        <button id="splashTour" type="button">&#9654; Play the training video</button>
-        <button id="splashStory" type="button">&#9654; Watch the presentation</button>
-        <button id="splashKiosk" type="button">&#9654; Kiosk loop</button>
+        <button id="splashGo" class="primary splashPrimary" type="button" disabled>Loading&hellip;</button>
+        <div class="splashSecondary">
+          <span class="small">or watch instead</span>
+          <div class="splashVidRow">
+            <button id="splashTour" type="button">&#9654; Training video</button>
+            <button id="splashStory" type="button">&#9654; Presentation</button>
+            <button id="splashKiosk" type="button">&#9654; Kiosk loop</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -1536,7 +1563,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v72";
+const APP_VERSION="v73";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -2023,6 +2050,17 @@ function filtered(){
  }
  return all;
 }
+/* Visible set ranked by impact, cached against the filter epoch and the set size.
+   Sorting this per tick was costing more than the drawing it was meant to spare. */
+let _rank={key:"",arr:[]};
+function _rankedByImpact(arr){
+  const key=_filterEpoch+":"+arr.length;
+  if(_rank.key===key)return _rank.arr;
+  const copy=arr.slice(0);
+  copy.sort((x,y)=>y.impact-x.impact);
+  _rank={key,arr:copy};
+  return copy;
+}
 function update(){
  if(heatLegend && heatToggle) heatLegend.classList.toggle("hidden",!heatToggle.checked);
  const data=filtered();
@@ -2056,18 +2094,28 @@ function update(){
  const dens=(document.getElementById("densityMode")||{}).value||"cinematic";
  // Deliberately tight. These are the numbers the 3D scene rebuilds geometry for on
  // every tick, and past a few hundred markers nothing is distinguishable anyway.
- const CAPS=(dens==="full")?{pts:1800,rings:220,arcs:1400}
-          :(dens==="some")?{pts:900, rings:130,arcs:700}
-                          :{pts:420, rings:70, arcs:340};
+ const CAPS=(dens==="full")?{pts:1600,rings:200,arcs:1200}
+          :(dens==="some")?{pts:700, rings:110,arcs:560}
+                          :{pts:300, rings:50, arcs:240};
+ /* Choosing what to draw must not itself be expensive. The first version sorted the
+    whole visible set by impact on every tick - twenty-odd thousand records, twelve
+    times a second, purely to pick a few hundred. The heavy ranking is now done once
+    per filter change and reused; only the current month is gathered per tick. */
  const pickForScene=(arr,limit)=>{
    if(arr.length<=limit)return arr;
-   const now=[],rest=[];
+   const now=[];
    for(const a of arr){
-     ((a._i!==undefined?a._i:(a._i=idx(a.year,a.month)))===timelineIndex?now:rest).push(a);
+     if((a._i!==undefined?a._i:(a._i=idx(a.year,a.month)))===timelineIndex)now.push(a);
+     if(now.length>=limit)return now.slice(0,limit);
    }
-   if(now.length>=limit)return now.slice(0,limit);
-   rest.sort((x,y)=>y.impact-x.impact);
-   return now.concat(rest.slice(0,limit-now.length));
+   const ranked=_rankedByImpact(arr);
+   const out=now.slice(0);
+   const seen=new Set(now.map(a=>a.id));
+   for(let k=0;k<ranked.length&&out.length<limit;k++){
+     const a=ranked[k];
+     if(!seen.has(a.id))out.push(a);
+   }
+   return out;
  };
 
  const arcShown=(mode==="attacks")?pickForScene(arcSet,CAPS.arcs):[];
@@ -2076,8 +2124,17 @@ function update(){
     resize, a chart opening. A cheap signature skips those. */
  const sceneSig=mode+"|"+timelineIndex+"|"+arcShown.length+"|"+data.length+"|"+dens+"|"+_filterEpoch+"|"
    +(arcShown.length?arcShown[0].id+","+arcShown[arcShown.length-1].id:"")+"|"+(citiesBox.checked?1:0);
- const sceneChanged=(sceneSig!==window.__sceneSig);
- window.__sceneSig=sceneSig;
+ /* The map is illustration; the counters, shading and charts are the measurement.
+    They do not need the same cadence. While the clock is running the 3D scene is
+    rebuilt at most a few times a second - the eye cannot follow more than that, and
+    each rebuild is the single most expensive thing the app does. Everything else
+    still updates every tick, so no number on screen is ever stale. */
+ const nowMs=performance.now();
+ const playing=(typeof timer!=="undefined"&&timer);
+ const SCENE_MIN_MS=playing?240:0;
+ const dueForScene=(nowMs-(window.__sceneAt||0))>=SCENE_MIN_MS;
+ const sceneChanged=(sceneSig!==window.__sceneSig)&&dueForScene;
+ if(sceneChanged){window.__sceneSig=sceneSig;window.__sceneAt=nowMs}
  if(sceneChanged)globe.arcsData(arcShown);
 
  const ringSrc=(mode!=="attacks"||!sceneChanged)?[]:pickForScene(data,CAPS.rings);
@@ -2523,12 +2580,50 @@ function heatColor(n,max,counts){
  let lo=0,hi=vals.length;
  while(lo<hi){const mid=(lo+hi)>>1; if(vals[mid]<n)lo=mid+1; else hi=mid;}
  const pct=vals.length>1?lo/(vals.length-1):1;
- const t=0.12+0.88*pct;
+ /* Rank alone made the leader dark red in the very first year, because SOMETHING is
+    always top of a four-country field. That reads as "already at maximum" when the
+    real answer is "almost nothing has happened yet". So rank decides the ORDER, and a
+    maturity factor decides how far up the ramp the whole field is allowed to travel:
+    the busiest country now, measured against the busiest country over the entire
+    record. Early months stay pale even though their leader is still the leader, and
+    the deep reds arrive when the volume genuinely does. */
+ const gm=_heatGlobalMax();
+ /* A ratio of the busiest country now to the busiest country ever, softened by a root
+    so the middle years are not crushed. A logarithm was too generous - 4% of the final
+    volume still came out mid-orange. */
+ const maturity=(gm>1)?Math.min(1,Math.pow(Math.min(1,max/gm),0.45)):1;
+ const t=(0.10+0.90*pct)*Math.max(0.10,maturity);
  return d3.interpolateRgbBasis(HEAT_RAMP)(Math.max(0,Math.min(1,t)));
 }
 let _lastHeatCounts=null;
+/* Busiest single country across the WHOLE record under the current filters. Cached
+   against the filter epoch, so it is computed once rather than every tick. */
+let _hgm={epoch:-1,val:1};
+function _heatGlobalMax(){
+  if(_hgm.epoch===_filterEpoch)return _hgm.val;
+  let val=1;
+  try{
+    const tally={};
+    for(const a of filterPass("all")){
+      const k=a.victimISO||a.victimCountry; if(!k)continue;
+      tally[k]=(tally[k]||0)+1;
+      if(tally[k]>val)val=tally[k];
+    }
+  }catch(e){ val=1 }
+  _hgm={epoch:_filterEpoch,val};
+  return val;
+}
 function applySphereHeat(){
  if(!window.globe||!countriesGeo||!countriesGeo.features)return;
+ /* Re-colouring the country layer walks every polygon, and tallying the counts walks
+    the whole visible set. While playing, do both a few times a second rather than on
+    every tick: the shading is a slow-moving picture and nobody can see the difference.
+    Checked BEFORE the tally so the counting is skipped too. */
+ if(typeof timer!=="undefined"&&timer){
+   const t=performance.now();
+   if(t-(window.__heatAt||0)<380)return;
+   window.__heatAt=t;
+ }
  const counts=heatCounts(),max=Math.max(1,...Object.values(counts));
  _lastHeatCounts=counts;
  window.globe.polygonCapColor(f=>{if(!heatToggle||!heatToggle.checked)return "rgba(16,33,59,.72)";const id=String(f.id??f.properties?.iso_n3??"").padStart(3,"0"),n=counts[id]||0;if(!n)return "rgba(16,33,59,.72)";const c=d3.color(heatColor(n,max,counts));return c?`rgba(${c.r},${c.g},${c.b},.88)`:"rgba(16,33,59,.72)"}).polygonSideColor(()=>"rgba(8,18,34,.20)").polygonStrokeColor(()=>"rgba(110,160,210,.22)");
@@ -2657,7 +2752,16 @@ function flatFxPt(lng,lat){
    arc window; it keeps its own rotating pool so the same few incidents do not
    fly over and over when the month is quiet. */
 function flatFxSetData(arcs){
-  FLATFX.pool=Array.isArray(arcs)?arcs:[];
+  /* Shuffled once on arrival. The incidents come grouped by source, so cycling them
+     in order showed the same handful of curated attacks over and over before reaching
+     the bulk of the record - the sample on screen should be representative of what is
+     actually in the window. */
+  const src=Array.isArray(arcs)?arcs.slice(0):[];
+  for(let i=src.length-1;i>0;i--){
+    const j=Math.floor(Math.random()*(i+1));
+    const t=src[i]; src[i]=src[j]; src[j]=t;
+  }
+  FLATFX.pool=src;
   if(FLATFX.cursor>=FLATFX.pool.length)FLATFX.cursor=0;
 }
 
@@ -2665,8 +2769,22 @@ function flatFxLaunch(now){
   const pool=FLATFX.pool;
   if(!pool.length)return;
   const d=pool[FLATFX.cursor++ % pool.length];
-  const a=flatFxPt(d.startLng,d.startLat), b=flatFxPt(d.endLng,d.endLat);
-  if(!a||!b)return;
+  const b=flatFxPt(d.endLng,d.endLat);
+  if(!b)return;
+  /* Most records have no established origin, and the tool anchors those to a neutral
+     point in the mid-Atlantic so they are not silently attributed to anyone. Drawing
+     a missile from it made the map look like an assault launched from open ocean -
+     and because so many share that one point, real attributed flights were lost in
+     the crowd. An unknown origin now produces no launch at all: just the impact,
+     which is the only part we actually know. */
+  const unknown=(typeof isUnattributed==="function")?isUnattributed(d):false;
+  if(unknown){
+    FLATFX.shots.push({a:b,b:b,c:b,t0:now-1,dur:1,       // straight to the impact phase
+      col:severityColor[d.severity]||"#4dd8ff",impact:d.impact||50,id:d.id,hitOnly:true});
+    return;
+  }
+  const a=flatFxPt(d.startLng,d.startLat);
+  if(!a)return;
   // a gentle arc, bowing away from the straight line
   const mx=(a[0]+b[0])/2, my=(a[1]+b[1])/2 - Math.hypot(b[0]-a[0],b[1]-a[1])*0.22;
   const dist=Math.hypot(b[0]-a[0],b[1]-a[1]);
@@ -2721,7 +2839,7 @@ function flatFxFrame(now){
       // ── impact ──
       const it=(now-s.t0-s.dur)/700;
       if(it>=1){
-        FLATFX.trails.push({a:s.a,b:s.b,c:s.c,col:s.col,t0:now});
+        if(!s.hitOnly)FLATFX.trails.push({a:s.a,b:s.b,c:s.c,col:s.col,t0:now});
         FLATFX.shots.splice(i,1);
         continue;
       }
@@ -3822,12 +3940,34 @@ async function loadResearchDataset(){
    thing that happens is accompanied by an explanation rather than silence. */
 function afterWelcome(){
  const play=document.getElementById("playBtn");
- if(play){
-   play.classList.add("nudge");
-   const stop=()=>play.classList.remove("nudge");
-   play.addEventListener("click",stop,{once:true});
-   setTimeout(stop,6500);                        // never becomes wallpaper
+ if(!play)return;
+ /* A faint pulse was not enough to find. This is a ring that clearly reads as "start
+    here", plus a small pointer above the button, and it holds until the viewer either
+    presses Play or has plainly had time to read it. It removes itself for good on the
+    first press, so it never becomes furniture. */
+ play.classList.add("nudge");
+ let tip=document.getElementById("playTip");
+ if(!tip){
+   tip=document.createElement("div");
+   tip.id="playTip"; tip.className="playTip";
+   tip.innerHTML="Press Play to watch the record build up<span class=\"playTipArrow\"></span>";
+   (document.querySelector(".timelineTop")||document.body).appendChild(tip);
  }
+ const place=()=>{
+   const r=play.getBoundingClientRect();
+   tip.style.left=Math.max(8,Math.round(r.left))+"px";
+   tip.style.bottom=Math.round(window.innerHeight-r.top+9)+"px";
+ };
+ place(); window.addEventListener("resize",place,{passive:true});
+ tip.classList.add("show");
+ const stop=()=>{
+   play.classList.remove("nudge");
+   tip.classList.remove("show");
+   setTimeout(()=>{if(tip&&tip.parentNode)tip.remove()},400);
+   window.removeEventListener("resize",place);
+ };
+ play.addEventListener("click",stop,{once:true});
+ setTimeout(stop,14000);
 }
 /* Only on a screen with genuine room: on anything smaller a second window would
    cover the very thing it is describing. */
@@ -3897,7 +4037,19 @@ function play(){
    const f=document.getElementById("frame-details");
    if(f&&f.classList.contains("hidden")&&typeof openFrame==="function"){
      openFrame("details");
-     if(typeof tidyFrames==="function")tidyFrames();
+     /* Park it top-right, below the month/count/info cluster, rather than letting the
+        tiler put it wherever. That keeps the whole left side free for Controls, which
+        is the panel most likely to be opened next. */
+     const anchor=document.getElementById("sigBox")||document.getElementById("yearBig");
+     const top=anchor?Math.round(anchor.getBoundingClientRect().bottom+10):86;
+     const w=Math.min(420,Math.round(window.innerWidth*0.26));
+     f.style.left=Math.round(window.innerWidth-w-14)+"px";
+     f.style.right="auto";
+     f.style.top=top+"px";
+     f.style.width=w+"px";
+     f.style.maxWidth=w+"px";
+     f.dataset.placed="1";
+     if(typeof fitFrame==="function")fitFrame(f);
    }
  }
  const intervalMs=Number(speed.value);
