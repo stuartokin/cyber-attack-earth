@@ -130,6 +130,14 @@
     .winMenu b{display:block;font-size:12px;font-weight:600}
     .winMenu i{display:block;font-style:normal;font-size:10.5px;color:#8fa6c2;margin-top:1px}
     .winMenu .winDanger b{color:var(--orange)}
+    .winSep{height:1px;background:#24405c;margin:4px 2px}
+    .winAuto{display:flex;align-items:center;gap:7px;font-size:10.5px;color:#8fa6c2;padding:6px 9px 2px}
+    .winMenu button:disabled{cursor:default}
+    .layoutToast{position:fixed;left:50%;transform:translateX(-50%) translateY(14px);bottom:calc(env(safe-area-inset-bottom,0px) + 118px);
+      z-index:300;max-width:min(460px,calc(100vw - 28px));background:#0d2740;border:1px solid var(--accent);
+      color:#eaf6ff;font-size:11.5px;line-height:1.5;padding:9px 13px;border-radius:10px;
+      box-shadow:0 14px 34px rgba(0,0,0,.55);opacity:0;transition:opacity .3s,transform .3s;pointer-events:none}
+    .layoutToast.show{opacity:1;transform:translateX(-50%) translateY(0)}
     .tbCloseAll{color:var(--orange);border-color:#4a3520}
     .tbCloseAll:hover{background:rgba(255,157,60,.14);color:var(--orange);border-color:var(--orange)}
     .tbCloseAll.hidden{display:none}
@@ -505,6 +513,11 @@
     .frameDocked{}
     .frameFloating{position:fixed!important;top:auto;right:auto;box-shadow:0 24px 60px rgba(0,0,0,.6);border-color:#4a6a92}.sourceLinks a{font-size:11px;color:var(--accent);text-decoration:none;border:1px solid #315171;border-radius:999px;padding:4px 7px}.sourceLinks a:hover{background:#102b42}
     .sourceToggle{display:flex;align-items:flex-start;gap:8px;margin:8px 0;color:var(--text)}.sourceToggle input{margin-top:3px}
+    .dupBox{background:rgba(255,157,60,.07);border:1px solid #4a3520;border-left:3px solid var(--orange);
+      border-radius:8px;padding:10px 12px;margin:10px 0}
+    .dupBox b{color:#ffcf9a;font-size:12px}
+    .dupBox p{font-size:11.5px;line-height:1.55;color:#c9d8ec;margin:6px 0 0}
+    .dupBox p:last-child{margin-bottom:0}
     .warningBox{border-left:3px solid var(--orange);background:rgba(255,157,60,.08);padding:9px 11px;border-radius:6px;font-size:11.5px;color:#d7e1ef;line-height:1.55}
     #frame-bench{width:440px}
     .benchSummary{font-size:11.5px;color:#dbe7f5;background:rgba(16,32,57,.5);border:1px solid #223a58;
@@ -599,6 +612,11 @@
         <button type="button" data-win="home" role="menuitem"><b>Back to their usual places</b><i>Undo any dragging or resizing</i></button>
         <button type="button" data-win="defaults" role="menuitem"><b>Reset what they show</b><i>Charts back to their opening settings</i></button>
         <button type="button" data-win="close" role="menuitem" class="winDanger"><b>Close them all</b><i>Clear the screen</i></button>
+        <div class="winSep"></div>
+        <button type="button" data-win="saveLayout" role="menuitem"><b>Save this layout</b><i>Remember these windows, where they are and what they show</i></button>
+        <button type="button" data-win="loadLayout" role="menuitem"><b>Open my saved layout</b><i>Nothing saved yet</i></button>
+        <button type="button" data-win="forgetLayout" role="menuitem" style="display:none"><b>Forget the saved layout</b><i>Start again</i></button>
+        <label class="winAuto"><input type="checkbox" id="layoutAuto" /> Open it automatically next time</label>
       </div>
     </div>
     <button id="tbCloseAll" class="tbBtn tbCloseAll hidden" type="button" hidden aria-hidden="true"></button>
@@ -863,6 +881,13 @@
             <li><b>Leak-site claims are unverified.</b> They are the attacker's own account, and some claimed victims dispute them.</li>
             <li><b>Vulnerability counts are context, not attacks.</b> The CVE and KEV series measure attack surface and known exploitation, not incidents.</li>
           </ul>
+          <div class="dupBox">
+            <b>Why the total is &ldquo;records&rdquo;, not &ldquo;attacks&rdquo;</b>
+            <p>Several independent projects catalogue cyber incidents, and they overlap. One attack on one company can appear in three of them, under three slightly different names, with three different dates &mdash; the day it started, the day it was noticed, the day it was announced.</p>
+            <p>This tool tries to spot those and merge them into one record, matching on the victim, the date and the country. It catches most, but it will not catch all: &ldquo;St Mary&rsquo;s NHS Trust&rdquo; and &ldquo;St Marys Hospital&rdquo; look like two victims to a computer. <b>So read the headline figure as the number of records held, not as a count of distinct events.</b> The real number of documented attacks is somewhat lower; the number of actual attacks is very much higher.</p>
+            <p><b>This is why more sources would not automatically be better.</b> Every feed added brings its own version of events already in here, and an attack counted twice is worse than an attack not counted at all &mdash; because the error is invisible and it inflates every total, every league table and every trend line built on top of it. A new source earns its place by being checkable, licensable and de-duplicable against what is already here, not by adding volume.</p>
+            <p>The <b>Evidence</b> filter in Controls is the tool for this. It separates what has been reviewed by researchers from what is a single report or an attacker&rsquo;s own claim, so you can see how much of any pattern rests on the firmest ground. If a finding only holds when the weakest tier is included, that is worth knowing before you repeat it.</p>
+          </div>
           <p class="small" style="margin-bottom:0">Built as a personal project. Nothing here represents the views of any employer or organisation.</p>
         <div class="warningBox">
           This map shows <b>documented</b> incidents, not all attacks. Growth over time reflects both a real rise in activity and substantially improved recording &mdash; the two cannot be cleanly separated. Sparse regions indicate sparse <i>reporting</i>, not safety. Attacker origins are usually attribution or ecosystem proxies rather than verified launch locations, and leak-site entries are unverified attacker claims.
@@ -955,7 +980,8 @@
         <div><b id="splashSources">&mdash;</b><span>sources</span></div>
         <div><b id="splashCharts">&mdash;</b><span>charts</span></div>
       </div>
-      <p class="splashNote">It records what was <i>disclosed</i>, which is a small and uneven fraction of what happened. Growth over time reflects both real escalation and much better recording. The Help window explains the limitations before you quote anything from it.</p>
+      <p class="splashNote">It records what was <i>disclosed</i>, which is a small and uneven fraction of what happened. Growth over time reflects both real escalation and much better recording.</p>
+      <p class="splashNote"><b>One number, several sources.</b> The same attack is often reported by more than one of them, under different names. Where that is spotted it is merged into a single record, but some duplicates will survive &mdash; so treat the total as <i>records held</i>, not a count of distinct events. More sources would not simply mean a better picture: each one added brings its own duplicates, and an attack counted twice is worse than one not counted at all. The Help window explains all of this properly before you quote anything from it.</p>
       <div class="splashAttrib" id="splashAttrib"></div>
       <label class="splashLight"><input id="splashLite" type="checkbox"> Reduce the load &mdash; fewer missiles and lighter filters, for an older or smaller device</label>
       <div class="splashBars">
@@ -1563,7 +1589,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v74";
+const APP_VERSION="v75";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -4581,6 +4607,7 @@ function chartsToDefaults(){
  btn.addEventListener("click",e=>{
    e.stopPropagation();
    const open=menu.classList.contains("hidden");
+   if(open&&typeof layoutRefreshMenu==="function")layoutRefreshMenu();
    menu.classList.toggle("hidden",!open);
    btn.classList.toggle("on",open);
    btn.setAttribute("aria-expanded",String(open));
@@ -4592,13 +4619,223 @@ function chartsToDefaults(){
    if(what==="tidy")tidyFrames();
    else if(what==="home")framesHome();
    else if(what==="defaults")chartsToDefaults();
+   else if(what==="saveLayout")layoutSave();
+   else if(what==="loadLayout")layoutRestore();
+   else if(what==="forgetLayout")layoutForget();
    else if(what==="close"&&typeof closeAllFrames==="function")closeAllFrames();
    else if(what==="close")document.querySelectorAll(".frame:not(.hidden)").forEach(f=>f.classList.add("hidden"));
    if(typeof refreshCloseAll==="function")refreshCloseAll();
  });
+ const auto=document.getElementById("layoutAuto");
+ if(auto)auto.addEventListener("change",e=>{
+   e.stopPropagation();
+   const L=layoutRead();
+   if(!L){ auto.checked=false; layoutToast("Save a layout first, then this will offer it automatically."); return }
+   L.autoOpen=auto.checked;
+   layoutWrite(L);
+   layoutToast(auto.checked?"Your saved layout will open automatically next time.":"Your saved layout will no longer open automatically.");
+ });
  document.addEventListener("click",ev=>{ if(!menu.contains(ev.target)&&ev.target!==btn)close() });
  document.addEventListener("keydown",ev=>{ if(ev.key==="Escape")close() });
 })();
+/* ── Saved window layouts ───────────────────────────────────────────────────
+   People who use this regularly tend to want the same few windows, in the same
+   places, shaped for their own screen. Saving a layout records which windows are
+   open, where they sit, how big they are, and what each chart is set to show -
+   then puts it all back on demand, or automatically on opening.
+
+   Stored in the browser, so it is per-device: the layout that suits a wide
+   monitor is not the one that suits a phone, and each keeps its own. Storage can
+   be unavailable (a sandboxed preview, private browsing with storage blocked),
+   in which case the layout still works for the session and says so rather than
+   failing silently. */
+const LAYOUT_KEY="cyberAttackEarth.layout.v1";
+let _layoutMemory=null;                 // fallback when storage is unavailable
+
+function layoutStoreAvailable(){
+  try{
+    const k="__cae_probe";
+    window.localStorage.setItem(k,"1");
+    window.localStorage.removeItem(k);
+    return true;
+  }catch(e){ return false }
+}
+function layoutRead(){
+  try{
+    const raw=window.localStorage.getItem(LAYOUT_KEY);
+    if(raw)return JSON.parse(raw);
+  }catch(e){}
+  return _layoutMemory;
+}
+function layoutWrite(obj){
+  _layoutMemory=obj;
+  try{
+    window.localStorage.setItem(LAYOUT_KEY,JSON.stringify(obj));
+    return "stored";
+  }catch(e){ return "session" }
+}
+function layoutClear(){
+  _layoutMemory=null;
+  try{ window.localStorage.removeItem(LAYOUT_KEY) }catch(e){}
+}
+
+/* What gets captured. Geometry is recorded as a FRACTION of the viewport as well
+   as in pixels: restoring on a different screen size then keeps the arrangement
+   rather than pushing windows off the edge. */
+function layoutCapture(){
+  const W=window.innerWidth, H=window.innerHeight;
+  const frames=[...document.querySelectorAll(".frame:not(.hidden)")].map(f=>{
+    const r=f.getBoundingClientRect();
+    return {
+      id:f.id,
+      maxed:f.classList.contains("maxed"),
+      x:Math.round(r.left), y:Math.round(r.top),
+      w:Math.round(r.width), h:Math.round(r.height),
+      fx:+(r.left/Math.max(1,W)).toFixed(4), fy:+(r.top/Math.max(1,H)).toFixed(4),
+      fw:+(r.width/Math.max(1,W)).toFixed(4), fh:+(r.height/Math.max(1,H)).toFixed(4)
+    };
+  });
+  return {
+    v:1, savedAt:new Date().toISOString(), screen:{w:W,h:H},
+    mapMode:(typeof mapMode!=="undefined")?mapMode:"sphere",
+    frames,
+    charts:{
+      follow:{...CHART_FOLLOW}, mode:{...CHART_MODE},
+      toponly:{...CHART_TOPONLY}, zoom:{...CHART_ZOOM},
+      vulnDim:(typeof VULN_DIM!=="undefined")?VULN_DIM:"epss",
+      vendors:(typeof VULN_VENDORS!=="undefined")?[...VULN_VENDORS]:[]
+    },
+    autoOpen:!!(document.getElementById("layoutAuto")||{}).checked
+  };
+}
+
+function layoutApply(L){
+  if(!L||!Array.isArray(L.frames))return false;
+  if(typeof closeAllFrames==="function")closeAllFrames();
+
+  // chart settings first, so each window renders correctly the moment it opens
+  try{
+    const c=L.charts||{};
+    Object.keys(CHART_FOLLOW).forEach(k=>delete CHART_FOLLOW[k]);
+    Object.assign(CHART_FOLLOW,c.follow||{});
+    Object.keys(CHART_MODE).forEach(k=>delete CHART_MODE[k]);
+    Object.assign(CHART_MODE,c.mode||{});
+    Object.keys(CHART_TOPONLY).forEach(k=>delete CHART_TOPONLY[k]);
+    Object.assign(CHART_TOPONLY,c.toponly||{});
+    Object.keys(CHART_ZOOM).forEach(k=>delete CHART_ZOOM[k]);
+    Object.assign(CHART_ZOOM,c.zoom||{});
+    if(c.vulnDim)VULN_DIM=c.vulnDim;
+    if(typeof VULN_VENDORS!=="undefined"){
+      VULN_VENDORS.clear();
+      (c.vendors||[]).forEach(v=>VULN_VENDORS.add(v));
+    }
+  }catch(e){}
+
+  if(L.mapMode&&typeof setMapMode==="function"&&L.mapMode!==mapMode)setMapMode(L.mapMode);
+
+  const W=window.innerWidth, H=window.innerHeight;
+  // A layout shaped for a much wider screen is scaled rather than clipped.
+  const sameish=L.screen&&Math.abs(L.screen.w-W)<80&&Math.abs(L.screen.h-H)<80;
+  let opened=0;
+
+  L.frames.forEach(spec=>{
+    const chartId=spec.id.startsWith("frame-chart-")?spec.id.replace("frame-chart-",""):null;
+    try{
+      if(chartId){ if(typeof openChartFrame==="function")openChartFrame(chartId) }
+      else{ if(typeof openFrame==="function")openFrame(spec.id.replace("frame-","")) }
+    }catch(e){ return }
+    const f=document.getElementById(spec.id);
+    if(!f||f.classList.contains("hidden"))return;
+    opened++;
+    f.classList.toggle("maxed",!!spec.maxed);
+    if(spec.maxed)return;                       // maximised needs no geometry
+
+    const x=sameish?spec.x:Math.round((spec.fx!=null?spec.fx:0)*W);
+    const y=sameish?spec.y:Math.round((spec.fy!=null?spec.fy:0)*H);
+    const w=sameish?spec.w:Math.round((spec.fw!=null?spec.fw:0.3)*W);
+    const h=sameish?spec.h:Math.round((spec.fh!=null?spec.fh:0.4)*H);
+    const tb=document.getElementById("toolbar");
+    const top=tb?Math.round(tb.getBoundingClientRect().bottom+8):70;
+    const bottom=(typeof safeBottom==="function")?safeBottom():H;
+
+    const ww=Math.max(220,Math.min(w,W-20));
+    const hh=Math.max(140,Math.min(h,bottom-top-10));
+    f.style.width=ww+"px"; f.style.maxWidth=ww+"px";
+    f.style.height=hh+"px"; f.style.maxHeight=hh+"px";
+    f.style.left=Math.max(8,Math.min(x,W-ww-8))+"px";
+    f.style.right="auto";
+    f.style.top=Math.max(top,Math.min(y,bottom-hh-6))+"px";
+    f.dataset.placed="1"; f.dataset.sized="1";
+  });
+
+  // charts need a redraw at their restored size
+  document.querySelectorAll('.frame[id^="frame-chart-"]:not(.hidden)').forEach(f=>{
+    const id=f.id.replace("frame-chart-","");
+    if(typeof renderChartFrame==="function")renderChartFrame(id);
+  });
+  if(typeof refreshCloseAll==="function")refreshCloseAll();
+  return opened>0;
+}
+
+function layoutSave(){
+  const L=layoutCapture();
+  if(!L.frames.length){
+    layoutToast("Nothing to save \u2014 open the windows you want first, arrange them, then save.");
+    return;
+  }
+  const where=layoutWrite(L);
+  layoutToast(where==="stored"
+    ? `Saved ${L.frames.length} window${L.frames.length===1?"":"s"} for this screen (${L.screen.w}\u00d7${L.screen.h}). It will be offered whenever you open the map on this device.`
+    : `Saved for this session only \u2014 this browser is not allowing storage, so it will be forgotten when the tab closes.`);
+  layoutRefreshMenu();
+}
+function layoutRestore(){
+  const L=layoutRead();
+  if(!L){ layoutToast("No saved layout yet. Arrange the windows you want, then choose Save this layout."); return }
+  const ok=layoutApply(L);
+  layoutToast(ok?`Restored your saved layout.`:`That layout could not be restored \u2014 the windows in it may no longer exist.`);
+}
+function layoutForget(){
+  layoutClear();
+  layoutToast("Saved layout removed.");
+  layoutRefreshMenu();
+}
+function layoutToast(msg){
+  let t=document.getElementById("layoutToast");
+  if(!t){
+    t=document.createElement("div");
+    t.id="layoutToast"; t.className="layoutToast";
+    document.body.appendChild(t);
+  }
+  t.textContent=msg;
+  t.classList.add("show");
+  clearTimeout(window.__layoutToastT);
+  window.__layoutToastT=setTimeout(()=>t.classList.remove("show"),5200);
+}
+/* Menu wording reflects what is actually saved, so the options are never a guess. */
+function layoutRefreshMenu(){
+  const L=layoutRead();
+  const restore=document.querySelector('#winMenu [data-win="loadLayout"]');
+  const forget=document.querySelector('#winMenu [data-win="forgetLayout"]');
+  if(restore){
+    const i=restore.querySelector("i");
+    if(i)i.textContent=L
+      ? `${L.frames.length} window${L.frames.length===1?"":"s"}, saved for ${L.screen?L.screen.w+"\u00d7"+L.screen.h:"this screen"}`
+      : "Nothing saved yet";
+    restore.disabled=!L;
+    restore.style.opacity=L?"":"0.45";
+  }
+  if(forget){ forget.style.display=L?"":"none" }
+  const auto=document.getElementById("layoutAuto");
+  if(auto&&L)auto.checked=!!L.autoOpen;
+}
+/* Applied once after the welcome screen closes, if the viewer asked for it. */
+function layoutMaybeAutoOpen(){
+  const L=layoutRead();
+  if(!L||!L.autoOpen)return;
+  setTimeout(()=>{ try{ layoutApply(L) }catch(e){} },400);
+}
+
 function refreshCloseAll(){
  if(!tbCloseAll)return;
  const n=openFrameCount();
@@ -4753,8 +4990,13 @@ function splashDismiss(then){
  s.classList.add("gone");
  setTimeout(()=>{
    s.remove();update();
-   if(then)then();
-   else if(typeof afterWelcome==="function")afterWelcome();   // no tour: point at Play
+   if(then)then();                     // a narrated mode was chosen
+   else{
+     if(typeof afterWelcome==="function")afterWelcome();   // point at Play
+     // A saved layout is the viewer's own arrangement, so it opens here - but never
+     // over a tour they have just asked for.
+     if(typeof layoutMaybeAutoOpen==="function")layoutMaybeAutoOpen();
+   }
  },600);
 }
 (function(){ const v=document.getElementById("splashVer"); if(v)v.textContent="Version "+APP_VERSION; })();
