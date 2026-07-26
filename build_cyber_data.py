@@ -1,9 +1,27 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.13.1 (2026-07-26) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.14.1 (2026-07-26) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.14.1 Advisory extraction from ATT&CK now works two independent ways: reference
+        URLs containing an advisory identifier (whatever the host path), and the
+        "(Citation: CISA AA20-239A ...)" markers MITRE writes into its prose, scanned
+        across the full description rather than the truncated first sentence. Neither
+        depends on the other, because the raw bundle could not be inspected before
+        writing this and a single assumption about URL shape was too fragile to rely
+        on. Each group also reports how many advisories were found, so a zero is
+        visible rather than silent.
+ 3.14.0 cisa.gov returns HTTP 403 to automated requests for its advisory feeds and
+        index pages from a datacentre address; its static files (the KEV catalogue)
+        are cached and unaffected. Rather than defeat that control, the advisory list
+        is now taken from the CISA advisories MITRE cites in the ATT&CK bundle we
+        already download - published for programmatic use, and attributed to each
+        group by MITRE rather than by my own text matching, which is better sourced
+        than the original design. Advisory page bodies remain unreadable, so CVE
+        links are absent and each record records that; identifiers, titles, links and
+        group attribution are unaffected. The direct routes are retained in case the
+        site becomes reachable.
  3.13.1 The CISA advisory connector returned nothing on its first real run and the
         manifest could not say why, because both failure paths looked identical. It now
         tries three feed paths and then falls back to scraping the advisories index for
@@ -171,8 +189,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.13.1"
-BUILDER_DATE = "2026-07-26d"
+BUILDER_VERSION = "3.14.1"
+BUILDER_DATE = "2026-07-26f"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -675,14 +693,68 @@ def build_attack():
         elif o.get("type") == "intrusion-set":
             desc = re.sub(r"\[|\]|\(https?:[^)]*\)", "",
                           str(o.get("description") or "").split(". ")[0])
+            # Government advisories MITRE itself cites for this group. This is a
+            # better link than any text matching of my own: the attribution is
+            # MITRE's, and it arrives with the bundle we are already downloading -
+            # which matters because cisa.gov refuses automated requests to its
+            # dynamic pages (HTTP 403 from a datacentre address), while this
+            # bundle is published precisely to be consumed programmatically.
+            # Two independent routes, because I cannot see the raw bundle from here
+            # and should not bet the whole feature on one URL shape:
+            #   1. external_references whose URL contains an advisory identifier -
+            #      works whatever the host path looks like, including the older
+            #      us-cert.cisa.gov/ncas/alerts/ form.
+            #   2. the citation markers MITRE writes into its prose, e.g.
+            #      "(Citation: CISA AA20-239A BeagleBoyz August 2020)" - which is
+            #      visible in the published data and needs no URL at all.
+            advs, seen_adv = [], set()
+
+            def _add_adv(aid, url, title):
+                aid = (aid or "").lower()
+                if not aid or aid in seen_adv:
+                    return
+                seen_adv.add(aid)
+                advs.append({"id": aid,
+                             "url": (url or
+                                     "https://www.cisa.gov/news-events/"
+                                     "cybersecurity-advisories/" + aid)[:300],
+                             "title": (title or "").strip()[:220]})
+
+            for r2 in o.get("external_references", []):
+                u2 = str(r2.get("url") or "")
+                sn = str(r2.get("source_name") or "")
+                title = str(r2.get("description") or sn or "")
+                m2 = re.search(r"(?<![a-z0-9])(a{1,2}\d{2}-\d{3}[a-z]?)(?![a-z0-9])", u2, re.I)
+                if m2 and "cisa" in u2.lower():
+                    _add_adv(m2.group(1), u2, title)
+                    continue
+                # a citation named for an advisory, even if the link has moved
+                m3 = re.search(r"CISA\s+(a{1,2}\d{2}-\d{3}[a-z]?)", sn, re.I)
+                if m3:
+                    _add_adv(m3.group(1), u2 if "cisa" in u2.lower() else "", sn)
+
+            # and the prose, scanned in full rather than the truncated first sentence
+            full_desc = str(o.get("description") or "")
+            for m4 in re.finditer(r"Citation:\s*CISA\s+(a{1,2}\d{2}-\d{3}[a-z]?)([^)]{0,80})",
+                                  full_desc, re.I):
+                _add_adv(m4.group(1), "", "CISA " + m4.group(1).upper()
+                         + " " + m4.group(2).strip())
             groups.append({
                 "id": ref.get("external_id", ""),
                 "name": (o.get("name") or "")[:80],
                 "aliases": (o.get("aliases") or [])[:8],
                 "desc": desc[:220],
                 "url": ref.get("url", ""),
+                "advisories": advs[:12],
             })
-    print("  [attack] %d techniques, %d groups" % (len(techniques), len(groups)))
+    adv_groups = sum(1 for g in groups if g.get("advisories"))
+    adv_total = len({a["id"] for g in groups for a in (g.get("advisories") or [])})
+    print("  [attack] %d techniques, %d groups; %d groups cite %d distinct CISA "
+          "advisories" % (len(techniques), len(groups), adv_groups, adv_total))
+    if not adv_total:
+        print("  [attack] NOTE: no CISA advisory citations found. The advisory "
+              "enrichment will be empty - paste a group's external_references to fix "
+              "the pattern.")
     if not techniques:
         raise RuntimeError("zero techniques parsed")
     return {"techniques": techniques, "groups": groups}
@@ -1867,12 +1939,48 @@ def _aa_listing():
 def build_cisa_aa(out_dir=None):
     # The feed gives the list; the identifiers we want are in the page bodies, so
     # pages are fetched a bounded number at a time and cached between runs.
-    listed, via = _aa_listing()
+    # ── Where the list comes from ──────────────────────────────────────────
+    # First choice is the ATT&CK bundle's own citations, because cisa.gov returns
+    # 403 to automated requests for its feeds and index pages (its static files,
+    # such as the KEV catalogue, are served from cache and do work). MITRE
+    # publishes the bundle for programmatic use and attributes each advisory to a
+    # group itself, so this is both the reliable route and the better-sourced one.
+    listed, via = [], None
+    attack_early = None
+    apath0 = (out_dir or Path("cyber_data")) / "techniques" / "attack.json"
+    if apath0.exists():
+        try:
+            attack_early = json.loads(apath0.read_text(encoding="utf-8"))
+        except Exception:                                 # noqa: BLE001
+            attack_early = None
+    if attack_early:
+        seen, byid = set(), {}
+        for g in (attack_early.get("groups") or []):
+            for a in (g.get("advisories") or []):
+                aid = a.get("id") or ""
+                if not aid:
+                    continue
+                rec = byid.setdefault(aid, {"id": aid, "url": a.get("url") or "",
+                                            "title": a.get("title") or "", "date": "",
+                                            "groups": [], "cves": [], "techniques": []})
+                if g.get("id") and g["id"] not in rec["groups"]:
+                    rec["groups"].append(g["id"])
+                seen.add(aid)
+        listed = list(byid.values())
+        if listed:
+            via = "MITRE ATT&CK citations (%d advisories, attributed by MITRE)" % len(listed)
+            print("  [cisaaa] %s" % via)
+
+    # Only if that produced nothing do we try CISA directly. Kept because the site
+    # may become reachable again, and because it is the only route that yields the
+    # CVE lists inside advisory bodies.
     if not listed:
-        print("  [cisaaa] no advisory list could be obtained from any feed or index "
-              "page - see the lines above for the status of each attempt")
-        return []
-    print("  [cisaaa] using %s" % via)
+        listed, via = _aa_listing()
+        if not listed:
+            print("  [cisaaa] no advisory list available: ATT&CK carried no CISA "
+                  "citations and cisa.gov refused every request (see above)")
+            return []
+        print("  [cisaaa] using %s" % via)
 
     cached = {}
     cache = (out_dir or Path("cyber_data")) / "advisories" / "aa.json"
@@ -1905,7 +2013,7 @@ def build_cisa_aa(out_dir=None):
     print("  [cisaaa] %d advisories listed, %d cached, %d to read (cap %d)"
           % (len(listed), len(cached), len(todo), AA_MAX_PAGES_PER_RUN))
 
-    fetched, t0 = 0, time.time()
+    fetched, blocked, t0 = 0, 0, time.time()
     for a in todo:
         if fetched >= AA_MAX_PAGES_PER_RUN:
             print("  [cisaaa] per-run cap reached; the rest fills in on later runs")
@@ -1915,6 +2023,9 @@ def build_cisa_aa(out_dir=None):
             break
         rec = dict(cached.get(a["id"]) or {})
         rec.update({k: a[k] for k in ("id", "title", "url", "date") if a.get(k)})
+        for k in ("groups", "cves", "techniques"):        # keep what the listing gave
+            if a.get(k) and not rec.get(k):
+                rec[k] = a[k]
         try:
             pr = requests.get(a["url"], headers=UA, timeout=45)
             pr.raise_for_status()
@@ -1934,17 +2045,28 @@ def build_cisa_aa(out_dir=None):
             fetched += 1
             time.sleep(AA_PAGE_DELAY)
         except Exception as exc:                          # noqa: BLE001
-            print("  [warn] cisaaa %s: %s" % (a["id"], exc))
+            # Expected while cisa.gov blocks us. The advisory is still recorded with
+            # its identifier, title, link and MITRE attribution; only the CVE list
+            # inside the page body is missing, and the record says so.
+            if blocked < 3:
+                print("  [cisaaa] page not readable for %s (%s) - keeping the "
+                      "citation without its CVE list" % (a["id"], str(exc)[:60]))
+            blocked += 1
             rec.setdefault("cves", [])
             rec.setdefault("techniques", [])
+            rec["body"] = False
         cached[rec["id"]] = rec
 
     rows = sorted(cached.values(), key=lambda r: (r.get("date") or "", r.get("id") or ""),
                   reverse=True)
     withcve = sum(1 for r in rows if r.get("cves"))
     withgrp = sum(1 for r in rows if r.get("groups"))
-    print("  [cisaaa] %d advisories held; %d reference CVEs, %d name a known group "
-          "(%d pages read this run)" % (len(rows), withcve, withgrp, fetched))
+    print("  [cisaaa] %d advisories held; %d reference CVEs, %d attributed to a group "
+          "(%d pages read, %d unreadable this run)"
+          % (len(rows), withcve, withgrp, fetched, blocked))
+    if blocked and not withcve:
+        print("  [cisaaa] note: advisory bodies are unreachable, so CVE links are "
+              "absent. Group attribution and links out are unaffected.")
     return rows
 
 
