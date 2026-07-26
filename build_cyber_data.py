@@ -1,9 +1,15 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.11.2 (2026-07-26) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.12.0 (2026-07-26) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.12.0 EuRepoC static release now follows Zenodo's own versioning instead of two
+        hard-coded URLs pinned to version 1.3.2. The build resolves the newest release
+        in the series, says so in the log when it moves, and records the version and
+        DOI in manifest.json so a published chart can cite exactly what it was built
+        on. The pinned URLs remain as a fallback. This removes a silent staleness
+        failure: the previous code would have served 1.3.2 indefinitely.
  3.11.2 Hardened the NVD record parser against malformed input: a non-string date,
         or a list holding something other than a dictionary, would previously raise
         and stop the whole connector rather than skipping one bad record. Found by
@@ -149,8 +155,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.11.2"
-BUILDER_DATE = "2026-07-26"
+BUILDER_VERSION = "3.12.0"
+BUILDER_DATE = "2026-07-26b"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -301,12 +307,126 @@ def _eurepoc_impact(row):
                 imp["financial"] = round(amt)
     return imp or None
 
+# ── Zenodo: always take the newest EuRepoC release ─────────────────────────
+# The static release was previously fetched from two hard-coded Zenodo URLs
+# pinned to record 14965395 (version 1.3.2). That works until EuRepoC publishes
+# a new version, at which point the app keeps serving the old one indefinitely
+# and nothing says so - the worst kind of staleness, because it looks fine.
+#
+# Zenodo versions records and exposes a "latest" link on every version, so the
+# fix is to start from any known record and follow it. The resolved version and
+# DOI are recorded in the manifest, which also gives a citable reference for
+# whichever release the published map is actually built on.
+ZENODO_API = "https://zenodo.org/api"
+EUREPOC_ZENODO_SEED = 14965395          # any known version; only used to find the series
+
+# The dyadic file has one row per origin-to-target pair, which is what the map
+# draws; several rows can share an incident id, and the app counts distinct
+# incidents separately. The global file (one row per incident) is the fallback.
+EUREPOC_FILE_PREFER = [r"dyadic", r"global"]
+# Never these, whatever else is missing. The attribution file has one row per
+# attribution CLAIM and the receiver file one row per affected country: both are
+# different units of analysis, and silently loading one in place of the incident
+# data would distort every count in the app. If neither preferred file is present,
+# the fetcher refuses and the build falls back rather than guessing.
+EUREPOC_FILE_NEVER = [r"attribution", r"receiver", r"codebook", r"readme"]
+
+EUREPOC_RELEASE = {}                    # filled in by the fetcher, read by the manifest
+
+
+def _zenodo_latest_record(seed_id):
+    """Resolve the newest version of a Zenodo record series from any known member."""
+    r = requests.get("%s/records/%s" % (ZENODO_API, seed_id), headers=UA, timeout=60)
+    r.raise_for_status()
+    rec = r.json()
+    latest = ((rec.get("links") or {}).get("latest") or "")
+    if latest:
+        tail = str(latest).rstrip("/").split("/")[-1]
+        if tail and tail != str(seed_id):
+            r2 = requests.get(latest, headers=UA, timeout=60)
+            r2.raise_for_status()
+            rec = r2.json()
+    return rec
+
+
+def _zenodo_pick_csv(rec, prefer=None):
+    """Choose which CSV in the record to use, by preference order of filename."""
+    cands = []
+    for f in (rec.get("files") or []):
+        if not isinstance(f, dict):
+            continue
+        key = str(f.get("key") or f.get("filename") or "")
+        if not key.lower().endswith(".csv"):
+            continue
+        links = f.get("links") or {}
+        url = links.get("self") or links.get("download") or ""
+        if url:
+            cands.append((key, url, f.get("size") or 0))
+    if not cands:
+        return None, None, 0
+    banned = [re.compile(p, re.I) for p in EUREPOC_FILE_NEVER]
+    cands = [c for c in cands if not any(b.search(c[0]) for b in banned)]
+    for pat in (prefer or EUREPOC_FILE_PREFER):
+        rx = re.compile(pat, re.I)
+        for key, url, size in cands:
+            if rx.search(key):
+                return key, url, size
+    # Deliberately no "just take the first one": an unexpected file is more likely
+    # to be the wrong unit of analysis than a usable substitute.
+    return None, None, 0
+
+
+def _zenodo_release_meta(rec):
+    md = rec.get("metadata") or {}
+    return {
+        "record": rec.get("id") or rec.get("recid"),
+        "concept": rec.get("conceptrecid"),
+        "version": md.get("version") or "",
+        "doi": rec.get("doi") or md.get("doi") or "",
+        "published": (md.get("publication_date") or "")[:10],
+        "title": (md.get("title") or "")[:140],
+    }
+
+
+def eurepoc_release_csv():
+    """Newest EuRepoC release CSV as text, or None if Zenodo cannot be reached."""
+    try:
+        rec = _zenodo_latest_record(EUREPOC_ZENODO_SEED)
+        meta = _zenodo_release_meta(rec)
+        key, url, size = _zenodo_pick_csv(rec)
+        if not url:
+            print("  [eurepoc] record %s has no recognised incident CSV "
+                  "(looked for %s); falling back rather than guessing"
+                  % (meta.get("record"), " or ".join(EUREPOC_FILE_PREFER)))
+            return None
+        meta["file"] = key
+        r = requests.get(url, headers=UA, timeout=180)
+        r.raise_for_status()
+        EUREPOC_RELEASE.clear()
+        EUREPOC_RELEASE.update(meta)
+        print("  [eurepoc] release %s (record %s, %s) file %s, %.1f MB"
+              % (meta.get("version") or "?", meta.get("record"),
+                 meta.get("doi") or "no doi", key, len(r.content) / 1e6))
+        if str(meta.get("record")) != str(EUREPOC_ZENODO_SEED):
+            print("  [eurepoc] NOTE: newer than the pinned seed release - "
+                  "the map is now built on %s" % (meta.get("version") or meta.get("record")))
+        return r.content.decode("utf-8", "replace")
+    except Exception as exc:                              # noqa: BLE001
+        print("  [warn] eurepoc: could not resolve the latest Zenodo release (%s)" % exc)
+        return None
+
+
 @source(id="eurepoc", table="incidents", title="EuRepoC Global Dataset",
         licence="See Zenodo record terms", cadence="on release",
         homepage="https://eurepoc.eu/", expected=4300)
 def build_eurepoc():
-    r = get_first(EUREPOC_URLS, "EuRepoC")
-    rows = list(csv.DictReader(io.StringIO(r.content.decode("utf-8", "replace"))))
+    # Newest release first; the pinned URLs remain as a fallback so a Zenodo
+    # outage degrades to the previous behaviour rather than losing the source.
+    text = eurepoc_release_csv()
+    if text is None:
+        print("  [eurepoc] falling back to the pinned release URLs")
+        text = get_first(EUREPOC_URLS, "EuRepoC").content.decode("utf-8", "replace")
+    rows = list(csv.DictReader(io.StringIO(text)))
     if not rows:
         raise RuntimeError("parsed zero rows")
     pats = [re.compile(p, re.I) for p in EUREPOC_KEEP]
@@ -1733,6 +1853,10 @@ def main():
         "tables": tables,
         "sources": entries,
     }
+    # Which upstream release this build used, so a published chart can be cited
+    # precisely and a stale pin is visible rather than silent.
+    if EUREPOC_RELEASE:
+        manifest["releases"] = {"eurepoc": dict(EUREPOC_RELEASE)}
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
 
     print("\n[done] manifest written by BUILDER v%s (schema v%d). Summary:"
