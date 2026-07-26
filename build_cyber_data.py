@@ -1,9 +1,19 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.15.1 (2026-07-26) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.16.0 (2026-07-26) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.16.0 Manual exports now have a visible age. The CISSM export and the EuRepoC
+        TableView arrive as files downloaded by hand and cannot refresh themselves,
+        so the map could drift months behind with every status light still green.
+        The age comes from the DATE IN THE FILENAME, never the modification time - a
+        fresh checkout stamps every file with the moment the runner cloned the repo,
+        so mtime would report a March export as seconds old. Ages are written to the
+        manifest for the app to display, printed in the build summary, and once past
+        their limit the build raises a GitHub issue and updates the same one on later
+        runs rather than nagging nightly. When the exports are refreshed the issue is
+        closed automatically. Requires "issues: write" in the workflow permissions.
  3.15.1 Advisory identifiers coming back from NVD are now validated against the
         expected shape before use. A malformed value would previously have been
         iterated character by character, inventing advisories named after single
@@ -212,8 +222,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.15.1"
-BUILDER_DATE = "2026-07-26i"
+BUILDER_VERSION = "3.16.0"
+BUILDER_DATE = "2026-07-26j"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -1139,6 +1149,7 @@ def _manual_rows(kind="cissm", allow_any=False):
         if rows and isinstance(rows[0], dict):
             print("  [%s] using manual export %s (%d rows, %.1f MB)"
                   % (kind, path.name, len(rows), path.stat().st_size / 1e6))
+            _record_manual_export(kind, path)
             return rows
         print("  [%s] %s contained no usable rows" % (kind, path.name))
     return None
@@ -2193,6 +2204,171 @@ def build_cisa_aa(out_dir=None):
     return rows
 
 
+# ── Manual export freshness ────────────────────────────────────────────────
+# Two sources still arrive as a file downloaded by hand: the CISSM export and the
+# EuRepoC TableView. Nothing warns when one goes stale, so the map can quietly
+# drift months behind while every status light stays green - the counts look
+# fine, they are simply out of date.
+#
+# The age is taken from the DATE IN THE FILENAME, never the file's modification
+# time: a fresh checkout stamps every file with the moment the runner cloned the
+# repository, so an export from March would look seconds old. This is why the
+# convention of naming exports with their date matters.
+MANUAL_EXPORTS = {}                      # kind -> {file, dated, age_days}
+MANUAL_MAX_AGE_DAYS = {"cissm": 40, "eurepoc": 40}
+MANUAL_DEFAULT_MAX_AGE = 40
+_DATE_IN_NAME = re.compile(r"(20\d{2})[-_]?(\d{2})[-_]?(\d{2})")
+
+
+def _export_date(path):
+    """The date in an export's filename, or None if it does not carry one."""
+    m = _DATE_IN_NAME.search(Path(path).name)
+    if not m:
+        return None
+    try:
+        return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    except ValueError:
+        return None
+
+
+def _record_manual_export(kind, path):
+    d = _export_date(path)
+    age = (date.today() - d).days if d else None
+    MANUAL_EXPORTS[kind] = {
+        "file": Path(path).name,
+        "dated": d.isoformat() if d else "",
+        "age_days": age,
+        "limit_days": MANUAL_MAX_AGE_DAYS.get(kind, MANUAL_DEFAULT_MAX_AGE),
+    }
+    if age is None:
+        print("  [%s] NOTE: %s has no date in its filename, so its age cannot be "
+              "tracked. Rename it like %s_%s.csv to enable the reminder."
+              % (kind, Path(path).name, kind, date.today().isoformat()))
+    else:
+        limit = MANUAL_MAX_AGE_DAYS.get(kind, MANUAL_DEFAULT_MAX_AGE)
+        print("  [%s] export dated %s, %d day%s old%s"
+              % (kind, d.isoformat(), age, "" if age == 1 else "s",
+                 "  ** REFRESH DUE **" if age > limit else ""))
+
+
+def stale_exports():
+    """Manual exports past their limit, worst first."""
+    out = []
+    for kind, info in MANUAL_EXPORTS.items():
+        age = info.get("age_days")
+        if age is not None and age > info.get("limit_days", MANUAL_DEFAULT_MAX_AGE):
+            out.append((kind, info))
+    return sorted(out, key=lambda kv: -(kv[1].get("age_days") or 0))
+
+
+# ── Telling someone about it ───────────────────────────────────────────────
+# A line in a build log nobody reads is not a reminder. The Action already has a
+# token that can open an issue in its own repository, so the build raises one -
+# and closes it again once the export has been refreshed. One issue is reused
+# rather than a new one each night, because a reminder that arrives daily stops
+# being read within a week.
+GH_API = "https://api.github.com"
+STALE_LABEL = "data-refresh"
+
+
+def _gh(method, path, token, payload=None):
+    url = GH_API + path
+    headers = {"Authorization": "Bearer " + token,
+               "Accept": "application/vnd.github+json",
+               "X-GitHub-Api-Version": "2022-11-28",
+               "User-Agent": UA["User-Agent"]}
+    r = requests.request(method, url, headers=headers, timeout=45,
+                         json=payload if payload is not None else None)
+    return r
+
+
+def _stale_issue_body(stale, fresh):
+    lines = ["The data pack is built automatically every night, but these sources "
+             "arrive as a file downloaded by hand and cannot refresh themselves.", ""]
+    for kind, info in stale:
+        lines.append("- **%s** — export dated %s, **%d days old** (limit %d). "
+                     "Current file: `%s`"
+                     % (kind.upper(), info["dated"], info["age_days"],
+                        info["limit_days"], info["file"]))
+    lines += ["", "**To clear this:** download a fresh export, commit it to "
+                  "`manual_sources/` with today's date in the filename, and delete "
+                  "the old one. The next build closes this automatically.", ""]
+    if fresh:
+        lines.append("Still within date: " + ", ".join(
+            "%s (%s days)" % (k, v.get("age_days")) for k, v in fresh) + ".")
+    lines += ["", "_Raised by the data build. Nothing else is wrong — every other "
+                  "source is fetched automatically._"]
+    return "\n".join(lines)
+
+
+def notify_stale_exports():
+    """Open, update or close the refresh reminder. Silent when nothing to say."""
+    token = os.environ.get("GITHUB_TOKEN", "").strip()
+    repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    stale = stale_exports()
+    fresh = [(k, v) for k, v in MANUAL_EXPORTS.items()
+             if v.get("age_days") is not None and (k, v) not in stale]
+
+    if not token or not repo:
+        if stale:
+            print("  [refresh] %d export(s) overdue, but no GITHUB_TOKEN/"
+                  "GITHUB_REPOSITORY - cannot raise a reminder. Overdue: %s"
+                  % (len(stale), ", ".join(k for k, _ in stale)))
+        return
+
+    try:
+        r = _gh("GET", "/repos/%s/issues?state=open&labels=%s" % (repo, STALE_LABEL),
+                token)
+        existing = r.json() if r.status_code == 200 else []
+        if not isinstance(existing, list):
+            existing = []
+    except Exception as exc:                                  # noqa: BLE001
+        print("  [refresh] could not read issues (%s)" % exc)
+        return
+
+    # the label has to exist before it can be applied
+    if stale and not existing:
+        try:
+            _gh("POST", "/repos/%s/labels" % repo, token,
+                {"name": STALE_LABEL, "color": "d93f0b",
+                 "description": "A hand-downloaded data export needs refreshing"})
+        except Exception:                                     # noqa: BLE001
+            pass
+
+    title = "Data refresh due: %s" % ", ".join(k.upper() for k, _ in stale) \
+            if stale else ""
+    body = _stale_issue_body(stale, fresh) if stale else ""
+
+    try:
+        if stale and existing:
+            num = existing[0].get("number")
+            _gh("PATCH", "/repos/%s/issues/%s" % (repo, num), token,
+                {"title": title, "body": body})
+            print("  [refresh] updated issue #%s (%d export(s) overdue)"
+                  % (num, len(stale)))
+        elif stale:
+            r = _gh("POST", "/repos/%s/issues" % repo, token,
+                    {"title": title, "body": body, "labels": [STALE_LABEL]})
+            if r.status_code in (200, 201):
+                print("  [refresh] raised issue #%s: %s"
+                      % (r.json().get("number"), title))
+            else:
+                print("  [refresh] could not raise an issue (HTTP %s). Does the "
+                      "workflow grant 'issues: write'?" % r.status_code)
+        elif existing:
+            for iss in existing:
+                num = iss.get("number")
+                _gh("POST", "/repos/%s/issues/%s/comments" % (repo, num), token,
+                    {"body": "Exports are back within date — closing. "
+                             + ", ".join("%s: %s days" % (k, v.get("age_days"))
+                                         for k, v in fresh)})
+                _gh("PATCH", "/repos/%s/issues/%s" % (repo, num), token,
+                    {"state": "closed"})
+                print("  [refresh] closed issue #%s - everything is current" % num)
+    except Exception as exc:                                  # noqa: BLE001
+        print("  [refresh] issue update failed (%s)" % exc)
+
+
 @source(id="reports", table="reports", title="Vendor & agency threat reports (curated)",
         licence="Links only - reports are copyright of their publishers",
         cadence="manual", homepage="", expected=15)
@@ -2400,6 +2576,10 @@ def main():
     # precisely and a stale pin is visible rather than silent.
     if EUREPOC_RELEASE:
         manifest["releases"] = {"eurepoc": dict(EUREPOC_RELEASE)}
+    # How old the hand-downloaded exports are, so the app can say so rather than
+    # presenting months-old records with the same confidence as this morning's.
+    if MANUAL_EXPORTS:
+        manifest["manual_exports"] = {k: dict(v) for k, v in MANUAL_EXPORTS.items()}
     (out_dir / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
 
     print("\n[done] manifest written by BUILDER v%s (schema v%d). Summary:"
@@ -2417,6 +2597,23 @@ def main():
         print("   %-9s %-30s %8d rows%s" % (e["id"], e["status"][:30], e["rows"], health))
     total_mb = sum(f.stat().st_size for f in out_dir.rglob("*.json")) / 1e6
     print("   total pack size: %.1f MB" % total_mb)
+
+    # Hand-downloaded exports cannot refresh themselves, so say plainly how old they
+    # are and raise a reminder if one has gone past its date.
+    if MANUAL_EXPORTS:
+        print("\n   Manual exports:")
+        for kind, info in sorted(MANUAL_EXPORTS.items()):
+            age = info.get("age_days")
+            if age is None:
+                print("   %-10s %s  (no date in filename - age unknown)"
+                      % (kind, info.get("file", "")))
+            else:
+                flag = "  ** REFRESH DUE **" if age > info.get(
+                    "limit_days", MANUAL_DEFAULT_MAX_AGE) else ""
+                print("   %-10s %s  dated %s, %d days old%s"
+                      % (kind, info.get("file", ""), info.get("dated", "?"), age, flag))
+    notify_stale_exports()
+
     print("\n   Verify in cyber_data/manifest.json:  \"builder\": \"%s\"" % BUILDER_VERSION)
 
 

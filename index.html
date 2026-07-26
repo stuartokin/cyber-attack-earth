@@ -410,6 +410,9 @@
     .aaItem b{color:#7fe6ff;font-family:ui-monospace,monospace;font-size:10.5px}
     .aaItem span{color:#dbe8f7;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
     .aaItem i{font-style:normal;color:#6f8bad;font-size:10px;white-space:nowrap}
+    .ageOk{color:#7f95b4}
+    .ageStale{color:var(--orange);font-weight:600}
+    .ageUnknown{color:#8fa6c2;font-style:italic}
     .healthChip{display:inline-flex;align-items:center;gap:6px;margin-left:auto;margin-right:6px;
       font-size:11px;padding:3px 9px;border-radius:999px;border:1px solid #2c4666;background:#0e2036;color:#a8bcd6}
     .healthChip:hover{border-color:var(--accent);color:#eaf6ff}
@@ -1597,7 +1600,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v76";
+const APP_VERSION="v77";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -3400,12 +3403,29 @@ function renderSourceMenu(){
      else if(exp&&got<exp*0.9){cls="warn";word="below expected";lowCount++;pct=` · ${Math.round(100*got/exp)}% of expected`}
      else {cls="good";word="as expected";okCount++}
      const detail=failed?String(s.status).replace(/^failed:\s*/,""):"";
+     /* Two sources arrive as a file downloaded by hand and cannot refresh
+        themselves. A months-old export otherwise looks exactly as current as one
+        fetched this morning, which is the quiet way a dataset misleads. */
+     const me=(LAKE.manifest&&LAKE.manifest.manual_exports)||{};
+     const mkey=Object.keys(me).find(k=>s.id===k||String(s.id).indexOf(k)===0);
+     let ageNote="";
+     if(mkey){
+       const info=me[mkey], age=info.age_days;
+       if(age===null||age===undefined){
+         ageNote=` · <span class="ageUnknown">hand-downloaded, age unknown</span>`;
+       }else{
+         const over=age>(info.limit_days||40);
+         ageNote=` · <span class="${over?"ageStale":"ageOk"}">hand-downloaded `+
+           `${age===0?"today":age===1?"yesterday":age+" days ago"}`+
+           `${over?" — refresh due":""}</span>`;
+       }
+     }
      return `<div class="healthRow ${cls}">
        <div class="healthName">${s.title}</div>
        <div class="healthNums">${got.toLocaleString()}${exp?` <span class="healthExp">/ ~${exp.toLocaleString()} expected</span>`:""}</div>
        <div class="healthTag">${word}</div>
        ${detail?`<div class="healthWhy">${detail}</div>`:""}
-       <div class="healthMeta">${s.table} · ${s.licence}${s.homepage?` · <a href="${s.homepage}" target="_blank" rel="noopener">source</a>`:""}${pct}</div>
+       <div class="healthMeta">${s.table} · ${s.licence}${s.homepage?` · <a href="${s.homepage}" target="_blank" rel="noopener">source</a>`:""}${pct}${ageNote}</div>
      </div>`;
    }).join("");
    const banner=missCount||lowCount
