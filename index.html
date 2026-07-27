@@ -871,7 +871,7 @@
         <details class="ctlSec" data-sec="walkthrough">
           <summary>Guided walk-throughs</summary>
           <div class="ctlBody helpPlay">
-          <p class="small" style="margin:0 0 6px">Narrated by the browser's voice. Press Escape at any time to stop.</p>
+          <p class="small" style="margin:0 0 6px">The training video uses a recorded voice where the audio file is available, and the browser's own voice otherwise. Press Escape at any time to stop.</p>
           <div class="btnrow">
             <button id="helpPlayDemo" type="button">&#9654; Training video <i>2&#189; min</i></button>
             <button id="helpPlayPres" type="button">&#9654; Presentation <i>under 3 min</i></button>
@@ -1617,7 +1617,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v80";
+const APP_VERSION="v81";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -5525,6 +5525,9 @@ function narrSetMuted(m){
  document.getElementById("narrMute").checked=NARR.muted;
  document.getElementById("narrMute2").textContent=NARR.muted?"\ud83d\udd07":"\ud83d\udd0a";
  if(NARR.muted)narrStopSpeech();
+ // A recording is muted rather than stopped: the run stays on time, it simply goes
+ // quiet, and the captions carry it. Stopping the file would desynchronise everything.
+ if(NARR.audio){ try{ NARR.audio.muted=NARR.muted }catch(e){} }
 }
 document.getElementById("narrMute").addEventListener("change",e=>narrSetMuted(e.target.checked));
 document.getElementById("narrMute2").addEventListener("click",()=>narrSetMuted(!NARR.muted));
@@ -5885,66 +5888,62 @@ const NARR_SCRIPTS={
  /* ── TRAINING ── ~380 words, ~160s ────────────────────────────────────── */
  demo:{
   title:"How this works",
-  blurb:"A guided tour: what the tool is for, then the features worth knowing. About three minutes.",
+  blurb:"A guided tour: what the tool is for, then the features worth knowing. Narrated, about two and a half minutes.",
   fullscreen:false, loop:false,
   steps:[
-   /* 1. Intro over a live map - purpose first, before any mechanics */
-   {title:"What this is",dwell:16,
+   {title:"What this is",dwell:14,
     do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2017,6],cumulative:true,arcWindow:5,play:true,speed:600,wide:true,spin:true},
     say:"Every missile is one publicly documented cyber attack, flying from where it was attributed to where it landed. Two decades of them, gathered from a dozen databases that rarely speak to each other, onto one map and one timeline."},
 
-   /* 2. The timeline, with Details open, explaining what is on screen */
-   {title:"Press play and watch it build",dwell:14,
+   {title:"Press play and watch it build",dwell:11,
     do:{month:[2000,1],play:true,speed:220,cumulative:true,arcWindow:6,frame:"details"},
     say:"Press play and the record builds month by month from the year two thousand. The Details panel follows along, naming the most significant incident of each month as it passes."},
 
-   {title:"Reading the screen",dwell:15,
+   {title:"Reading the screen",dwell:14,
     do:{},
-    say:"Top right is the month and the running count \u2014 records held, not attacks that happened, because these sources overlap. Watch the first decade stay almost empty: that is disclosure law arriving, not a safer world."},
+    say:"Top right is the month and the running count \u2014 that is the records held, not all the attacks that happened. Watch the first decade stay almost empty: and then increase as more pressure, and in some regions \u2014 disclosure laws arriving."},
 
-   /* 3. Controls and charts together, so filtering visibly changes a chart */
-   {title:"Controls: narrowing the picture",dwell:14,
+   {title:"Controls: narrowing the picture",dwell:11,
     do:{play:false,month:[2026,7],closeAll:true,frame:"controls",open:["sector"],chart:"targets",flash:"#frame-controls"},
     say:"Controls is where you narrow things: sector, severity, country, evidence strength. I have opened the victims chart alongside, so you can watch what filtering does."},
 
-   {title:"Everything moves together",dwell:14,
+   {title:"Everything moves together",dwell:13,
     do:{sectors:["Energy","Utilities","Water","Transport"],flash:"#frame-chart-targets"},
     say:"Keeping only energy, water and transport, and the chart rebuilds immediately. Map, shading, counter and every open chart use the same filtered set \u2014 nothing ever shows a different slice."},
 
-   {title:"The same data, laid flat",dwell:12,
+   {title:"The same data, laid flat",dwell:10,
     do:{closeAll:true,map:"flat",heat:true,sectors:"all",arcWindow:6},
-    say:"The flat map shows the same thing differently, with shading for volume. Paler means less has been recorded there, which is not the same as less having happened."},
+    say:"The flat map shows the same thing as the globe, with shading for volume. Paler means less has been recorded there, which is not the same as less having happened."},
 
-   /* 4. Search */
-   {title:"Looking something up",dwell:13,
+   {title:"Looking something up",dwell:12,
     do:{map:"sphere",heat:false,closeAll:true,frame:"search",search:"Colonial",flash:"#frame-search"},
     say:"Search finds an incident, a threat group or a country by name. Here, Colonial Pipeline. Look-ups leave the map alone, so you can check something without losing your place."},
 
-   /* 5. Charts - the main feature - several at once, plus Windows */
-   {title:"The charts are the measurement",dwell:14,
-    do:{closeAll:true,chart:"incidents",flash:"#frame-chart-incidents"},
+   /* The gallery itself is opened here, so "around twenty" is something the viewer
+      can see and count rather than a claim they have to take on trust. */
+   {title:"The charts are the measurement",dwell:11,
+    do:{closeAll:true,frame:"charts",chart:"incidents",flash:"#frame-charts"},
     say:"Now the part that does the real work. The map is illustration; the charts are the measurement. Around twenty, each in its own window you can move and resize."},
 
-   {title:"Two at once, side by side",dwell:15,
+   {title:"Two at once, side by side",dwell:11,
     do:{chart:"impact",flash:"#frame-chart-impact"},
     say:"Open a second and compare directly. Incidents over time beside recorded impact \u2014 and the gap is the point: fifty-four thousand incidents, forty-three with a verified cost."},
 
-   {title:"A third, building as it goes",dwell:14,
+   {title:"A third, building as it goes",dwell:9,
     do:{chart:"vulntime",play:true,speed:300,month:[2012,1],flash:"#frame-chart-vulntime"},
-    say:"A third, on flaws attackers were actually seen using \u2014 opened while the clock runs, so it builds along with the timeline rather than arriving finished."},
+    say:"A third, on the flaws attackers were actually seen using \u2014 opened while the clock runs, so it builds along with the timeline rather than arriving finished."},
 
-   {title:"When windows pile up",dwell:15,
+   {title:"When windows pile up",dwell:10,
     do:{play:false,menu:"windows",flash:"#winMenu"},
     say:"And when they pile up, the Windows menu handles it: tidy them so the map stays visible, reset what each chart shows, or save this arrangement for next time."},
 
-   {title:"Compare two things directly",dwell:16,
+   {title:"Compare with published findings",dwell:9,
     do:{menu:false,closeAll:true,frame:"bench",flash:"#frame-bench"},
     say:"Compare sets what you are looking at against published findings from the major annual reports, so you can see whether this record agrees with them or not."},
 
-   /* 6. Help and the sources */
    {title:"Where it all comes from",dwell:17,
     do:{play:false,closeAll:true,frame:"help",open:["data","limits"],flash:"#frame-help"},
-    say:"Finally, Help. Every source is listed with its licence, what it gave and whether it loaded tonight. It also states plainly what the data cannot support: origins are usually proxies, and sparse regions mean sparse reporting, not safety. Read that once, and the rest is yours."}
+    say:"Finally, Help. Every source is listed with its licence. It also states plainly what the data cannot support: origins are usually proxies, and sparse regions mean sparse reporting, not safety. Please read all the caveats, and the rest is yours."}
   ]
  },
 
@@ -6029,6 +6028,114 @@ const NARR={running:false,mode:null,step:0,timer:null,muted:false,script:null,st
    triggers the next step, with the dwell kept only as a floor (so a short line
    still leaves the visual on screen long enough to read) and as a fallback when
    speech is muted or unavailable. */
+/* ── Recorded narration ────────────────────────────────────────────────────
+   A real recorded voice, where one exists, in place of the browser's speech
+   synthesiser. The browser voice is serviceable but varies wildly between
+   machines: different rates, different accents, sometimes no voice installed at
+   all, and on iOS it can refuse to start without a second tap.
+
+   When a recording is available the audio becomes the clock. Step changes are
+   driven from the file's own playback position rather than from timers, so the
+   visuals stay locked to the voice even if playback stutters, the viewer pauses,
+   or the tab is backgrounded and throttled. If the file is missing, blocked, or
+   its cue list no longer matches the script, the run silently falls back to the
+   synthesiser and nothing is lost.
+
+   Cue points are the second at which each step's line begins, taken from the
+   recording. They must match the script step for step - checked at load time,
+   because a script edited without re-recording would otherwise drift out of sync
+   and be very confusing. */
+const NARR_AUDIO={
+  demo:{
+    /* Tried in order, so the file can live at the repository root or in a folder
+       without the app needing to change. */
+    srcs:["training.mp3","audio/training.mp3","media/training.mp3"],
+    cues:[0,14,25,39,50,63,73,85,96,107,116,126,135],
+    duration:152.4
+  }
+};
+const NARR_AUDIO_CACHE={};        // mode -> HTMLAudioElement | false (unavailable)
+
+function narrAudioSpec(mode){
+  const spec=NARR_AUDIO[mode];
+  if(!spec||!NARR_SCRIPTS[mode])return null;
+  // A recording that no longer matches the script is worse than no recording.
+  if(spec.cues.length!==NARR_SCRIPTS[mode].steps.length){
+    console.warn("[narration] recording for "+mode+" has "+spec.cues.length+
+                 " cues but the script has "+NARR_SCRIPTS[mode].steps.length+
+                 " steps - using the browser voice instead");
+    return null;
+  }
+  return spec;
+}
+
+/* Resolve a playable file, or false. Cached, so a missing file is probed once. */
+function narrAudioLoad(mode){
+  if(NARR_AUDIO_CACHE[mode]!==undefined)return Promise.resolve(NARR_AUDIO_CACHE[mode]);
+  const spec=narrAudioSpec(mode);
+  if(!spec){ NARR_AUDIO_CACHE[mode]=false; return Promise.resolve(false) }
+  const tryOne=(i)=>{
+    if(i>=spec.srcs.length){ NARR_AUDIO_CACHE[mode]=false; return Promise.resolve(false) }
+    return new Promise(resolve=>{
+      const el=new Audio();
+      el.preload="auto";
+      el.src=spec.srcs[i];
+      let settled=false;
+      const ok=()=>{ if(settled)return; settled=true; NARR_AUDIO_CACHE[mode]=el; resolve(el) };
+      const fail=()=>{ if(settled)return; settled=true; resolve(tryOne(i+1)) };
+      el.addEventListener("loadedmetadata",ok,{once:true});
+      el.addEventListener("error",fail,{once:true});
+      setTimeout(()=>{ if(!settled)fail() },6000);     // slow or silently blocked
+      try{ el.load() }catch(e){ fail() }
+    });
+  };
+  return tryOne(0);
+}
+
+function narrAudioActive(){
+  return !!(NARR.audio&&!NARR.audio.paused);
+}
+
+/* Advance the visuals to whichever step the recording has reached. */
+function narrAudioSync(){
+  if(!NARR.audio||!NARR.running)return;
+  const spec=NARR_AUDIO[NARR.mode];
+  if(!spec)return;
+  const t=NARR.audio.currentTime;
+  let want=0;
+  for(let i=0;i<spec.cues.length;i++){ if(t+0.15>=spec.cues[i])want=i; }
+  if(want!==NARR.step)narrGo(want);
+}
+
+function narrAudioStart(el){
+  NARR.audio=el;
+  el.muted=!!NARR.muted;
+  el.currentTime=0;
+  NARR._onTime=()=>narrAudioSync();
+  NARR._onEnd=()=>{ if(NARR.running)narrStop() };
+  el.addEventListener("timeupdate",NARR._onTime);
+  el.addEventListener("ended",NARR._onEnd,{once:true});
+  const p=el.play();
+  if(p&&p.catch)p.catch(()=>{
+    // Autoplay refused despite the button press: give up on the recording rather
+    // than run a silent video with no captions moving.
+    narrAudioDetach();
+    if(NARR.running)narrGo(0);
+  });
+}
+
+function narrAudioDetach(){
+  const el=NARR.audio;
+  NARR.audio=null;
+  if(!el)return;
+  try{
+    if(NARR._onTime)el.removeEventListener("timeupdate",NARR._onTime);
+    if(NARR._onEnd)el.removeEventListener("ended",NARR._onEnd);
+    el.pause(); el.currentTime=0;
+  }catch(e){}
+  NARR._onTime=null; NARR._onEnd=null;
+}
+
 function narrSpeak(text,onDone){
  if(NARR.muted||!("speechSynthesis" in window)){ if(onDone)onDone(false); return }
  try{
@@ -6231,6 +6338,9 @@ function narrGo(i){
  narrApply(s.do);
  narrRenderCaption();
  clearTimeout(NARR.timer);
+ // With a recording playing, the file is the clock: apply the visuals and let the
+ // audio's own position decide when the next step arrives.
+ if(NARR.audio){ NARR.speaking=false; return }
  const startedAt=performance.now();
  const minMs=Math.max(2600,(s.dwell||6)*1000*0.55);   // let the visual land
  const advance=()=>{
@@ -6323,7 +6433,17 @@ function narrStart(mode){
  if(script.fullscreen)document.body.classList.add("narrFull");
  document.getElementById("narrOverlay").classList.remove("hidden");
  document.getElementById("narrPlayPause").textContent="\u23f8";
- narrCountdown(()=>{ if(NARR.running)narrGo(0) });
+ /* Load the recording during the countdown, so the voice starts the instant the
+    count reaches zero rather than after a pause for buffering. */
+ const audioWanted=narrAudioLoad(mode);
+ narrCountdown(()=>{
+   if(!NARR.running)return;
+   audioWanted.then(el=>{
+     if(!NARR.running)return;
+     if(el){ narrAudioStart(el); narrGo(0); }
+     else { narrGo(0); }                      // browser voice
+   }).catch(()=>{ if(NARR.running)narrGo(0) });
+ });
 }
 /* Three seconds of warning before anything moves. Without it the first caption and
    the first camera move arrive together and the opening line is missed - and on a
@@ -6364,6 +6484,7 @@ function narrCountdown(then){
 }
 function narrStop(restore){
  _countSeq++;                       // abandon any countdown in flight
+ narrAudioDetach();                 // stop and rewind any recording
  const cnt=document.getElementById("narrCount");
  if(cnt)cnt.classList.add("hidden");
  document.body.classList.remove("demoing");
@@ -6404,6 +6525,12 @@ function narrToggle(){
  if(!NARR.script)return;
  NARR.running=!NARR.running;
  document.getElementById("narrPlayPause").textContent=NARR.running?"\u23f8":"\u25b6";
+ if(NARR.audio){
+   // the recording is the clock, so pausing it pauses the whole run
+   try{ NARR.running?NARR.audio.play():NARR.audio.pause() }catch(e){}
+   if(NARR.running)narrRenderCaption();
+   return;
+ }
  if(NARR.running)narrGo(NARR.step); else {clearTimeout(NARR.timer);narrStopSpeech()}
 }
 function narrScriptText(){
