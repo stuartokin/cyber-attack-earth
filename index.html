@@ -1025,9 +1025,9 @@
         <div class="splashSecondary">
           <span class="small">or watch instead</span>
           <div class="splashVidRow">
-            <button id="splashTour" type="button">&#9654; Training video <i>2½ min</i></button>
-            <button id="splashStory" type="button">&#9654; Presentation <i>3 min</i></button>
-            <button id="splashKiosk" type="button">&#9654; Kiosk loop <i>1 min</i></button>
+            <button id="splashTour" type="button" disabled title="Available once the data has loaded">&#9654; Training video <i>2½ min</i></button>
+            <button id="splashStory" type="button" disabled title="Available once the data has loaded">&#9654; Presentation <i>2½ min</i></button>
+            <button id="splashKiosk" type="button" disabled title="Available once the data has loaded">&#9654; Kiosk loop <i>1 min</i></button>
           </div>
         </div>
       </div>
@@ -1617,7 +1617,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v81";
+const APP_VERSION="v82";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -5081,6 +5081,31 @@ function splashReady(){
    "Contains information from "+names.slice(0,8).join(", ")+
    ". Licences and full attribution are in the Help window, and in ATTRIBUTION.md in the repository.";
  if(go){go.disabled=false;go.textContent="Explore the map";}
+ document.querySelectorAll(".splashVidRow button").forEach(v=>{v.disabled=false;v.title=""});
+}
+/* Put the viewer back on the welcome screen, as if they had just arrived: everything
+   reset to its default, the faded globe behind, and the same buttons. Used when a
+   narrated run was started from here rather than from inside the app. */
+function splashReturn(){
+ const s=document.getElementById("splash");
+ if(!s)return false;
+ try{
+   const rb=document.getElementById("resetBtn");
+   if(rb)rb.click();                                   // filters back to default
+   if(typeof chartsToDefaults==="function")chartsToDefaults();
+   if(typeof setTimeline==="function")setTimeline(endTimelineIndex);
+   if(typeof closeAllFrames==="function")closeAllFrames();
+   if(typeof setMapMode==="function")setMapMode("sphere");
+   if(typeof pausePlayback==="function")pausePlayback();
+ }catch(e){}
+ SPLASH.done=false;
+ s.classList.remove("stowed");
+ // let the browser paint the un-hidden node before fading it back in
+ requestAnimationFrame(()=>requestAnimationFrame(()=>s.classList.remove("gone")));
+ const go=document.getElementById("splashGo");
+ if(go){go.disabled=false;go.textContent="Explore the map"}
+ if(typeof splashStats==="function")splashStats();
+ return true;
 }
 function splashDismiss(then){
  const s=document.getElementById("splash");
@@ -5102,7 +5127,11 @@ function splashDismiss(then){
  }
  s.classList.add("gone");
  setTimeout(()=>{
-   s.remove();update();
+   /* Hidden rather than removed. A run started from here has to be able to put the
+      viewer back where they were - same screen, same faded globe behind it - and
+      rebuilding the markup would mean rebinding every control. */
+   s.classList.add("stowed");
+   update();
    if(then)then();                     // a narrated mode was chosen
    else{
      if(typeof afterWelcome==="function")afterWelcome();   // point at Play
@@ -5114,9 +5143,16 @@ function splashDismiss(then){
 }
 (function(){ const v=document.getElementById("splashVer"); if(v)v.textContent="Version "+APP_VERSION; })();
 document.getElementById("splashGo").addEventListener("click",()=>splashDismiss());
-document.getElementById("splashTour").addEventListener("click",()=>splashDismiss(()=>narrStart("demo")));
-document.getElementById("splashStory").addEventListener("click",()=>splashDismiss(()=>narrStart("presentation")));
-document.getElementById("splashKiosk").addEventListener("click",()=>splashDismiss(()=>narrStart("kiosk")));
+/* Started from the welcome screen, so the run should hand the viewer back to it -
+   not to a map they never chose to be looking at. Recorded before the screen is
+   dismissed, because by the time the run starts it has already gone. */
+const fromSplash=(mode)=>{
+  if(typeof NARR!=="undefined")NARR.cameFromSplash=true;
+  splashDismiss(()=>narrStart(mode));
+};
+document.getElementById("splashTour").addEventListener("click",()=>fromSplash("demo"));
+document.getElementById("splashStory").addEventListener("click",()=>fromSplash("presentation"));
+document.getElementById("splashKiosk").addEventListener("click",()=>fromSplash("kiosk"));
 // a gentle orbit while they read, so the wait is not a blank screen
 (function(){
  // Grow the globe into position first, then dim it a little as the card arrives -
@@ -5153,12 +5189,15 @@ document.getElementById("splashKiosk").addEventListener("click",()=>splashDismis
    for as long as the welcome screen is on screen, so whatever is showing is always
    what is actually loaded. */
 const _splashStatsTimer=setInterval(()=>{
-  if(!document.getElementById("splash")){clearInterval(_splashStatsTimer);return}
+  const sp=document.getElementById("splash");
+  if(!sp||sp.classList.contains("stowed")){clearInterval(_splashStatsTimer);return}
   try{ if(typeof splashStats==="function")splashStats() }catch(e){}
 },700);
 setTimeout(function earlyEntry(){
   if(SPLASH.done)return;
   if(!attacks||!attacks.length){ setTimeout(earlyEntry,1200); return }
+  // the narrated runs need data too, so they come out of grey at the same moment
+  document.querySelectorAll(".splashVidRow button").forEach(v=>{v.disabled=false;v.title=""});
   const go=document.getElementById("splashGo");
   if(go&&go.disabled){
     go.disabled=false;
@@ -5947,47 +5986,63 @@ const NARR_SCRIPTS={
   ]
  },
 
- /* ── PRESENTATION ── ~390 words, ~165s ────────────────────────────────── */
+ /* ── PRESENTATION ── recorded, 146s. Cue gaps are the dwell values, so the
+       browser-voice fallback paces itself the same way. ─────────────────────── */
  presentation:{
   title:"Two decades, and what they show",
-  blurb:"What the record reveals when you play it end to end &mdash; and what it still cannot tell you. Under three minutes.",
+  blurb:"What the record reveals when you play it end to end &mdash; and what it still cannot tell you. Narrated, about two and a half minutes.",
   fullscreen:true, loop:false,
   steps:[
-   {title:"Fifty-four thousand records",dwell:13,
-    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2000,1],cumulative:false,arcWindow:1,play:false,wide:true,spin:true},
-    say:"Fifty-four thousand publicly documented cyber attacks since the year two thousand. Every missile is one of them. Played end to end, the record shows what no single incident report can: the shape of how this changed."},
+   /* Opens on the viewer's own part of the world, with the sources on screen and the
+      incidents series running for the whole period - so the claim about where this
+      comes from is visible while it is being made. */
+   {title:"Where this comes from",dwell:26,
+    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2021,6],cumulative:true,
+        arcWindow:6,play:true,speed:420,wide:true,spin:true,
+        focus:"device",altitude:2.0,
+        frame:"help",open:["data","attrib"],chart:"incidents"},
+    say:"When talking about cyber attacks, there are many consultancy, vendor reports and government updates around volumes and threat. However, there are few independent or academic curated datasets. We have pulled this from around ten of these, which shows fifty-four thousand publicly documented cyber attacks since the year two thousand. Every missile you see here is one, or a group of them \u2014 you can see how the shape of these attacks have changed."},
 
-   {title:"A decade you could count on your hands",dwell:14,
-    do:{month:[2003,1],play:true,speed:250,cumulative:true,arcWindow:6},
-    say:"The first decade is nearly empty. Not because little happened, but because almost nobody had to say so. What follows is a rise in attacks and a rise in disclosure law, arriving together."},
+   {title:"A decade you could count on your hands",dwell:15,
+    do:{closeAll:true,chart:"incidents",month:[2000,1],play:true,speed:200,arcWindow:6,flash:"#frame-chart-incidents"},
+    say:"The first decade is nearly empty. Not because little happened, but because almost nobody had to say so. What follows is a rise in attacks and a rise in disclosure guidance and in some regions laws, all arriving together."},
 
-   {title:"Ukraine, December 2015",dwell:15,
-    do:{play:false,month:[2015,12],countries:["Ukraine"],countryMode:"victim",arcWindow:3,focus:"Ukraine",altitude:1.35},
+   /* The event steps put the incident itself on screen, not a chart about it. */
+   {title:"Ukraine, December 2015",dwell:17,
+    do:{play:false,month:[2015,12],countries:["Ukraine"],countryMode:"victim",arcWindow:3,
+        focus:"Ukraine",altitude:1.35,closeAll:true,frame:"details",detail:"ukraine-power-grid-2015"},
     say:"December two thousand and fifteen. Attackers open breakers at three Ukrainian distribution companies and a quarter of a million people lose power. Engineers restore supply by driving to substations and working them by hand. Cyber attack becomes an engineering problem."},
 
-   {title:"NotPetya: the cost of being connected",dwell:15,
-    do:{countries:[],month:[2017,6],cumulative:true,arcWindow:3,focus:{lat:50,lng:15},altitude:1.9},
-    say:"Two thousand and seventeen. Malware hidden in a Ukrainian tax update escapes and does around ten billion dollars of damage worldwide. Shipping, pharmaceuticals, food production. Nobody aimed at them. They were merely connected."},
+   {title:"NotPetya: the cost of being connected",dwell:16,
+    do:{countries:[],month:[2017,6],cumulative:true,arcWindow:3,focus:{lat:50,lng:15},altitude:1.9,
+        frame:"details",detail:"notpetya-2017"},
+    say:"Two thousand and seventeen. Malware hidden in a Ukrainian tax update escapes and does around ten billion dollars of damage worldwide. Shipping, pharmaceuticals, food production. Nobody aimed at them. They were merely collateral damage."},
 
-   {title:"Then it becomes an industry",dwell:12,
-    do:{month:[2026,7],play:true,speed:400,arcWindow:6,focus:{lat:37,lng:-90},altitude:1.8},
+   {title:"Then it becomes an industry",dwell:11,
+    do:{closeAll:true,month:[2026,7],play:true,speed:400,arcWindow:6,chart:"groups",
+        focus:{lat:37,lng:-90},altitude:1.9,flash:"#frame-chart-groups"},
     say:"From twenty twenty the volume changes character. Ransomware becomes an industry, and most of what now fills this map is criminal, published by the attackers themselves."},
 
    {title:"Most attacks have no known origin",dwell:14,
-    do:{play:false,map:"flat",closeAll:true,arcWindow:6},
-    say:"The first uncomfortable finding: around two thirds of these records have no established origin at all. Where a country is named it usually reflects an indictment or a public accusation, not a verified launch point."},
+    do:{play:false,map:"flat",closeAll:true,chart:"origins",arcWindow:6,flash:"#frame-chart-origins"},
+    say:"The first uncomfortable finding. Around two thirds of these records have no established origin at all. Where a country is named it usually reflects an indictment or a public accusation, not a verified launch point."},
 
-   {title:"The league table measures disclosure",dwell:15,
+   {title:"Who appears most",dwell:5,
     do:{map:"sphere",closeAll:true,chart:"targets",flash:"#frame-chart-targets"},
-    say:"Rank the victims and the United States and United Kingdom lead comfortably. Read that carefully: it measures disclosure law and research attention. Adjust for population and the order changes completely."},
+    say:"Rank the victims and the United States and United Kingdom lead comfortably."},
+
+   {title:"The same data, per million people",dwell:8,
+    do:{chart:"percapita",flash:"#frame-chart-percapita"},
+    say:"Read that carefully \u2014 it measures disclosure law and research attention. Adjust for population and the order changes completely."},
 
    {title:"Almost nothing carries a cost",dwell:15,
     do:{closeAll:true,chart:"impact",flash:"#frame-chart-impact"},
-    say:"And the thinnest part of the record: of fifty-four thousand incidents, forty-three carry a verified cost. Forty-three. We know a great deal about what happened and almost nothing about what it cost."},
+    say:"And the thinnest part of the public record, of all the fifty-four thousand incidents, is that only forty-three carry a verified cost, independent of the media headlines. We know a great deal about what happened and almost nothing about what it actually costs."},
 
-   {title:"What it cannot tell you",dwell:16,
-    do:{closeAll:true,map:"sphere",wide:true,spin:true,month:[2026,7],cumulative:true},
-    say:"Disclosed by whoever chose to disclose it, mostly without a cost, usually without a confirmed origin \u2014 and some flaws here were exploited before anyone published them. A narrow window on a large problem, but the clearest we have."}
+   {title:"What it cannot tell you",dwell:20,
+    do:{closeAll:true,chart:"coverage",map:"sphere",wide:true,spin:true,month:[2026,7],
+        cumulative:true,flash:"#frame-chart-coverage"},
+    say:"In summary, attacks are often disclosed without due processes, mostly without a cost and usually with no confirmed origin, and we know that some flaws here were exploited before anyone published them. So this is a narrow window on a large problem, but the clearest we have until reporting standards are established."}
   ]
  },
 
@@ -6052,6 +6107,11 @@ const NARR_AUDIO={
     srcs:["training.mp3","audio/training.mp3","media/training.mp3"],
     cues:[0,14,25,39,50,63,73,85,96,107,116,126,135],
     duration:152.4
+  },
+  presentation:{
+    srcs:["presentation.mp3","audio/presentation.mp3","media/presentation.mp3"],
+    cues:[0,26,41,58,74,85,99,104,112,127],
+    duration:146.5
   }
 };
 const NARR_AUDIO_CACHE={};        // mode -> HTMLAudioElement | false (unavailable)
@@ -6199,6 +6259,38 @@ function narrLayoutCharts(){
    f.dataset.placed="1"; f.dataset.sized="1";
  });
 }
+/* Roughly where this device is, without asking permission. The time zone is already
+   available and is accurate enough to orient a globe; a geolocation prompt in the
+   middle of a video would be an intrusion for a purely cosmetic effect. */
+const TZ_POINTS={
+  "Europe/London":[54,-2],"Europe/Dublin":[53.3,-7.5],"Europe/Paris":[47,2],
+  "Europe/Berlin":[51,10],"Europe/Madrid":[40,-3.7],"Europe/Rome":[42,12.5],
+  "Europe/Amsterdam":[52.2,5.5],"Europe/Brussels":[50.6,4.5],"Europe/Stockholm":[60,15],
+  "Europe/Oslo":[61,9],"Europe/Helsinki":[62,25],"Europe/Warsaw":[52,19],
+  "Europe/Zurich":[46.9,8.2],"Europe/Lisbon":[39.5,-8],"Europe/Athens":[39,22],
+  "Europe/Kyiv":[49,32],"Europe/Kiev":[49,32],"Europe/Moscow":[56,38],
+  "America/New_York":[40,-76],"America/Chicago":[41.9,-88],"America/Denver":[39.7,-105],
+  "America/Los_Angeles":[36,-119],"America/Toronto":[45,-79],"America/Vancouver":[49.3,-123],
+  "America/Sao_Paulo":[-15,-48],"America/Mexico_City":[23,-102],"America/Bogota":[4.6,-74],
+  "Asia/Tokyo":[36,138],"Asia/Seoul":[36.5,128],"Asia/Shanghai":[35,110],
+  "Asia/Hong_Kong":[22.3,114],"Asia/Singapore":[1.3,104],"Asia/Kolkata":[22,79],
+  "Asia/Calcutta":[22,79],"Asia/Dubai":[24,54],"Asia/Jerusalem":[31.5,35],
+  "Asia/Riyadh":[24,45],"Asia/Jakarta":[-2,118],"Asia/Manila":[13,122],
+  "Australia/Sydney":[-33,151],"Australia/Melbourne":[-37,145],"Australia/Perth":[-31,116],
+  "Pacific/Auckland":[-41,174],"Africa/Johannesburg":[-29,25],"Africa/Lagos":[9,8],
+  "Africa/Cairo":[27,30],"Africa/Nairobi":[0,38]
+};
+function deviceViewpoint(){
+  try{
+    const tz=Intl.DateTimeFormat().resolvedOptions().timeZone||"";
+    if(TZ_POINTS[tz])return {lat:TZ_POINTS[tz][0],lng:TZ_POINTS[tz][1]};
+    const region=tz.split("/")[0];
+    const byRegion={Europe:[50,10],America:[38,-95],Asia:[30,100],Africa:[5,20],
+                    Australia:[-27,134],Pacific:[-20,170],Atlantic:[35,-30],Indian:[-10,75]};
+    if(byRegion[region])return {lat:byRegion[region][0],lng:byRegion[region][1]};
+  }catch(e){}
+  return {lat:HOME.lat,lng:HOME.lng};
+}
 function narrApply(d){
  if(!d)return;
  try{
@@ -6224,7 +6316,11 @@ function narrApply(d){
    if(d.map)setMapMode(d.map);
  // Move the camera to whatever the narration is talking about, slowly enough to
  // read as a considered move rather than a jump cut.
- if(d.focus){
+ if(d.focus==="device"){
+   const v=deviceViewpoint();
+   if(isFinite(v.lat)&&isFinite(v.lng))
+     globe.pointOfView({lat:v.lat,lng:v.lng,altitude:d.altitude||2.1},1600);
+ }else if(d.focus){
    const f=(typeof d.focus==="string")?centroidForCountry(d.focus):d.focus;
    if(f&&isFinite(f.lat)&&isFinite(f.lng)){
      const alt=d.altitude||1.5;
@@ -6254,6 +6350,20 @@ function narrApply(d){
  }
  if(d.chartMode)Object.keys(d.chartMode).forEach(k=>{CHART_MODE[k]=d.chartMode[k]});
  if(d.frame)openFrame(d.frame);
+ /* Put a named incident in the Details panel. The narration talks about specific
+    events, and a chart about them is not the same as the record itself. Matched
+    against the curated overlay by id, then by name, so a renamed row degrades to
+    showing nothing rather than showing the wrong incident. */
+ if(d.detail){
+   try{
+     const pool=(typeof curatedImpactIncidents==="function")?curatedImpactIncidents():[];
+     const want=String(d.detail).toLowerCase();
+     let hit=pool.find(a=>String(a.id||"").toLowerCase()===want)
+          || pool.find(a=>String(a.id||"").toLowerCase().indexOf(want)>=0)
+          || pool.find(a=>String(a.name||"").toLowerCase().indexOf(want.split("-")[0])>=0);
+     if(hit&&typeof showDetail==="function")showDetail(hit);
+   }catch(e){}
+ }
  /* Show a menu while talking about it, rather than describing something invisible.
     The Windows button only appears once something is open, so reveal it for the
     demonstration; refreshCloseAll takes charge of it again afterwards. */
@@ -6516,9 +6626,16 @@ function narrStop(restore){
  // Hand everything back as it was found: the windows that were open and where, the
  // month, the map, every filter, and the panel it was launched from. Skipped when
  // the caller explicitly asks not to (a restart, say).
- if(restore!==false&&NARR.savedState){
-   const st=NARR.savedState; NARR.savedState=null;
-   setTimeout(()=>narrRestoreState(st),260);
+ if(restore!==false){
+   if(NARR.cameFromSplash){
+     /* Back to the welcome screen it was launched from, reset to defaults - the
+        viewer had made no choices yet, so there is nothing of theirs to preserve. */
+     NARR.cameFromSplash=false; NARR.savedState=null;
+     setTimeout(()=>{ if(typeof splashReturn==="function")splashReturn() },260);
+   }else if(NARR.savedState){
+     const st=NARR.savedState; NARR.savedState=null;
+     setTimeout(()=>narrRestoreState(st),260);
+   }
  }
 }
 function narrToggle(){
