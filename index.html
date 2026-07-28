@@ -1569,7 +1569,11 @@ const HOME=homeView();
  }
  build();
  requestAnimationFrame(draw);
- let rz; window.addEventListener("resize",()=>{clearTimeout(rz);rz=setTimeout(build,200)},{passive:true});
+ let rz; window.addEventListener("resize",()=>{
+  if(document.body.classList.contains("narrating")){
+    clearTimeout(window.__narrRelayout);
+    window.__narrRelayout=setTimeout(()=>{ try{ narrLayoutCharts() }catch(e){} },160);
+  }clearTimeout(rz);rz=setTimeout(build,200)},{passive:true});
 })();
 const globe = window.globe = Globe()(globeEl)
   .backgroundColor("rgba(0,0,0,0)")   /* transparent, so the starfield behind shows through */
@@ -1617,7 +1621,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v82";
+const APP_VERSION="v84";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -4193,7 +4197,10 @@ function play(){
  // and the most significant incident of each month is the natural companion to a
  // moving map. Only ever on the first press, and never if it is already open or the
  // viewer has closed it themselves.
- if(!window.__companionOffered&&typeof roomForCompanion==="function"&&roomForCompanion()){
+ /* Not during a narrated run: those choose their own windows deliberately, and an
+    uninvited Details panel competes with them for the column. */
+ if(!document.body.classList.contains("narrating")
+    &&!window.__companionOffered&&typeof roomForCompanion==="function"&&roomForCompanion()){
    window.__companionOffered=true;
    const f=document.getElementById("frame-details");
    if(f&&f.classList.contains("hidden")&&typeof openFrame==="function"){
@@ -5545,8 +5552,27 @@ document.querySelectorAll("[data-present]").forEach(b=>b.addEventListener("click
  addResizeGrip(ov);
 })();
 document.getElementById("narrPlayPause").addEventListener("click",narrToggle);
-document.getElementById("narrPrev").addEventListener("click",()=>{NARR.seq++;clearTimeout(NARR.timer);narrStopSpeech();narrGo(NARR.step-1)});
-document.getElementById("narrNext").addEventListener("click",()=>{NARR.seq++;clearTimeout(NARR.timer);narrStopSpeech();narrGo(NARR.step+1)});
+/* Stepping about. With a recording playing the audio is the clock, so moving a step
+   means SEEKING the file - calling narrGo alone was pointless, because the next
+   timeupdate simply put it back where the audio was. That is why these appeared to
+   stop working once the recordings arrived. */
+function narrStepBy(delta){
+  if(!NARR.script)return;
+  const n=NARR.script.steps.length;
+  const want=Math.max(0,Math.min(n-1,(NARR.step||0)+delta));
+  const spec=NARR.audio?NARR_AUDIO[NARR.mode]:null;
+  if(spec&&NARR.audio){
+    try{
+      NARR.audio.currentTime=spec.cues[want]+0.05;
+      if(NARR.audio.paused&&NARR.running)NARR.audio.play();
+    }catch(e){}
+    narrGo(want);                       // paint immediately, do not wait for the tick
+    return;
+  }
+  NARR.seq++; clearTimeout(NARR.timer); narrStopSpeech(); narrGo(want);
+}
+document.getElementById("narrPrev").addEventListener("click",()=>narrStepBy(-1));
+document.getElementById("narrNext").addEventListener("click",()=>narrStepBy(1));
 document.getElementById("narrExit").addEventListener("click",narrStop);
 document.getElementById("narrScript").addEventListener("click",()=>{
  const s=NARR.script||NARR_SCRIPTS.presentation;
@@ -5578,6 +5604,8 @@ document.addEventListener("keydown",e=>{
  if(e.key==="ArrowRight"){NARR.seq++;clearTimeout(NARR.timer);narrStopSpeech();narrGo(NARR.step+1)}
  if(e.key==="ArrowLeft"){NARR.seq++;clearTimeout(NARR.timer);narrStopSpeech();narrGo(NARR.step-1)}
  if(e.key.toLowerCase()==="m")narrSetMuted(!NARR.muted);
+ if(e.key==="ArrowRight"&&typeof narrStepBy==="function"){e.preventDefault();narrStepBy(1)}
+ if(e.key==="ArrowLeft"&&typeof narrStepBy==="function"){e.preventDefault();narrStepBy(-1)}
 });
 document.getElementById("narrCopy").addEventListener("click",async()=>{
  const t=narrScriptText();
@@ -6046,31 +6074,39 @@ const NARR_SCRIPTS={
   ]
  },
 
- /* ── KIOSK ── ~105 words, ~50s ────────────────────────────────────────── */
+ /* ── KIOSK ── recorded, 42s, looping. Almost always a large screen in a foyer,
+       so it uses the room: a chart column beside the globe rather than bare map.
+       Cue gaps are the dwell values for the browser-voice fallback. ─────────── */
  kiosk:{
   title:"Cyber Attack Earth",
   blurb:"A short looping display for a large screen. Under a minute.",
   fullscreen:true, loop:true,
   steps:[
-   {title:"Two decades of recorded attacks",dwell:10,
-    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2000,1],cumulative:true,arcWindow:8,play:false,wide:true,spin:true,heat:false},
-    say:"Every missile is one publicly documented cyber attack. Two decades of them, from the year two thousand."},
+   /* Open clean: just the earth and the traffic. Nothing to read yet. */
+   {title:"Two decades of recorded attacks",dwell:9,
+    do:{reset:true,closeAll:true,map:"sphere",years:[2000,2026],month:[2022,6],cumulative:true,
+        arcWindow:8,play:false,wide:true,spin:true,heat:false,focus:"device",altitude:2.05},
+    say:"Welcome to Cyber Attack Earth. Every missile is publicly documented cyber attacks. Two decades of them, from the year two thousand."},
 
-   {title:"Watch it accumulate",dwell:12,
-    do:{play:true,speed:120,arcWindow:10},
+   /* The series builds beside the globe, so the claim and the evidence move together. */
+   {title:"Watch it accumulate",dwell:8,
+    do:{month:[2000,1],play:true,speed:110,arcWindow:10,chart:"incidents"},
     say:"Watch twenty-six years arrive in twenty seconds. The first decade is nearly empty. What comes after is not."},
 
+   /* Flat map for the shading, with the league table to say who wears it. */
    {title:"Where it lands",dwell:11,
-    do:{heat:true,focus:{lat:30,lng:10},altitude:2.1},
-    say:"The shading is volume. Deeper means more has been recorded there, which is not the same as more having happened."},
+    do:{map:"flat",heat:true,arcWindow:8,closeAll:true,chart:"targets"},
+    say:"The shading is volume. Deeper red means more has been recorded at that location. The reality is much worse, as most attacks are not reported."},
 
-   {title:"Fifty-four thousand and counting",dwell:11,
-    do:{map:"flat",heat:true,arcWindow:8},
-    say:"Fifty-four thousand records, from a dozen independent sources, rebuilt every night."},
+   /* Where it comes from: the sources chart earns this line. */
+   {title:"Fifty-four thousand records",dwell:7,
+    do:{map:"sphere",wide:true,spin:true,closeAll:true,chart:"coverage",arcWindow:8},
+    say:"Fifty-four thousand records from a dozen independent sources, rebuilt every night with the latest."},
 
-   {title:"Look closer",dwell:10,
-    do:{map:"sphere",play:false,month:[2026,7],wide:true,spin:true},
-    say:"Everything here is public, sourced, and open to anyone. Have a look for yourself."}
+   /* Close on the impact scatter - the most striking chart in the set - then back. */
+   {title:"Look closer",dwell:7,
+    do:{closeAll:true,chart:"impact",play:false,month:[2026,7],wide:true,spin:true,focus:"device",altitude:2.2},
+    say:"Everything in this tool is publicly sourced and open to anyone to analyse. Have a look for yourself."}
   ]
  }
 };
@@ -6112,6 +6148,11 @@ const NARR_AUDIO={
     srcs:["presentation.mp3","audio/presentation.mp3","media/presentation.mp3"],
     cues:[0,26,41,58,74,85,99,104,112,127],
     duration:146.5
+  },
+  kiosk:{
+    srcs:["kiosk.mp3","audio/kiosk.mp3","media/kiosk.mp3"],
+    cues:[0,9,17,28,35],
+    duration:42.1
   }
 };
 const NARR_AUDIO_CACHE={};        // mode -> HTMLAudioElement | false (unavailable)
@@ -6172,9 +6213,20 @@ function narrAudioStart(el){
   el.muted=!!NARR.muted;
   el.currentTime=0;
   NARR._onTime=()=>narrAudioSync();
-  NARR._onEnd=()=>{ if(NARR.running)narrStop() };
+  NARR._onEnd=()=>{
+    if(!NARR.running)return;
+    // A looping script must loop with its recording too, or the kiosk plays once and
+    // stops - which is the one thing a foyer screen must not do.
+    const s=NARR.script;
+    if(s&&s.loop){
+      try{ el.currentTime=0; el.play(); }catch(e){}
+      narrGo(0);
+      return;
+    }
+    narrStop();
+  };
   el.addEventListener("timeupdate",NARR._onTime);
-  el.addEventListener("ended",NARR._onEnd,{once:true});
+  el.addEventListener("ended",NARR._onEnd);
   const p=el.play();
   if(p&&p.catch)p.catch(()=>{
     // Autoplay refused despite the button press: give up on the recording rather
@@ -6226,37 +6278,84 @@ function narrStopSpeech(){try{if("speechSynthesis" in window)speechSynthesis.can
 
 /* Apply a step's visual state. Everything is expressed declaratively so the
    scripts stay readable and can be copied out as plain prose. */
-/* Lay out whatever charts a narration step has opened: down the right-hand side,
-   each sized to its own content. Previously each frame was given a width and left to
-   take whatever height it liked, which produced tall windows mostly full of empty
-   space - and two open at once simply overlapped. */
+/* ── Where things go during a narrated run ─────────────────────────────────
+   A narrated run is a composed picture, not a workspace, so it lays the screen
+   out itself rather than leaving windows where the ordinary tiler put them.
+
+   Two rules matter. The month and the running count live in the top right and
+   are part of what the narration is describing, so nothing may cover them.
+   And on a large screen there is room for a column of charts beside the globe
+   rather than on top of it - which is the point of watching this on a large
+   screen at all.
+
+   Charts take the left column; panels that are read rather than scanned
+   (Details, Help, Compare, Search) take the right, starting below the count.
+   Below about 1100px there is only room for one column, so charts go left and
+   panels are stacked under them. */
+function narrClusterBottom(){
+ const parts=["yearBig","escalation","escWords"]
+   .map(id=>document.getElementById(id))
+   .filter(el=>el&&el.offsetParent!==null&&!el.classList.contains("collapsed"));
+ if(!parts.length)return 90;
+ return Math.max(...parts.map(el=>el.getBoundingClientRect().bottom));
+}
+function narrSizeToContent(f,cap){
+ f.style.height=""; f.style.maxHeight="";
+ const head=f.querySelector(".frameHead");
+ const body=f.querySelector(".frameBody")||f.querySelector(".chartHost");
+ const want=(head?head.offsetHeight:30)+(body?body.scrollHeight:220)+18;
+ return Math.max(150,Math.min(want,cap));
+}
 function narrLayoutCharts(){
- const frames=[...document.querySelectorAll('.frame[id^="frame-chart-"]:not(.hidden)')];
- if(!frames.length)return;
+ const W=window.innerWidth, gap=10;
  const tb=document.getElementById("toolbar");
  const top=tb?Math.round(tb.getBoundingClientRect().bottom+12):80;
  const bottom=(typeof safeBottom==="function")?safeBottom()-12:window.innerHeight-12;
  const avail=Math.max(160,bottom-top);
- const W=window.innerWidth;
- const w=Math.min(560,Math.max(300,Math.round(W*(frames.length>2?0.30:0.38))));
- const gap=10;
- let _narrChartY=top;
- const share=Math.floor((avail-(frames.length-1)*gap)/frames.length);
- frames.forEach((f,i)=>{
+ const charts=[...document.querySelectorAll('.frame[id^="frame-chart-"]:not(.hidden)')];
+ // frame-charts is the gallery the training run opens; it was missing here, so it
+ // stayed wherever the ordinary tiler had put it and landed on the chart column.
+ const panelIds=["frame-details","frame-help","frame-bench","frame-search",
+                 "frame-controls","frame-charts","attackDrawer"];
+ const panels=panelIds.map(id=>document.getElementById(id))
+   .filter(f=>f&&!f.classList.contains("hidden"));
+ if(!charts.length&&!panels.length)return;
+
+ const wide=W>=1100;
+ const colW=Math.min(560,Math.max(300,Math.round(W*(wide?0.30:0.34))));
+
+ /* Charts: left column, top down. On a wide screen the column starts under the tool
+    bar, because the month and count sit far away on the right. On a narrow one there
+    is no "far away" - the column would run straight through them - so everything
+    starts below the cluster instead. */
+ const clusterTop=narrClusterBottom();
+ const startY=wide?top:Math.max(top,Math.round(clusterTop+10));
+ let y=startY;
+ const chartAvail=Math.max(150,bottom-startY);
+ const chartCap=charts.length?Math.floor((chartAvail-(charts.length-1)*gap)/charts.length):chartAvail;
+ charts.forEach(f=>{
    f.classList.remove("maxed");
-   f.style.width=w+"px"; f.style.maxWidth=w+"px";
-   f.style.left=Math.round(W-w-18)+"px"; f.style.right="auto";
-   // height from the content, never more than its share of the column
-   f.style.height=""; f.style.maxHeight="";
-   const head=f.querySelector(".frameHead"), body=f.querySelector(".frameBody")||f.querySelector(".chartHost");
-   const want=(head?head.offsetHeight:30)+(body?body.scrollHeight:220)+18;
-   const hh=Math.max(140,Math.min(want,share));
-   // running offset: using each frame's OWN height for its position made a tall
-   // window followed by a short one overlap
-   f.style.top=Math.round(_narrChartY)+"px";
-   _narrChartY+=hh+gap;
-   f.style.height=hh+"px"; f.style.maxHeight=hh+"px";
+   f.style.width=colW+"px"; f.style.maxWidth=colW+"px";
+   f.style.left="18px"; f.style.right="auto";
+   const hh=narrSizeToContent(f,chartCap);
+   f.style.top=Math.round(y)+"px"; f.style.height=hh+"px"; f.style.maxHeight=hh+"px";
    f.dataset.placed="1"; f.dataset.sized="1";
+   y+=hh+gap;
+ });
+
+ // Panels: right column, starting clear of the month and count. On a narrow screen
+ // there is no second column, so they continue beneath the charts on the left.
+ let py=wide?Math.round(narrClusterBottom()+14):Math.round(y);
+ const pLeft=wide?Math.round(W-colW-18):18;
+ const pCap=panels.length?Math.floor((bottom-py-(panels.length-1)*gap)/panels.length):avail;
+ panels.forEach(f=>{
+   f.classList.remove("maxed");
+   f.style.width=colW+"px"; f.style.maxWidth=colW+"px";
+   f.style.left=pLeft+"px"; f.style.right="auto";
+   const hh=narrSizeToContent(f,Math.max(150,pCap));
+   f.style.top=Math.round(py)+"px"; f.style.height=hh+"px"; f.style.maxHeight=hh+"px";
+   f.dataset.placed="1"; f.dataset.sized="1";
+   py+=hh+gap;
  });
 }
 /* Roughly where this device is, without asking permission. The time zone is already
@@ -6354,6 +6453,11 @@ function narrApply(d){
     events, and a chart about them is not the same as the record itself. Matched
     against the curated overlay by id, then by name, so a renamed row degrades to
     showing nothing rather than showing the wrong incident. */
+ /* A step that does not name an incident should not inherit the last one's drawer.
+    It sat over the map for the rest of the run after NotPetya. */
+ if(!d.detail&&typeof closeAttackDetails==="function"&&document.body.classList.contains("narrating")){
+   closeAttackDetails();
+ }
  if(d.detail){
    try{
      const pool=(typeof curatedImpactIncidents==="function")?curatedImpactIncidents():[];
@@ -6391,7 +6495,6 @@ function narrApply(d){
      if(window.innerWidth>900){
        cf.dataset.placed="1"; cf.dataset.sized="1";
        if(typeof renderChartFrame==="function")renderChartFrame(d.chart);
-       narrLayoutCharts();
      }else{
        /* A narrow screen cannot show two charts side by side, and leaving the older
           one open simply stacks them on top of each other. Keep the one being talked
@@ -6446,6 +6549,10 @@ function narrGo(i){
  NARR.step=Math.max(0,Math.min(NARR.script.steps.length-1,i));
  const s=NARR.script.steps[NARR.step];
  narrApply(s.do);
+ /* After the whole step, not inside the chart branch: a step can open Details, Help
+    or Compare, and those need placing just as much as a chart does. Deferred a frame
+    so the panel has rendered and its content height is real. */
+ requestAnimationFrame(()=>{ try{ narrLayoutCharts() }catch(e){} });
  narrRenderCaption();
  clearTimeout(NARR.timer);
  // With a recording playing, the file is the clock: apply the visuals and let the
