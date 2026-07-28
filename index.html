@@ -121,7 +121,7 @@
     .tbWinWrap.hidden{display:none}
     .tbWindows{color:#7fe6ff;border-color:#24506b}
     .tbWindows:hover,.tbWindows.on{background:rgba(77,216,255,.12);border-color:var(--accent)}
-    .winMenu{position:absolute;top:calc(100% + 6px);left:0;z-index:210;min-width:250px;
+    .winMenu{position:absolute;top:calc(100% + 6px);left:0;z-index:210;min-width:330px;
       background:#0a1526;border:1px solid #34506f;border-radius:10px;padding:5px;
       box-shadow:0 18px 46px rgba(0,0,0,.6);display:grid;gap:2px}
     .winMenu.hidden{display:none}
@@ -145,10 +145,15 @@
     .layoutAuto:hover,.layoutDel:hover{background:rgba(77,216,255,.1);color:#eaf6ff}
     .layoutAuto.on{color:var(--accent)}
     .layoutDel:hover{color:var(--orange)}
-    .layoutSaveRow{display:flex;gap:5px;padding:6px 9px 2px}
-    .layoutSaveRow input{flex:1;min-width:0;font-size:11px;padding:5px 7px;background:#0a1626;
-      border:1px solid #24405c;border-radius:7px;color:var(--text)}
-    .layoutSaveRow button{font-size:11px;padding:5px 10px;white-space:nowrap}
+    /* The name box was 11px in a cramped row - too small to read what you had just
+       typed. The menu is wider now and the field is a proper input. */
+    .layoutSaveRow{display:flex;gap:6px;padding:8px 9px 4px}
+    .layoutSaveRow input{flex:1;min-width:0;font-size:13px;padding:8px 10px;background:#0a1626;
+      border:1px solid #2c4666;border-radius:8px;color:var(--text)}
+    .layoutSaveRow input:focus{outline:none;border-color:var(--accent);
+      box-shadow:0 0 0 3px rgba(77,216,255,.12)}
+    .layoutSaveRow input::placeholder{color:#5f7ba0}
+    .layoutSaveRow button{font-size:12px;padding:8px 13px;white-space:nowrap}
     .winAuto{display:flex;align-items:center;gap:7px;font-size:10.5px;color:#8fa6c2;padding:6px 9px 2px}
     .winMenu button:disabled{cursor:default}
     .layoutToast{position:fixed;left:50%;transform:translateX(-50%) translateY(14px);bottom:calc(env(safe-area-inset-bottom,0px) + 118px);
@@ -247,6 +252,9 @@
     .country{fill:#10213b;stroke:#38506f;stroke-width:.35}
     .flat-arc{fill:none;stroke-linecap:round}
     .flat-origin{fill:#4dd8ff;stroke:#dff8ff;stroke-width:.5}
+    .flat-city{stroke:rgba(10,22,38,.8);stroke-width:.6;pointer-events:none}
+    .flat-cityLabel{fill:rgba(198,214,236,.9);font-size:8.5px;pointer-events:none;
+      paint-order:stroke;stroke:rgba(7,26,48,.85);stroke-width:2.4px;stroke-linejoin:round}
     .flat-victim{stroke:#fff;stroke-width:.5;animation:victimPulse 1.8s ease-out infinite}
     @keyframes victimPulse{0%{opacity:.85}55%{opacity:.35}100%{opacity:.85}}
     .impact-label{position:absolute;z-index:15;max-width:220px;background:rgba(5,12,25,.94);border:1px solid #ff6b78;border-radius:9px;padding:8px 10px;color:#fff;font-size:12px;cursor:pointer;box-shadow:0 6px 22px rgba(0,0,0,.32)}
@@ -595,6 +603,13 @@
     .covTier{font-size:9.5px;padding:1px 6px;border-radius:999px;border:1px solid #2c4666;color:#8fa6c2}
     .covTier.verified{border-color:#2f6b4f;color:#7fd6a6}
     .covRecorded{background:rgba(77,216,255,.08);border-color:#2c5a7a}
+    .clogRow{border-left:2px solid #24405c;padding:0 0 10px 11px;margin-bottom:10px}
+    .clogHead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+    .clogHead b{color:#7fe6ff;font-family:ui-monospace,monospace;font-size:11.5px}
+    .clogHead span{color:#dbe8f7;font-size:12px;font-weight:600}
+    .clogHead i{font-style:normal;color:#6f8bad;font-size:10.5px;margin-left:auto}
+    .clogList{margin:5px 0 0;padding-left:16px}
+    .clogList li{font-size:11.5px;line-height:1.55;color:#a8bcd6;margin-bottom:3px}
     .dupBox{background:rgba(255,157,60,.07);border:1px solid #4a3520;border-left:3px solid var(--orange);
       border-radius:8px;padding:10px 12px;margin:10px 0}
     .dupBox b{color:#ffcf9a;font-size:12px}
@@ -938,6 +953,13 @@
             <button id="helpPlayKiosk" type="button">&#9654; Kiosk loop <i>1 min, loops</i></button>
             <button id="helpPlayMore" type="button">Options &amp; script</button>
           </div>
+          </div>
+        </details>
+        <details class="ctlSec" data-sec="changelog">
+          <summary>What has changed</summary>
+          <div class="ctlBody">
+            <p class="small" style="margin:0 0 8px">Every released version, newest first, with what you would notice. The version you are running is shown at the foot of this panel.</p>
+            <div id="changelogBody"></div>
           </div>
         </details>
         <details class="ctlSec" data-sec="about">
@@ -1631,6 +1653,7 @@ const HOME=homeView();
  build();
  requestAnimationFrame(draw);
  let rz; window.addEventListener("resize",()=>{
+  if(typeof refreshCloseAll==="function")refreshCloseAll();
   clearTimeout(window.__covRelayout);
   window.__covRelayout=setTimeout(()=>{ try{ placeCoveragePanel() }catch(e){} },160);
   if(document.body.classList.contains("narrating")){
@@ -1656,12 +1679,12 @@ const globe = window.globe = Globe()(globeEl)
   .onArcClick(showDetail)
   .ringLat("lat").ringLng("lng").ringColor(d=>severityColor[d.severity]||"#ff4d66")
   .ringMaxRadius(d=>2+d.impact/13).ringPropagationSpeed(d=>0.18+d.impact/220).ringRepeatPeriod(2200)
-  .pointLat("lat").pointLng("lng").pointAltitude(d=>d.type==="city"?.006:.025)
-  .pointRadius(d=>d.type==="city"?.06:.18+d.impact/500)
+  .pointLat("lat").pointLng("lng").pointAltitude(d=>d.type==="city"?.012:.025)
+  .pointRadius(d=>d.type==="city"?.26:.18+d.impact/500)
   .pointColor(d=>d.type==="city"?"#b6c8e2":d.role==="origin"?"#4dd8ff":severityColor[d.severity])
   .pointLabel(d=>d.type==="city"?d.name:`<b>${d.role==="origin"?"Origin":"Victim"}</b>: ${d.city}, ${d.country}<br>${d.attack.name}`)
   .onPointClick(d=>{if(d.attack) showDetail(d.attack)})
-  .labelLat("lat").labelLng("lng").labelText("name").labelSize(d=>d.unknownAnchor?1.1:.65).labelColor(d=>d.unknownAnchor?"rgba(255,157,60,.95)":"rgba(182,200,226,.85)").labelDotRadius(d=>d.unknownAnchor?.5:.14)
+  .labelLat("lat").labelLng("lng").labelText("name").labelSize(d=>d.unknownAnchor?1.1:.9).labelColor(d=>d.unknownAnchor?"rgba(255,157,60,.95)":"rgba(198,214,236,.95)").labelDotRadius(d=>d.unknownAnchor?.5:.26)
   .labelResolution(2);
 
 /* The globe turns gently on its own, and stops the moment anyone touches it. It
@@ -1684,7 +1707,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v86";
+const APP_VERSION="v87";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -2116,15 +2139,10 @@ function countryPassSt(a,st){
  if(vin&&oin)return true;
  return st.showUnattr&&vin&&isUnattributed(a);       // keep unattributed hits on a chosen country
 }
-function passesFilters(a,st){
- const i=(a._i!==undefined)?a._i:(a._i=idx(a.year,a.month));
- const inTime=(st.when==="all")?true
-   :(st.when==="period")?(i>=st.vs&&i<=st.ve)
-   // Shading is a running total across the selected period: empty when a run starts
-   // at the beginning, and reflecting everything up to wherever you jump.
-   :(st.when==="heat")?(i>=st.vs&&i<=st.now)
-   :(st.cumulative?i<=st.now:i===st.now);
- if(!inTime)return false;
+/* Everything except the date. Split out because the date is the only part that
+   changes as the clock runs: keeping the two apart is what lets the timeline pass
+   stop re-testing fifty thousand records twelve times a second. */
+function passesNonTime(a,st){
  if(!st.sources.has(sourceLayerName(a)))return false;
  if(!st.sev.has(a.severity))return false;
  if(st.prov&&!st.prov.has(provenanceOf(a)))return false;   // evidence tier
@@ -2139,14 +2157,78 @@ function passesFilters(a,st){
  }
  return true;
 }
+function passesFilters(a,st){
+ const i=(a._i!==undefined)?a._i:(a._i=idx(a.year,a.month));
+ const inTime=(st.when==="all")?true
+   :(st.when==="period")?(i>=st.vs&&i<=st.ve)
+   // Shading is a running total across the selected period: empty when a run starts
+   // at the beginning, and reflecting everything up to wherever you jump.
+   :(st.when==="heat")?(i>=st.vs&&i<=st.now)
+   :(st.cumulative?i<=st.now:i===st.now);
+ if(!inTime)return false;
+ return passesNonTime(a,st);
+}
 /* Small memo so the map, the heat shading and several open charts share one pass
    instead of repeating identical work within a single update. */
 const _filterMemo=new Map();
+/* ── The month index ───────────────────────────────────────────────────────
+   The old pass tested every record against every filter on every tick, because
+   the memo key included the timeline position - so playing the record meant a
+   fresh fifty-thousand-record scan twelve times a second, on the same thread
+   that has to turn the globe. That is what made the rotation stutter.
+
+   The date is the only part of the test that changes as the clock runs. So the
+   records that pass everything else are gathered once per filter change, sorted
+   by month, and counted into a running total. After that, "everything up to
+   this month" is a slice, not a scan. */
+let _tIdx={key:"",sorted:[],prefix:null,maxIdx:0};
+function timeIndex(st){
+  const key=_filterEpoch+"|"+(st.q||"")+"|"+[...st.sources].sort().join(",");
+  if(_tIdx.key===key)return _tIdx;
+  const pass=[];
+  for(let n=0;n<attacks.length;n++){
+    const a=attacks[n];
+    if(a._i===undefined)a._i=idx(a.year,a.month);
+    if(passesNonTime(a,st))pass.push(a);
+  }
+  pass.sort((x,y)=>x._i-y._i);
+  let maxIdx=0;
+  for(let n=0;n<pass.length;n++)if(pass[n]._i>maxIdx)maxIdx=pass[n]._i;
+  // prefix[m] = how many records fall before month m, so a range is two lookups
+  const prefix=new Int32Array(maxIdx+2);
+  for(let n=0;n<pass.length;n++){
+    const m=pass[n]._i;
+    if(m>=0)prefix[m+1]++;
+  }
+  for(let m=1;m<prefix.length;m++)prefix[m]+=prefix[m-1];
+  _tIdx={key,sorted:pass,prefix,maxIdx};
+  return _tIdx;
+}
+function _sliceUpTo(ix,m){
+  if(m<0)return 0;
+  return ix.prefix[Math.min(m,ix.maxIdx)+1];
+}
+function _sliceFrom(ix,m){
+  if(m<=0)return 0;
+  return ix.prefix[Math.min(m,ix.maxIdx+1)];
+}
 function filterPass(when){
  const st=filterState(when);
  const hit=_filterMemo.get(st.key);
  if(hit)return hit;
- const out=attacks.filter(a=>passesFilters(a,st));
+ const ix=timeIndex(st);
+ let out;
+ if(st.when==="all"){
+   out=ix.sorted;
+ }else if(st.when==="period"){
+   out=ix.sorted.slice(_sliceFrom(ix,st.vs),_sliceUpTo(ix,st.ve));
+ }else if(st.when==="heat"){
+   out=ix.sorted.slice(_sliceFrom(ix,st.vs),_sliceUpTo(ix,st.now));
+ }else if(st.cumulative){
+   out=ix.sorted.slice(0,_sliceUpTo(ix,st.now));
+ }else{
+   out=ix.sorted.slice(_sliceFrom(ix,st.now),_sliceUpTo(ix,st.now));
+ }
  if(_filterMemo.size>8)_filterMemo.clear();
  _filterMemo.set(st.key,out);
  return out;
@@ -3163,6 +3245,15 @@ function renderFlat(data,arcData){
      const i=(d._i!==undefined?d._i:(d._i=idx(d.year,d.month)));
      return i===nowIdx;
    }).sort((a,b)=>b.impact-a.impact).slice(0,60);
+   /* Cities on the flat map too. The option existed but only ever affected the
+      globe, so on the flat map it appeared to do nothing at all. */
+   const cityData=citiesBox.checked?cities:[];
+   layer.selectAll("circle.flat-city").data(cityData,d=>d.name).join("circle").attr("class","flat-city")
+    .attr("cx",d=>flatProjection([d.lng,d.lat])[0]).attr("cy",d=>flatProjection([d.lng,d.lat])[1])
+    .attr("r",2.6).attr("fill","#c6d6ec").attr("opacity",.9);
+   layer.selectAll("text.flat-cityLabel").data(cityData,d=>d.name).join("text").attr("class","flat-cityLabel")
+    .attr("x",d=>flatProjection([d.lng,d.lat])[0]+5).attr("y",d=>flatProjection([d.lng,d.lat])[1]+3)
+    .text(d=>d.name);
    layer.selectAll("circle.flat-victim").data(hitsNow,d=>d.id).join("circle").attr("class","flat-victim")
     .attr("cx",d=>flatProjection([d.endLng,d.endLat])[0]).attr("cy",d=>flatProjection([d.endLng,d.endLat])[1])
     .attr("r",d=>3.5+d.impact/30).attr("fill",d=>severityColor[d.severity]).attr("opacity",.8)
@@ -4442,6 +4533,7 @@ function openFrame(name){
  f.querySelector(".frameBody").scrollTop=0;
  if(typeof refreshCloseAll==="function")refreshCloseAll();
  if(name==="search"){const li=document.getElementById("lookupInput");li.focus();runLookup(li.value)}
+ if(name==="help"&&typeof renderChangelog==="function")renderChangelog();
 }
 function closeFrame(name){
  const f=frameEl(name); if(!f)return;
@@ -5106,10 +5198,15 @@ function refreshCloseAll(){
  const n=openFrameCount();
  const wrap=document.getElementById("tbWinWrap");
  if(wrap){
-   wrap.classList.toggle("hidden",n<1);
+   /* On a large screen the menu is worth having permanently: it is where saved
+      layouts live, and those are useful before anything is open, not only after.
+      On a small screen it stays hidden until there is something to arrange,
+      because the tool bar has no room to spare. */
+   const roomy=window.innerWidth>=1100;
+   wrap.classList.toggle("hidden",!roomy&&n<1);
    const lab=wrap.querySelector(".tbLabel");
    if(lab)lab.textContent=n>1?`Windows (${n})`:"Windows";
-   if(n<1){const m=document.getElementById("winMenu"); if(m)m.classList.add("hidden");}
+   if(n<1&&!roomy){const m=document.getElementById("winMenu"); if(m)m.classList.add("hidden");}
  }
  const lbl=tbCloseAll.querySelector(".tbLabel");
  if(lbl)lbl.textContent=`Close all (${n})`;
@@ -8554,6 +8651,67 @@ function placeCoveragePanel(){
  const h=Math.max(220,bottom-top);
  f.style.height=h+"px"; f.style.maxHeight=h+"px";
  f.dataset.placed="1"; f.dataset.sized="1";
+}
+/* ── What changed, and when ────────────────────────────────────────────────
+   A plain record of each released version. Kept in the app rather than only in
+   a repository history, because the people who use this will not be reading
+   commit logs - and because a tool that makes claims about evidence should be
+   able to say when its own behaviour changed.
+
+   Newest first. Keep entries short and say what a user would notice. */
+const CHANGELOG=[
+ {v:"v87", date:"2026-07-28", title:"Review, fixes and a change log", items:[
+   "Major cities now actually appear when you tick the box \u2014 they were being drawn at a size too small to see, and were missing from the flat map entirely.",
+   "The Windows menu stays available on a large screen, so saved layouts can be reached before anything is open.",
+   "Bigger, readable text box for naming a layout.",
+   "This change log added.",
+   "Globe rotation smoothed: the visible set is now built from a per-month index instead of re-filtering every record on every tick."]},
+ {v:"v86", date:"2026-07-27", title:"Named layouts and the coverage gap", items:[
+   "Save several named window arrangements instead of one, with one markable to open automatically.",
+   "New chart: recorded incidents beside published survey estimates, on separate scales.",
+   "\u201cWhat is not recorded\u201d panel opens under the information button, wider, with the explanations given room to read."]},
+ {v:"v85", date:"2026-07-27", title:"What is not recorded", items:[
+   "Published estimates of unreported attacks added as a curated layer, each with its source, scope and method.",
+   "Figures are never summed and no multiplier is applied \u2014 they measure different populations over different periods."]},
+ {v:"v84", date:"2026-07-27", title:"Recorded narration", items:[
+   "All three walk-throughs can use recorded audio where the files are present, falling back to the browser voice otherwise.",
+   "Kiosk loops correctly with its recording, and shows a chosen chart at each step."]},
+ {v:"v83", date:"2026-07-27", title:"Presentation layout", items:[
+   "Windows during a narrated run are laid out in columns that never cover the month or the running count.",
+   "Step forward and back now work while a recording is playing.",
+   "The incident details drawer closes when the narration moves on."]},
+ {v:"v82", date:"2026-07-27", title:"Welcome and return behaviour", items:[
+   "Narrated runs are greyed out until the data has loaded.",
+   "A run started from the welcome screen returns to it, reset; one started inside the app restores your windows and settings."]},
+ {v:"v80", date:"2026-07-26", title:"Flat map and countdown fixes", items:[
+   "Heat shading restored on the flat map \u2014 a stale empty cache was leaving every country pale.",
+   "Impact markers limited to the current month rather than thousands of static dots.",
+   "Three-second countdown before each narrated run."]},
+ {v:"v79", date:"2026-07-26", title:"Coordinates and layering", items:[
+   "Missiles on the flat map were being drawn in the wrong place \u2014 the canvas now matches the map\u2019s own coordinate system.",
+   "The month no longer disappears behind the flat map."]},
+ {v:"v77", date:"2026-07-26", title:"Export freshness", items:[
+   "Hand-downloaded sources show their age, and the nightly build raises a reminder when one is overdue."]},
+ {v:"v75", date:"2026-07-26", title:"Saved layouts and plain English", items:[
+   "Window arrangements can be saved and restored.",
+   "Help explains in plain English why the total is records held rather than distinct attacks."]},
+ {v:"v73", date:"2026-07-26", title:"Performance and honesty of shading", items:[
+   "Country shading now reflects volume against the whole record, so early years stay pale.",
+   "Attacks with no known origin show an impact only, rather than a missile launched from open ocean."]},
+ {v:"v71", date:"2026-07-26", title:"Timeline and welcome screen", items:[
+   "Timeline compacted from four rows to two, returning about a sixth of the screen.",
+   "Welcome screen statistics are counted from the data rather than written in by hand."]}
+];
+function renderChangelog(){
+  const host=document.getElementById("changelogBody");
+  if(!host)return;
+  host.innerHTML=CHANGELOG.map(r=>`
+    <div class="clogRow">
+      <div class="clogHead"><b>${escapeHtml(r.v)}</b>
+        <span>${escapeHtml(r.title)}</span>
+        <i>${escapeHtml(r.date)}</i></div>
+      <ul class="clogList">${r.items.map(x=>`<li>${escapeHtml(x)}</li>`).join("")}</ul>
+    </div>`).join("");
 }
 function renderCoverage(){
   const host=document.getElementById("coverageBody");
