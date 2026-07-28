@@ -604,6 +604,11 @@
     .covTier{font-size:9.5px;padding:1px 6px;border-radius:999px;border:1px solid #2c4666;color:#8fa6c2}
     .covTier.verified{border-color:#2f6b4f;color:#7fd6a6}
     .covRecorded{background:rgba(77,216,255,.08);border-color:#2c5a7a}
+    .revBox{background:rgba(255,157,60,.07);border:1px solid #4a3520;border-left:3px solid var(--orange);
+      border-radius:8px;padding:10px 12px}
+    .revBox b{color:#ffcf9a;font-size:12.5px}
+    .revBox p{font-size:11.5px;line-height:1.55;color:#c9d8ec;margin:6px 0 0}
+    .revBox code{background:#0a1626;padding:1px 5px;border-radius:4px;font-size:10.5px}
     .clogRow{border-left:2px solid #24405c;padding:0 0 10px 11px;margin-bottom:10px}
     .clogHead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
     .clogHead b{color:#7fe6ff;font-family:ui-monospace,monospace;font-size:11.5px}
@@ -955,6 +960,10 @@
             <button id="helpPlayMore" type="button">Options &amp; script</button>
           </div>
           </div>
+        </details>
+        <details class="ctlSec" data-sec="review">
+          <summary>Waiting for review</summary>
+          <div class="ctlBody"><div id="reviewQueue"></div></div>
         </details>
         <details class="ctlSec" data-sec="changelog">
           <summary>What has changed</summary>
@@ -1708,7 +1717,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v88";
+const APP_VERSION="v89";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -3628,6 +3637,8 @@ function renderSourceMenu(){
         themselves. A months-old export otherwise looks exactly as current as one
         fetched this morning, which is the quiet way a dataset misleads. */
      const me=(LAKE.manifest&&LAKE.manifest.manual_exports)||{};
+     /* The review queue is not data - it is work. Showing the count here is the only
+        thing that stops it filling up unseen. */
      const mkey=Object.keys(me).find(k=>s.id===k||String(s.id).indexOf(k)===0);
      let ageNote="";
      if(mkey){
@@ -4541,6 +4552,7 @@ function openFrame(name){
  if(typeof refreshCloseAll==="function")refreshCloseAll();
  if(name==="search"){const li=document.getElementById("lookupInput");li.focus();runLookup(li.value)}
  if(name==="help"&&typeof renderChangelog==="function")renderChangelog();
+ if(name==="help"&&typeof renderReviewQueue==="function")renderReviewQueue();
 }
 function closeFrame(name){
  const f=frameEl(name); if(!f)return;
@@ -8729,6 +8741,9 @@ function placeCoveragePanel(){
 
    Newest first. Keep entries short and say what a user would notice. */
 const CHANGELOG=[
+ {v:"v89", date:"2026-07-28", title:"Review queue made visible", items:[
+   "SEC disclosures awaiting a decision are now shown in Help, so the queue cannot fill up unnoticed.",
+   "The nightly build now commits the review file, which it previously wrote and discarded."]},
  {v:"v88", date:"2026-07-28", title:"People, filings and the survey series", items:[
    "New chart: people whose data was exposed, from the Have I Been Pwned catalogue \u2014 counted in accounts, never added to the incident totals.",
    "SEC 8-K cyber disclosures are collected nightly as candidates for review, keyed on the company\u2019s permanent SEC number. Nothing reaches the map without a human decision.",
@@ -8777,6 +8792,27 @@ const CHANGELOG=[
    "Timeline compacted from four rows to two, returning about a sixth of the screen.",
    "Welcome screen statistics are counted from the data rather than written in by hand."]}
 ];
+/* Candidates waiting for a decision. Deliberately shown as a task, not a finding:
+   nothing in this queue has been accepted, and none of it is counted anywhere. */
+function renderReviewQueue(){
+ const host=document.getElementById("reviewQueue");
+ if(!host)return;
+ const t=(LAKE.manifest&&LAKE.manifest.tables&&LAKE.manifest.tables.review)||null;
+ const info=t&&t.files&&t.files.secedgar;
+ if(!info||!info.rows){ host.innerHTML=""; return }
+ const waiting=info.rows-(info.decided||0);
+ host.innerHTML=`<div class="revBox">
+   <b>${waiting.toLocaleString()} disclosure${waiting===1?"":"s"} awaiting review</b>
+   <p>US-listed companies must tell the SEC when a cyber incident is material. The
+     nightly build collects those filings as <i>candidates</i> \u2014 none of them is
+     counted here, shown on the map, or included in any total, because each one may
+     already appear in the incident tables under a different name.</p>
+   <p>Decisions are recorded in <code>manual_sources/sec_review.csv</code>: put
+     <b>y</b> or <b>n</b> in the review column. Anything already decided is kept
+     across nightly runs.
+     ${info.decided?`<br>So far ${info.decided.toLocaleString()} of ${info.rows.toLocaleString()} have been decided.`:""}</p>
+ </div>`;
+}
 function renderChangelog(){
   const host=document.getElementById("changelogBody");
   if(!host)return;

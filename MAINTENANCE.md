@@ -7,6 +7,9 @@ Everything here is done through the GitHub website. No terminal, no local Python
 - **Builder:** `build_cyber_data.py` (runs nightly via GitHub Actions)
 - **Data pack:** `cyber_data/` (written by the Action — never edit by hand)
 - **Curated impact layer:** `impact_overlay.csv` + `impact_figures.csv` (yours to edit)
+- **Published estimates:** `estimates.csv` (yours to edit — what is *not* recorded)
+- **Review queue:** `manual_sources/sec_review.csv` (candidates awaiting your decision)
+- **Hand-downloaded exports:** `manual_sources/` (CISSM, EuRepoC TableView)
 
 ---
 
@@ -25,6 +28,14 @@ Then open the site and confirm the welcome screen shows the version you expect.
 That is the whole routine when nothing is wrong.
 
 ---
+
+**Also worth a glance, now that more is automated:**
+
+* **Help → Waiting for review** — how many SEC disclosures have piled up. If it is
+  climbing past thirty, spend ten minutes on section 2e.
+* **Any open GitHub issue labelled `data-refresh`** — the build raises one when a
+  hand-downloaded export goes past forty days, and closes it when you refresh.
+* The build summary's **Manual exports** block, which prints the age of each one.
 
 ## 2. The monthly pass (about 30 minutes)
 
@@ -84,6 +95,68 @@ Fix anything listed, or accept it deliberately.
 Then spot-check one or two figures against their source URLs. Financial losses and
 people-affected counts get revised upward for **years** — if a figure's `as_of` is more
 than a year old and the incident is still in the news, it is probably out of date.
+
+---
+
+### 2e. Work the SEC review queue (~10 min, monthly)
+
+Since December 2023, US-listed companies must file an 8-K when they conclude a cyber
+incident is **material**. The nightly build searches EDGAR for those filings and writes
+candidates to `manual_sources/sec_review.csv`.
+
+**Nothing in that file is in the tool.** It is not counted, not mapped, not totalled.
+These are suggestions awaiting your judgement, and they exist because the alternative —
+merging them automatically — would double-count incidents that are already in the tables
+under a different name.
+
+**What to do:**
+
+1. Open `manual_sources/sec_review.csv` in the GitHub web editor.
+2. For each row, follow the `url` to the filing.
+3. Put `y` in the `review_status` column if it is a genuine incident worth adding,
+   `n` if it is a duplicate, immaterial, or already present.
+4. Commit. Decisions are preserved across nightly runs, keyed on the company's CIK
+   number and the filing date, so you never see the same row twice once decided.
+5. For anything marked `y` that deserves a full entry, add it to `impact_overlay.csv`
+   by hand in the usual way. Accepting a row does **not** move it automatically — that
+   remains deliberate.
+
+**How to see how many are waiting:** Help → *Waiting for review* in the app.
+
+**Two limits worth knowing.** Many companies file under Item 8.01 (voluntary) rather
+than 1.05 precisely to avoid asserting materiality, so this undercounts; both are
+searched and the `item` column records which found it. And it is US-listed companies
+only — a large and wealthy slice of the world, not the world.
+
+---
+
+### 2f. Keep the estimates layer current (~15 min, a few times a year)
+
+`estimates.csv` holds published figures for what is **not** recorded — survey estimates,
+modelled event costs — each with its own source, scope and method. They power the
+*What is not recorded* panel and the *Recorded here vs. what surveys find* chart.
+
+Unlike the other manual files this one does **not** go stale as a file: a 2017 figure
+stays correct forever. What goes stale is **coverage**. The publications to watch:
+
+| Publication | Who | When |
+|---|---|---|
+| Cyber Security Breaches Survey | DSIT / Home Office | Annually, usually April |
+| Crime in England and Wales (computer misuse) | ONS | Quarterly bulletins, annual detail in July |
+| Event assessments | Cyber Monitoring Centre | Per event, irregular |
+
+**The rules, enforced by the builder:**
+
+* Every row needs a **source URL** and a **stated method**, or it is rejected outright.
+* Nothing is ever **summed**. These figures count different populations over different
+  periods with incompatible definitions. A combined total would look authoritative and
+  mean nothing — and it would be *your* number rather than any publisher's.
+* Mark a row `verified` only when you have seen the figure on the publisher's own page.
+  Anything from secondary coverage stays `provisional`.
+
+**Do not rename this file with a date.** Two files matching one source is a trap: the
+builder picks the larger, which is arbitrary, and an old renamed copy can silently
+outrank a fresh one. Keep exactly one `estimates.csv`. (It warns you if it finds more.)
 
 ---
 
@@ -149,6 +222,22 @@ before committing.
 
 ---
 
+### Repository secrets
+
+Settings → Secrets and variables → Actions. All optional; the build degrades cleanly
+without them.
+
+| Secret | What it does | Without it |
+|---|---|---|
+| `NVD_API_KEY` | Free key from nvd.nist.gov. Raises the CVE and vulnerability request rate. | Backfill is much slower but still works. |
+| `SEC_CONTACT` | `Your Project Name you@example.com`. SEC refuses requests without a contact email in the User-Agent. | The SEC connector is **skipped**, not failed. |
+| `CISSM_API_KEY` | For when Charles issues the key. | Falls back to the manual export. |
+
+`SEC_CONTACT` is a secret rather than a line in the source deliberately: this
+repository is public, and an email address in the code is a durable spam magnet.
+
+---
+
 ## 4. Deploying a new app or builder version
 
 1. **Add file → Upload files**, drop the file in, commit.
@@ -186,7 +275,7 @@ place, so the site keeps working on slightly older data.
 
 ---
 
-## 6. Licence obligations — and one open question
+## 6. Licence obligations
 
 | Source | Terms | What that requires of you |
 |---|---|---|
@@ -195,19 +284,21 @@ place, so the site keeps working on slightly older data.
 | Ransomware.live | Free community API, fair use | Do not hammer it; review terms before any organisational use. |
 | CISA KEV, NVD, HHS OCR | US Government works | Public domain. No restriction. |
 | VERIS Community Database | Repository terms | Attribution. |
-| CISSM | Granted on request — **do not redistribute raw records** | See below. |
+| CISSM / GoTech | **Use confirmed** by Dr Charles Harry, July 2026 | Cite Harry, C. & Gallagher, N. (2018), *Classifying Cyber Events*, Journal of Information Warfare 17(3), 17–31. |
+| Have I Been Pwned | Free catalogue endpoint | Attribution to Have I Been Pwned. Held as its own table, never merged into incidents. |
+| SEC EDGAR | US Government work | Public domain. Requires a User-Agent with a contact email (see `SEC_CONTACT`). |
+| Cyber Monitoring Centre | Published assessments | Cite the specific assessment; figures belong to CMC. |
+| ONS / DSIT | Official statistics, Open Government Licence | Attribution. |
 | Vendor reports | Copyright of publishers | Links only. Never reproduce text. |
 
 `ATTRIBUTION.md` carries the public credits. Keep it current when adding a source.
 
-> **Open question worth resolving.** The CISSM terms recorded in the builder say the raw
-> records should not be redistributed. Committing the export to a **public** repository,
-> and publishing a derived pack to GitHub Pages, is arguably exactly that. I have not
-> resolved this — it depends on the terms you actually agreed with CISSM. Three options:
-> confirm with CISSM that publication of derived records is acceptable; publish only
-> aggregates from that source rather than per-incident rows; or keep the repository
-> private and publish only the built pack. Given the day job, this is worth settling
-> before the site gets much attention.
+> **Resolved, July 2026.** Dr Charles Harry confirmed that use of the Cyber Events
+> Database in this project is permitted, and an API is expected. Until it arrives the
+> monthly manual export continues. When the key is issued, add it as the repository
+> secret `CISSM_API_KEY` — the builder already has that path and the manual step
+> simply stops being used. Keep the Harry & Gallagher citation wherever the data is
+> described.
 
 ---
 
