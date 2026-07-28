@@ -1,8 +1,8 @@
 {
  "schema": 3,
- "builder": "3.17.0",
- "builder_date": "2026-07-27",
- "generated": "2026-07-28T07:43:41+00:00",
+ "builder": "3.18.1",
+ "builder_date": "2026-07-28b",
+ "generated": "2026-07-28T16:37:42+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -138,7 +138,7 @@
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17241,
+     "rows": 17254,
      "min_score": 0.1
     },
     "cve": {
@@ -179,11 +179,22 @@
    "files": {
     "estimates": {
      "file": "estimates/estimates.json",
-     "rows": 8,
-     "verified": 6,
-     "publishers": 2,
+     "rows": 13,
+     "verified": 11,
+     "publishers": 3,
      "summed": false,
      "note": "Published estimates from named sources. Different populations, periods and definitions - not comparable with each other or with the incident counts, and deliberately never totalled."
+    }
+   }
+  },
+  "breaches": {
+   "files": {
+    "hibp": {
+     "file": "breaches/hibp.json",
+     "rows": 1019,
+     "people": 17764883624,
+     "counted_as_incidents": false,
+     "note": "Named breaches with account counts. Overlaps the incident tables heavily, so it is held separately and never added."
     }
    }
   },
@@ -216,7 +227,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 5.6
+   "seconds": 64.9
   },
   {
    "id": "vcdb",
@@ -228,7 +239,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10362,
-   "seconds": 5.7
+   "seconds": 4.3
   },
   {
    "id": "rwlive",
@@ -240,7 +251,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 21311,
-   "seconds": 174.4
+   "seconds": 176.9
   },
   {
    "id": "kev",
@@ -252,7 +263,7 @@
    "status": "ok",
    "expected": 1650,
    "rows": 1655,
-   "seconds": 0.1
+   "seconds": 0.3
   },
   {
    "id": "epss",
@@ -263,8 +274,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17241,
-   "seconds": 0.8
+   "rows": 17254,
+   "seconds": 0.9
   },
   {
    "id": "attack",
@@ -276,7 +287,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 871,
-   "seconds": 2.9
+   "seconds": 0.5
   },
   {
    "id": "icsadv",
@@ -288,7 +299,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 3902,
-   "seconds": 0.6
+   "seconds": 1.0
   },
   {
    "id": "eurepoc_live",
@@ -300,19 +311,19 @@
    "status": "ok",
    "expected": 0,
    "rows": 992,
-   "seconds": 0.5
+   "seconds": 0.3
   },
   {
    "id": "cissm",
    "title": "CISSM / GoTech Cyber Events Database",
    "table": "incidents",
-   "licence": "Access granted by CISSM on request - do not redistribute raw records",
+   "licence": "Use confirmed by CISSM (Dr Charles Harry, July 2026); cite Harry & Gallagher (2018), Journal of Information Warfare 17(3)",
    "homepage": "https://cybereventsdatabase.org",
    "cadence": "manual export",
    "status": "ok",
    "expected": 17169,
    "rows": 17169,
-   "seconds": 0.3
+   "seconds": 0.2
   },
   {
    "id": "cve",
@@ -324,7 +335,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 319,
-   "seconds": 29.8
+   "seconds": 26.5
   },
   {
    "id": "impact_overlay",
@@ -348,7 +359,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1655,
-   "seconds": 0.1
+   "seconds": 0.4
   },
   {
    "id": "cisaaa",
@@ -360,7 +371,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 17,
-   "seconds": 1.2
+   "seconds": 2.4
   },
   {
    "id": "estimates",
@@ -371,8 +382,30 @@
    "cadence": "manual",
    "status": "ok",
    "expected": 0,
-   "rows": 8,
+   "rows": 13,
    "seconds": 0.0
+  },
+  {
+   "id": "hibp",
+   "title": "Have I Been Pwned breach catalogue",
+   "table": "breaches",
+   "licence": "Free catalogue endpoint; attribution to Have I Been Pwned",
+   "homepage": "https://haveibeenpwned.com/API/v3",
+   "cadence": "weekly",
+   "status": "ok",
+   "expected": 0,
+   "rows": 1019,
+   "seconds": 0.2
+  },
+  {
+   "id": "secedgar",
+   "title": "SEC 8-K cyber incident disclosures (candidates for review)",
+   "table": "review",
+   "licence": "US Government work - public domain",
+   "homepage": "https://www.sec.gov/edgar/search/",
+   "expected": 0,
+   "status": "failed: connector returned an empty result",
+   "rows": 0
   },
   {
    "id": "reports",
@@ -412,9 +445,9 @@
    "limit_days": 40
   },
   "estimates": {
-   "file": "estimates_2026-07-27.csv",
-   "dated": "2026-07-27",
-   "age_days": 1,
+   "file": "estimates.csv",
+   "dated": "",
+   "age_days": null,
    "limit_days": 40
   }
  }
