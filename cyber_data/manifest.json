@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.18.2",
  "builder_date": "2026-07-28c",
- "generated": "2026-07-28T19:17:35+00:00",
+ "generated": "2026-07-28T19:53:07+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -238,7 +238,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 5.6
+   "seconds": 5.5
   },
   {
    "id": "vcdb",
@@ -250,7 +250,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10362,
-   "seconds": 6.1
+   "seconds": 6.5
   },
   {
    "id": "rwlive",
@@ -262,7 +262,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 21311,
-   "seconds": 168.9
+   "seconds": 195.4
   },
   {
    "id": "kev",
@@ -274,7 +274,7 @@
    "status": "ok",
    "expected": 1650,
    "rows": 1655,
-   "seconds": 0.2
+   "seconds": 0.1
   },
   {
    "id": "epss",
@@ -286,7 +286,7 @@
    "status": "ok",
    "expected": 17000,
    "rows": 17254,
-   "seconds": 1.0
+   "seconds": 0.9
   },
   {
    "id": "attack",
@@ -298,7 +298,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 871,
-   "seconds": 2.0
+   "seconds": 3.4
   },
   {
    "id": "icsadv",
@@ -310,7 +310,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 3902,
-   "seconds": 0.9
+   "seconds": 0.7
   },
   {
    "id": "eurepoc_live",
@@ -322,7 +322,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 992,
-   "seconds": 0.4
+   "seconds": 0.5
   },
   {
    "id": "cissm",
@@ -346,7 +346,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 319,
-   "seconds": 156.1
+   "seconds": 28.3
   },
   {
    "id": "impact_overlay",
@@ -370,7 +370,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1655,
-   "seconds": 0.2
+   "seconds": 0.1
   },
   {
    "id": "cisaaa",
@@ -382,7 +382,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 17,
-   "seconds": 3.2
+   "seconds": 1.3
   },
   {
    "id": "estimates",
@@ -406,7 +406,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1019,
-   "seconds": 0.6
+   "seconds": 0.1
   },
   {
    "id": "secedgar",
@@ -418,7 +418,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 40,
-   "seconds": 0.8
+   "seconds": 0.6
   },
   {
    "id": "reports",
