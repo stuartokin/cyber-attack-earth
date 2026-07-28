@@ -373,12 +373,20 @@
     #histo{position:relative}
     #histoSvg{display:block;line-height:0}
     #histo:hover #playhead{width:3px;margin-left:-1.5px}
-    #perfNote{bottom:calc(env(safe-area-inset-bottom,0px) + 172px)}
-    .mergeNote{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);
-      z-index:11;font-size:10.5px;color:#7f95b4;background:rgba(7,20,38,.82);border:1px solid #22364f;
-      border-radius:999px;padding:3px 11px;pointer-events:none;white-space:nowrap;max-width:calc(100vw - 24px);
-      overflow:hidden;text-overflow:ellipsis}
-    .mergeNote.hidden{display:none}
+    /* How the map is being drawn. Announced briefly when it changes, then it retreats
+       to a quiet marker on the colour scale - the information stays available without
+       a banner sitting over the map for the rest of the session. */
+    .renderInfo{background:transparent;border:0;color:#5f7ba0;font-size:12px;line-height:1;
+      padding:0 2px;margin-left:6px;border-radius:50%}
+    .renderInfo:hover,.renderInfo.on{color:var(--accent)}
+    .renderInfo.hidden{display:none}
+    .renderNote{position:absolute;left:50%;transform:translateX(-50%) translateY(6px);
+      bottom:calc(env(safe-area-inset-bottom,0px) + 150px);z-index:12;
+      font-size:10.5px;color:#c9d8ec;background:rgba(9,24,44,.94);border:1px solid #2c4666;
+      border-radius:10px;padding:6px 12px;max-width:min(460px,calc(100vw - 28px));
+      line-height:1.45;opacity:0;transition:opacity .35s,transform .35s;pointer-events:none}
+    .renderNote.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .renderNote.hidden{display:none}
     #legend{position:absolute;left:20px;bottom:18px;background:rgba(5,12,25,.82);border:1px solid var(--line);padding:9px 11px;border-radius:9px;font-size:11px;display:flex;gap:13px}
     .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
     .timelineTop{display:flex;align-items:center;gap:10px}.timelineTop strong{min-width:50px;font-size:19px}.timelineTop input{flex:1}
@@ -623,8 +631,14 @@
     .revBox b{color:#ffcf9a;font-size:12.5px}
     .revBox p{font-size:11.5px;line-height:1.55;color:#c9d8ec;margin:6px 0 0}
     .revBox code{background:#0a1626;padding:1px 5px;border-radius:4px;font-size:10.5px}
-    .clogRow{border-left:2px solid #24405c;padding:0 0 10px 11px;margin-bottom:10px}
-    .clogHead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+    .clogRow{border-left:2px solid #24405c;padding:0 0 4px 11px;margin-bottom:6px}
+    .clogRow[open]{padding-bottom:10px}
+    .clogHead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;cursor:pointer;
+      list-style:none;padding:4px 0;border-radius:6px}
+    .clogHead::-webkit-details-marker{display:none}
+    .clogHead:hover{background:rgba(77,216,255,.07)}
+    .clogHead em{font-style:normal;font-size:9.5px;color:#5f7ba0}
+    .clogRow[open] .clogHead em{display:none}
     .clogHead b{color:#7fe6ff;font-family:ui-monospace,monospace;font-size:11.5px}
     .clogHead span{color:#dbe8f7;font-size:12px;font-weight:600}
     .clogHead i{font-style:normal;color:#6f8bad;font-size:10.5px;margin-left:auto}
@@ -706,12 +720,20 @@
       #status{display:none}
       .btnrow{gap:5px}
       #dataStatus{flex-basis:100%;font-size:10.5px}
-      #perfNote{bottom:calc(env(safe-area-inset-bottom,0px) + 172px)}
-    .mergeNote{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);
-      z-index:11;font-size:10.5px;color:#7f95b4;background:rgba(7,20,38,.82);border:1px solid #22364f;
-      border-radius:999px;padding:3px 11px;pointer-events:none;white-space:nowrap;max-width:calc(100vw - 24px);
-      overflow:hidden;text-overflow:ellipsis}
-    .mergeNote.hidden{display:none}
+      /* How the map is being drawn. Announced briefly when it changes, then it retreats
+       to a quiet marker on the colour scale - the information stays available without
+       a banner sitting over the map for the rest of the session. */
+    .renderInfo{background:transparent;border:0;color:#5f7ba0;font-size:12px;line-height:1;
+      padding:0 2px;margin-left:6px;border-radius:50%}
+    .renderInfo:hover,.renderInfo.on{color:var(--accent)}
+    .renderInfo.hidden{display:none}
+    .renderNote{position:absolute;left:50%;transform:translateX(-50%) translateY(6px);
+      bottom:calc(env(safe-area-inset-bottom,0px) + 150px);z-index:12;
+      font-size:10.5px;color:#c9d8ec;background:rgba(9,24,44,.94);border:1px solid #2c4666;
+      border-radius:10px;padding:6px 12px;max-width:min(460px,calc(100vw - 28px));
+      line-height:1.45;opacity:0;transition:opacity .35s,transform .35s;pointer-events:none}
+    .renderNote.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .renderNote.hidden{display:none}
     #legend{display:none}
       .heatLegend{font-size:9.5px;gap:6px;padding:5px 9px}
       .heatLegend .heatBar{width:90px}
@@ -1099,8 +1121,7 @@
         <div class="escNote">Counts reflect public disclosure.</div>
       </div>
     </div>
-    <div id="perfNote" class="mergeNote hidden"></div>
-    <div id="mergeNote" class="mergeNote hidden">Markers merged for speed &mdash; click an arc or use Search for detail</div>
+
     <div id="legend">
       <span><i class="dot" style="background:#4dd8ff"></i>Origin</span>
       <span><i class="dot" style="background:#ff4d66"></i>Victim / impact</span>
@@ -1153,7 +1174,10 @@
     <span>Lighter = fewer, milder</span>
     <span class="heatBar" aria-hidden="true"></span>
     <span>Darker = more, harder</span>
+    <button id="renderInfo" class="renderInfo hidden" type="button"
+            aria-label="How the map is being drawn" aria-expanded="false">&#9432;</button>
   </div>
+  <div id="renderNote" class="renderNote hidden" role="status"></div>
 
   <div id="narrOverlay" class="hidden" role="region" aria-label="Narration">
     <div class="narrBar">
@@ -1754,7 +1778,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v91";
+const APP_VERSION="v92";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -2345,20 +2369,73 @@ const PERF={dt:[],scale:1,lastCheck:0,worst:1};
       if(p50>24&&PERF.scale>0.3)PERF.scale=Math.max(0.3,PERF.scale*0.78);
       else if(p50<17&&PERF.scale<1)PERF.scale=Math.min(1,PERF.scale*1.18);
       if(PERF.scale<PERF.worst)PERF.worst=PERF.scale;
-      if(Math.abs(PERF.scale-before)>0.01){
-        const note=document.getElementById("perfNote");
-        if(note){
-          const pct=Math.round(PERF.scale*100);
-          note.textContent=PERF.scale<0.95
-            ? `Drawing ${pct}% of the sampled routes to stay smooth \u2014 every count and chart still uses all of them`
-            : "";
-          note.classList.toggle("hidden",PERF.scale>=0.95);
-        }
+      if(Math.abs(PERF.scale-before)>0.01&&typeof renderNoticeUpdate==="function"){
+        // announce a real change, then let it settle back to the marker
+        renderNoticeUpdate(Math.abs(PERF.scale-before)>0.05);
       }
     }
     requestAnimationFrame(tick);
   };
   requestAnimationFrame(tick);
+})();
+/* One notice for both facts about how the map is being drawn: the quality scale and
+   whether markers are merged. It appears for a few seconds when something changes,
+   then folds away to an information marker on the colour scale, which reopens it on
+   demand. A banner that never leaves stops being read within a minute. */
+let _renderNoteTimer=null;
+function renderNoticeText(){
+  const bits=[];
+  if(PERF.scale<0.95){
+    bits.push(`Drawing ${Math.round(PERF.scale*100)}% of the sampled routes so the map stays smooth. `+
+              `Every count, filter and chart still uses all of them.`);
+  }
+  if(window.__ptMerge){
+    bits.push(`Markers are merged into one layer for speed, so individual dots are not `+
+              `clickable at this density. Click an arc, or use Search, for detail.`);
+  }
+  return bits.join(" ");
+}
+function renderNoticeUpdate(announce){
+  const btn=document.getElementById("renderInfo");
+  const note=document.getElementById("renderNote");
+  if(!btn||!note)return;
+  const text=renderNoticeText();
+  if(!text){
+    btn.classList.add("hidden");
+    note.classList.remove("show"); note.classList.add("hidden");
+    btn.setAttribute("aria-expanded","false"); btn.classList.remove("on");
+    return;
+  }
+  note.textContent=text;
+  btn.classList.remove("hidden");
+  if(announce){
+    note.classList.remove("hidden");
+    requestAnimationFrame(()=>note.classList.add("show"));
+    btn.setAttribute("aria-expanded","true"); btn.classList.add("on");
+    clearTimeout(_renderNoteTimer);
+    _renderNoteTimer=setTimeout(()=>{
+      note.classList.remove("show");
+      btn.setAttribute("aria-expanded","false"); btn.classList.remove("on");
+      setTimeout(()=>note.classList.add("hidden"),400);
+    },4200);
+  }
+}
+(function(){
+  const btn=document.getElementById("renderInfo");
+  if(!btn)return;
+  btn.addEventListener("click",e=>{
+    e.stopPropagation();
+    const note=document.getElementById("renderNote");
+    const open=note.classList.contains("show");
+    clearTimeout(_renderNoteTimer);
+    if(open){
+      note.classList.remove("show"); btn.classList.remove("on");
+      btn.setAttribute("aria-expanded","false");
+      setTimeout(()=>note.classList.add("hidden"),400);
+    }else{
+      renderNoticeUpdate(true);
+    }
+  });
 })();
 function update(){
  if(heatLegend && heatToggle) heatLegend.classList.toggle("hidden",!heatToggle.checked);
@@ -2484,8 +2561,7 @@ function update(){
  if(wantMerge!==window.__ptMerge){
    window.__ptMerge=wantMerge;
    try{ globe.pointsMerge(wantMerge) }catch(e){}
-   const note=document.getElementById("mergeNote");
-   if(note)note.classList.toggle("hidden",!wantMerge);
+   if(typeof renderNoticeUpdate==="function")renderNoticeUpdate(true);
  }
  if(sceneChanged)globe.pointsData(scenePoints);
  const unattrCount=(mode==="attacks")?data.filter(isUnattributed).length:0;
@@ -4486,6 +4562,10 @@ function setMapMode(mode){
  sphereBtn.classList.toggle("primary",sphere);
  flatBtn.classList.toggle("primary",!sphere);
  if(selectedAttack) showDetail(selectedAttack);
+ /* Redraw for the mode we have just switched to. Without this the flat map relied on
+    the next tick to populate itself and start its animation - which never arrives
+    while the clock is paused, so switching to it left a still map with no missiles. */
+ if(typeof update==="function")update();
 }
 function closeAttackDetails(){
  attackDrawer.classList.add("hidden");
@@ -8884,6 +8964,11 @@ function placeCoveragePanel(){
 
    Newest first. Keep entries short and say what a user would notice. */
 const CHANGELOG=[
+ {v:"v92", date:"2026-07-28", title:"Smaller fixes", items:[
+   "Switching to the flat map while paused now starts the missiles — it previously waited for a tick that never came.",
+   "The two notices about how the map is being drawn are now announced briefly, then fold away to an information marker on the colour scale.",
+   "Search and threat-group navigation open only the Attack Details window, not a second copy in the Details frame.",
+   "Each version in this log collapses, with expand and collapse all."]},
  {v:"v91", date:"2026-07-28", title:"Adaptive quality", items:[
    "Three globe settings were costing far more than they were worth: every layer was being animated from the old data to the new over a full second, and each arc was built from 64 segments. Transitions are off and arcs use 24 segments — half the draw calls, a third less geometry.",
    "Above about four hundred markers the globe now merges them into one object, which is much faster to draw. Below that they stay individually clickable.",
@@ -8965,16 +9050,28 @@ function renderReviewQueue(){
      ${info.decided?`<br>So far ${info.decided.toLocaleString()} of ${info.rows.toLocaleString()} have been decided.`:""}</p>
  </div>`;
 }
+/* Each version collapses. Twelve open at once is a wall of text nobody reads; the
+   headings alone are a usable history, and you open the one you care about. The
+   newest is open to begin with, because that is the one you have just installed. */
 function renderChangelog(){
   const host=document.getElementById("changelogBody");
   if(!host)return;
-  host.innerHTML=CHANGELOG.map(r=>`
-    <div class="clogRow">
-      <div class="clogHead"><b>${escapeHtml(r.v)}</b>
+  host.innerHTML=`
+    <div class="miniLinks" style="margin:0 0 8px">
+      <button id="clogExpand" type="button">Expand all</button>
+      <button id="clogCollapse" type="button">Collapse all</button>
+    </div>` + CHANGELOG.map((r,i)=>`
+    <details class="clogRow"${i===0?" open":""}>
+      <summary class="clogHead"><b>${escapeHtml(r.v)}</b>
         <span>${escapeHtml(r.title)}</span>
-        <i>${escapeHtml(r.date)}</i></div>
+        <i>${escapeHtml(r.date)}</i>
+        <em>${r.items.length} change${r.items.length===1?"":"s"}</em></summary>
       <ul class="clogList">${r.items.map(x=>`<li>${escapeHtml(x)}</li>`).join("")}</ul>
-    </div>`).join("");
+    </details>`).join("");
+  const all=()=>host.querySelectorAll("details.clogRow");
+  const ex=document.getElementById("clogExpand"), co=document.getElementById("clogCollapse");
+  if(ex)ex.addEventListener("click",e=>{e.stopPropagation();all().forEach(d=>d.open=true)});
+  if(co)co.addEventListener("click",e=>{e.stopPropagation();all().forEach(d=>d.open=false)});
 }
 function renderCoverage(){
   const host=document.getElementById("coverageBody");
@@ -9117,8 +9214,10 @@ function navigateToIncident(id){
    pausePlayback();
    ensureVisibleFor(a);
    setTimeline(Math.max(0,Math.min(endTimelineIndex,idx(a.year,a.month))));
-   showDetail(a);                  // holds the Details panel on this incident
-   openFrame("details");
+   /* The Attack Details drawer is the answer here, and it already carries the full
+      record. Opening the Details frame as well put a second copy of the same thing
+      on screen and took space from whatever the viewer was searching in. */
+   showDetail(a);
  }catch(e){ console.warn("navigate failed",e) }
 }
 let groupCarouselIdx=0, groupCarouselItems=[];
