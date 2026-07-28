@@ -76,7 +76,12 @@ jobs:
         run: |
           git config user.name "data-pack-bot"
           git config user.email "actions@users.noreply.github.com"
-          git add cyber_data
+          # The SEC review queue lives outside cyber_data and is rewritten by the
+          # build each night. Without this line the candidates are produced on the
+          # runner and discarded, so nothing ever reaches the repository to be
+          # reviewed. Decisions already recorded in the file are preserved by the
+          # connector, keyed on the company number and filing date.
+          git add cyber_data manual_sources/sec_review.csv 2>/dev/null || git add cyber_data
           if git diff --cached --quiet; then
             echo "::warning::Nothing staged - the data pack is byte-identical to the committed version."
             echo "If you expected changes, check that build_cyber_data.py in the repo is the version you uploaded."
