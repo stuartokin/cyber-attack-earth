@@ -132,6 +132,23 @@
     .winMenu i{display:block;font-style:normal;font-size:10.5px;color:#8fa6c2;margin-top:1px}
     .winMenu .winDanger b{color:var(--orange)}
     .winSep{height:1px;background:#24405c;margin:4px 2px}
+    .layoutHead{font-size:10px;text-transform:uppercase;letter-spacing:.06em;color:#6f8bad;padding:6px 9px 3px}
+    .layoutList{max-height:190px;overflow:auto}
+    .layoutEmpty{font-size:10.5px;color:#8fa6c2;line-height:1.5;padding:2px 9px 6px}
+    .layoutItem{display:grid;grid-template-columns:1fr auto auto;gap:2px;align-items:stretch}
+    .layoutItem .layoutOpen{text-align:left;background:transparent;border:0;border-radius:7px;padding:6px 9px;min-width:0}
+    .layoutItem .layoutOpen b{display:block;font-size:11.5px;color:#dbe8f7;font-weight:600;
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+    .layoutItem .layoutOpen i{display:block;font-style:normal;font-size:9.5px;color:#7f95b4;margin-top:1px}
+    .layoutItem .layoutOpen:hover{background:rgba(77,216,255,.1)}
+    .layoutAuto,.layoutDel{background:transparent;border:0;color:#5f7ba0;font-size:12px;padding:0 7px;border-radius:7px}
+    .layoutAuto:hover,.layoutDel:hover{background:rgba(77,216,255,.1);color:#eaf6ff}
+    .layoutAuto.on{color:var(--accent)}
+    .layoutDel:hover{color:var(--orange)}
+    .layoutSaveRow{display:flex;gap:5px;padding:6px 9px 2px}
+    .layoutSaveRow input{flex:1;min-width:0;font-size:11px;padding:5px 7px;background:#0a1626;
+      border:1px solid #24405c;border-radius:7px;color:var(--text)}
+    .layoutSaveRow button{font-size:11px;padding:5px 10px;white-space:nowrap}
     .winAuto{display:flex;align-items:center;gap:7px;font-size:10.5px;color:#8fa6c2;padding:6px 9px 2px}
     .winMenu button:disabled{cursor:default}
     .layoutToast{position:fixed;left:50%;transform:translateX(-50%) translateY(14px);bottom:calc(env(safe-area-inset-bottom,0px) + 118px);
@@ -549,15 +566,31 @@
     .frameDocked{}
     .frameFloating{position:fixed!important;top:auto;right:auto;box-shadow:0 24px 60px rgba(0,0,0,.6);border-color:#4a6a92}.sourceLinks a{font-size:11px;color:var(--accent);text-decoration:none;border:1px solid #315171;border-radius:999px;padding:4px 7px}.sourceLinks a:hover{background:#102b42}
     .sourceToggle{display:flex;align-items:flex-start;gap:8px;margin:8px 0;color:var(--text)}.sourceToggle input{margin-top:3px}
+    .gapKey{display:flex;gap:14px;flex-wrap:wrap;font-size:10.5px;color:#a8bcd6;margin:4px 0 2px}
+    .gapKey i{display:inline-block;width:9px;height:9px;border-radius:2px;margin-right:5px}
     .covLead{font-size:12px;line-height:1.6;color:#c9d8ec;margin:0 0 10px}
-    .covRow{border:1px solid #1e3350;border-radius:9px;padding:9px 11px;margin-bottom:8px;background:rgba(10,22,38,.6)}
-    .covTop{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
-    .covVal{font-size:19px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap}
-    .covUnit{font-size:10.5px;color:#7f95b4;margin-left:4px;font-weight:400}
-    .covMetric{font-size:12px;color:#dbe8f7}
-    .covScope{font-size:10.5px;color:#8fa6c2;margin-top:3px}
-    .covWhy{font-size:10.5px;color:#a8bcd6;margin-top:5px;border-left:2px solid #2c4666;padding-left:7px}
-    .covSrc{font-size:10.5px;margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    /* The figure gets a fixed column and the prose gets everything else. The first
+       version let them share a flex line, which squeezed the explanation into a
+       ribbon while the number sat in space. */
+    .covRow{border:1px solid #1e3350;border-radius:9px;padding:10px 12px;margin-bottom:8px;
+      background:rgba(10,22,38,.6);display:grid;grid-template-columns:1fr auto;
+      grid-template-areas:"metric value" "body value";column-gap:16px;align-items:start}
+    .covTop{grid-area:metric;min-width:0}
+    .covBody{grid-area:body;min-width:0}
+    .covVal{grid-area:value;font-size:22px;font-weight:800;color:#fff;
+      font-variant-numeric:tabular-nums;white-space:nowrap;text-align:right;line-height:1.15}
+    .covUnit{display:block;font-size:10px;color:#7f95b4;font-weight:400;margin-top:2px}
+    .covMetric{font-size:13px;color:#dbe8f7;line-height:1.4}
+    .covScope{font-size:11px;color:#8fa6c2;margin-top:4px;line-height:1.5}
+    .covWhy{font-size:11px;color:#a8bcd6;margin-top:6px;border-left:2px solid #2c4666;
+      padding-left:9px;line-height:1.55}
+    .covSrc{font-size:10.5px;margin-top:7px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    /* On a narrow panel the figure drops under the text rather than crushing it. */
+    @container (max-width:430px){
+      .covRow{grid-template-columns:1fr;grid-template-areas:"metric" "value" "body"}
+      .covVal{text-align:left;font-size:19px;margin:4px 0}
+      .covUnit{display:inline;margin-left:5px}
+    }
     .covSrc a{color:#7fe6ff}
     .covTier{font-size:9.5px;padding:1px 6px;border-radius:999px;border:1px solid #2c4666;color:#8fa6c2}
     .covTier.verified{border-color:#2f6b4f;color:#7fd6a6}
@@ -662,10 +695,12 @@
         <button type="button" data-win="defaults" role="menuitem"><b>Reset what they show</b><i>Charts back to their opening settings</i></button>
         <button type="button" data-win="close" role="menuitem" class="winDanger"><b>Close them all</b><i>Clear the screen</i></button>
         <div class="winSep"></div>
-        <button type="button" data-win="saveLayout" role="menuitem"><b>Save this layout</b><i>Remember these windows, where they are and what they show</i></button>
-        <button type="button" data-win="loadLayout" role="menuitem"><b>Open my saved layout</b><i>Nothing saved yet</i></button>
-        <button type="button" data-win="forgetLayout" role="menuitem" style="display:none"><b>Forget the saved layout</b><i>Start again</i></button>
-        <label class="winAuto"><input type="checkbox" id="layoutAuto" /> Open it automatically next time</label>
+        <div class="layoutHead">Saved layouts</div>
+        <div id="layoutList" class="layoutList"></div>
+        <div class="layoutSaveRow">
+          <input id="layoutName" type="text" maxlength="40" placeholder="Name this arrangement" aria-label="Layout name" />
+          <button id="layoutSaveBtn" type="button">Save as</button>
+        </div>
       </div>
     </div>
     <button id="tbCloseAll" class="tbBtn tbCloseAll hidden" type="button" hidden aria-hidden="true"></button>
@@ -1596,6 +1631,8 @@ const HOME=homeView();
  build();
  requestAnimationFrame(draw);
  let rz; window.addEventListener("resize",()=>{
+  clearTimeout(window.__covRelayout);
+  window.__covRelayout=setTimeout(()=>{ try{ placeCoveragePanel() }catch(e){} },160);
   if(document.body.classList.contains("narrating")){
     clearTimeout(window.__narrRelayout);
     window.__narrRelayout=setTimeout(()=>{ try{ narrLayoutCharts() }catch(e){} },160);
@@ -1647,7 +1684,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v85";
+const APP_VERSION="v86";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -4774,22 +4811,37 @@ function chartsToDefaults(){
    if(what==="tidy")tidyFrames();
    else if(what==="home")framesHome();
    else if(what==="defaults")chartsToDefaults();
-   else if(what==="saveLayout")layoutSave();
-   else if(what==="loadLayout")layoutRestore();
-   else if(what==="forgetLayout")layoutForget();
+
    else if(what==="close"&&typeof closeAllFrames==="function")closeAllFrames();
    else if(what==="close")document.querySelectorAll(".frame:not(.hidden)").forEach(f=>f.classList.add("hidden"));
    if(typeof refreshCloseAll==="function")refreshCloseAll();
  });
- const auto=document.getElementById("layoutAuto");
- if(auto)auto.addEventListener("change",e=>{
+ /* The saved-layout controls. Clicks inside the list must not close the menu, so
+    the viewer can save, rename by re-saving, and delete without it snapping shut. */
+ const list=document.getElementById("layoutList");
+ if(list)list.addEventListener("click",e=>{
    e.stopPropagation();
-   const L=layoutRead();
-   if(!L){ auto.checked=false; layoutToast("Save a layout first, then this will offer it automatically."); return }
-   L.autoOpen=auto.checked;
-   layoutWrite(L);
-   layoutToast(auto.checked?"Your saved layout will open automatically next time.":"Your saved layout will no longer open automatically.");
+   const open=e.target.closest("[data-layout]");
+   const auto=e.target.closest("[data-auto]");
+   const del=e.target.closest("[data-del]");
+   if(open){ layoutOpenNamed(open.getAttribute("data-layout")); close(); return }
+   if(auto){ layoutSetAuto(auto.getAttribute("data-auto")); return }
+   if(del){ layoutDeleteNamed(del.getAttribute("data-del")); return }
  });
+ const nameBox=document.getElementById("layoutName");
+ const saveBtn=document.getElementById("layoutSaveBtn");
+ const doSave=()=>{
+   if(!nameBox)return;
+   if(layoutSaveAs(nameBox.value))nameBox.value="";
+ };
+ if(saveBtn)saveBtn.addEventListener("click",e=>{e.stopPropagation();doSave()});
+ if(nameBox){
+   nameBox.addEventListener("click",e=>e.stopPropagation());
+   nameBox.addEventListener("keydown",e=>{
+     e.stopPropagation();
+     if(e.key==="Enter"){e.preventDefault();doSave()}
+   });
+ }
  document.addEventListener("click",ev=>{ if(!menu.contains(ev.target)&&ev.target!==btn)close() });
  document.addEventListener("keydown",ev=>{ if(ev.key==="Escape")close() });
 })();
@@ -4804,39 +4856,142 @@ function chartsToDefaults(){
    be unavailable (a sandboxed preview, private browsing with storage blocked),
    in which case the layout still works for the session and says so rather than
    failing silently. */
-const LAYOUT_KEY="cyberAttackEarth.layout.v1";
-let _layoutMemory=null;                 // fallback when storage is unavailable
+/* ── Named window layouts ───────────────────────────────────────────────────
+   One saved arrangement was not enough: the set of windows you want for looking
+   at ransomware is not the set you want for vulnerabilities, and neither is the
+   set you want on a projector. Layouts are therefore named, and there can be
+   several.
 
-function layoutStoreAvailable(){
+   Stored in the browser, so per-device by nature - which is what you want, since
+   an arrangement shaped for a monitor is wrong on a phone. The older single-slot
+   format is migrated on first read rather than discarded. */
+const LAYOUTS_KEY="cyberAttackEarth.layouts.v2";
+const LAYOUT_KEY_V1="cyberAttackEarth.layout.v1";     // previous single slot
+const LAYOUT_MAX=8;
+let _layoutsMemory=null;                              // fallback when storage is blocked
+
+function layoutsRead(){
+  let box=null;
   try{
-    const k="__cae_probe";
-    window.localStorage.setItem(k,"1");
-    window.localStorage.removeItem(k);
-    return true;
-  }catch(e){ return false }
-}
-function layoutRead(){
-  try{
-    const raw=window.localStorage.getItem(LAYOUT_KEY);
-    if(raw)return JSON.parse(raw);
+    const raw=window.localStorage.getItem(LAYOUTS_KEY);
+    if(raw)box=JSON.parse(raw);
   }catch(e){}
-  return _layoutMemory;
+  if(!box)box=_layoutsMemory;
+  if(!box||!Array.isArray(box.slots)){
+    box={slots:[],autoOpen:null};
+    // carry over anything saved under the old single-slot key
+    try{
+      const old=window.localStorage.getItem(LAYOUT_KEY_V1);
+      if(old){
+        const v1=JSON.parse(old);
+        if(v1&&Array.isArray(v1.frames)){
+          v1.name="Saved layout";
+          box.slots.push(v1);
+          if(v1.autoOpen)box.autoOpen="Saved layout";
+        }
+      }
+    }catch(e){}
+  }
+  return box;
 }
-function layoutWrite(obj){
-  _layoutMemory=obj;
+function layoutsWrite(box){
+  _layoutsMemory=box;
   try{
-    window.localStorage.setItem(LAYOUT_KEY,JSON.stringify(obj));
+    window.localStorage.setItem(LAYOUTS_KEY,JSON.stringify(box));
     return "stored";
   }catch(e){ return "session" }
 }
-function layoutClear(){
-  _layoutMemory=null;
-  try{ window.localStorage.removeItem(LAYOUT_KEY) }catch(e){}
+function layoutsList(){ return layoutsRead().slots||[] }
+function layoutFind(name){
+  return layoutsList().find(s=>String(s.name||"").toLowerCase()===String(name||"").toLowerCase())||null;
 }
 
-/* What gets captured. Geometry is recorded as a FRACTION of the viewport as well
-   as in pixels: restoring on a different screen size then keeps the arrangement
-   rather than pushing windows off the edge. */
+/* Save the current arrangement under a name, replacing one of the same name. */
+function layoutSaveAs(name){
+  name=String(name||"").trim().slice(0,40);
+  if(!name){ layoutToast("Give the layout a name first."); return false }
+  const snap=layoutCapture();
+  if(!snap.frames.length){
+    layoutToast("Nothing to save \u2014 open the windows you want, arrange them, then save.");
+    return false;
+  }
+  snap.name=name;
+  const box=layoutsRead();
+  const at=box.slots.findIndex(s=>String(s.name||"").toLowerCase()===name.toLowerCase());
+  if(at>=0)box.slots[at]=snap;
+  else{
+    box.slots.unshift(snap);
+    if(box.slots.length>LAYOUT_MAX)box.slots.length=LAYOUT_MAX;
+  }
+  const where=layoutsWrite(box);
+  layoutToast(where==="stored"
+    ? `Saved \u201c${name}\u201d \u2014 ${snap.frames.length} window${snap.frames.length===1?"":"s"} for this screen (${snap.screen.w}\u00d7${snap.screen.h}).`
+    : `Saved \u201c${name}\u201d for this session only \u2014 this browser is not allowing storage.`);
+  layoutRefreshMenu();
+  return true;
+}
+function layoutOpenNamed(name){
+  const s=layoutFind(name);
+  if(!s){ layoutToast("That layout is no longer saved."); layoutRefreshMenu(); return }
+  const ok=layoutApply(s);
+  layoutToast(ok?`Opened \u201c${s.name}\u201d.`:`\u201c${s.name}\u201d could not be opened \u2014 the windows in it may no longer exist.`);
+}
+function layoutDeleteNamed(name){
+  const box=layoutsRead();
+  const before=box.slots.length;
+  box.slots=box.slots.filter(s=>String(s.name||"").toLowerCase()!==String(name||"").toLowerCase());
+  if(box.autoOpen&&String(box.autoOpen).toLowerCase()===String(name||"").toLowerCase())box.autoOpen=null;
+  layoutsWrite(box);
+  layoutToast(before>box.slots.length?`Deleted \u201c${name}\u201d.`:"Nothing to delete.");
+  layoutRefreshMenu();
+}
+function layoutSetAuto(name){
+  const box=layoutsRead();
+  box.autoOpen=(box.autoOpen===name)?null:name;
+  layoutsWrite(box);
+  layoutToast(box.autoOpen
+    ? `\u201c${name}\u201d will open automatically next time.`
+    : "No layout will open automatically.");
+  layoutRefreshMenu();
+}
+
+/* The list inside the Windows menu: every saved layout, with its size and window
+   count, an auto-open marker and a delete button. */
+function layoutRefreshMenu(){
+  const host=document.getElementById("layoutList");
+  if(!host)return;
+  const box=layoutsRead();
+  const slots=box.slots||[];
+  if(!slots.length){
+    host.innerHTML=`<div class="layoutEmpty">No layouts saved yet. Arrange the windows
+      you want, then use <b>Save as</b> below.</div>`;
+    return;
+  }
+  host.innerHTML=slots.map(s=>{
+    const auto=box.autoOpen&&String(box.autoOpen).toLowerCase()===String(s.name||"").toLowerCase();
+    const n=(s.frames||[]).length;
+    return `<div class="layoutItem">
+      <button type="button" class="layoutOpen" data-layout="${escapeHtml(s.name)}">
+        <b>${escapeHtml(s.name)}</b>
+        <i>${n} window${n===1?"":"s"}${s.screen?` \u00b7 ${s.screen.w}\u00d7${s.screen.h}`:""}</i>
+      </button>
+      <button type="button" class="layoutAuto ${auto?"on":""}" data-auto="${escapeHtml(s.name)}"
+        title="${auto?"Opens automatically":"Open this one automatically"}">\u23fb</button>
+      <button type="button" class="layoutDel" data-del="${escapeHtml(s.name)}"
+        title="Delete this layout">\u00d7</button>
+    </div>`;
+  }).join("");
+}
+
+/* Applied once after the welcome screen, if a layout is marked to open. */
+function layoutMaybeAutoOpen(){
+  const box=layoutsRead();
+  if(!box.autoOpen)return;
+  const s=layoutFind(box.autoOpen);
+  if(!s)return;
+  setTimeout(()=>{ try{ layoutApply(s) }catch(e){} },400);
+}
+
 function layoutCapture(){
   const W=window.innerWidth, H=window.innerHeight;
   const frames=[...document.querySelectorAll(".frame:not(.hidden)")].map(f=>{
@@ -4932,29 +5087,6 @@ function layoutApply(L){
   return opened>0;
 }
 
-function layoutSave(){
-  const L=layoutCapture();
-  if(!L.frames.length){
-    layoutToast("Nothing to save \u2014 open the windows you want first, arrange them, then save.");
-    return;
-  }
-  const where=layoutWrite(L);
-  layoutToast(where==="stored"
-    ? `Saved ${L.frames.length} window${L.frames.length===1?"":"s"} for this screen (${L.screen.w}\u00d7${L.screen.h}). It will be offered whenever you open the map on this device.`
-    : `Saved for this session only \u2014 this browser is not allowing storage, so it will be forgotten when the tab closes.`);
-  layoutRefreshMenu();
-}
-function layoutRestore(){
-  const L=layoutRead();
-  if(!L){ layoutToast("No saved layout yet. Arrange the windows you want, then choose Save this layout."); return }
-  const ok=layoutApply(L);
-  layoutToast(ok?`Restored your saved layout.`:`That layout could not be restored \u2014 the windows in it may no longer exist.`);
-}
-function layoutForget(){
-  layoutClear();
-  layoutToast("Saved layout removed.");
-  layoutRefreshMenu();
-}
 function layoutToast(msg){
   let t=document.getElementById("layoutToast");
   if(!t){
@@ -4967,29 +5099,7 @@ function layoutToast(msg){
   clearTimeout(window.__layoutToastT);
   window.__layoutToastT=setTimeout(()=>t.classList.remove("show"),5200);
 }
-/* Menu wording reflects what is actually saved, so the options are never a guess. */
-function layoutRefreshMenu(){
-  const L=layoutRead();
-  const restore=document.querySelector('#winMenu [data-win="loadLayout"]');
-  const forget=document.querySelector('#winMenu [data-win="forgetLayout"]');
-  if(restore){
-    const i=restore.querySelector("i");
-    if(i)i.textContent=L
-      ? `${L.frames.length} window${L.frames.length===1?"":"s"}, saved for ${L.screen?L.screen.w+"\u00d7"+L.screen.h:"this screen"}`
-      : "Nothing saved yet";
-    restore.disabled=!L;
-    restore.style.opacity=L?"":"0.45";
-  }
-  if(forget){ forget.style.display=L?"":"none" }
-  const auto=document.getElementById("layoutAuto");
-  if(auto&&L)auto.checked=!!L.autoOpen;
-}
-/* Applied once after the welcome screen closes, if the viewer asked for it. */
-function layoutMaybeAutoOpen(){
-  const L=layoutRead();
-  if(!L||!L.autoOpen)return;
-  setTimeout(()=>{ try{ layoutApply(L) }catch(e){} },400);
-}
+
 
 function refreshCloseAll(){
  if(!tbCloseAll)return;
@@ -5568,6 +5678,7 @@ document.getElementById("helpExpandAll").addEventListener("click",()=>{
    e.stopPropagation();
    if(typeof renderCoverage==="function")renderCoverage();
    if(typeof openFrame==="function")openFrame("coverage");
+   placeCoveragePanel();
  });
 })();
 const escToggle=document.getElementById("escToggle");
@@ -7781,6 +7892,93 @@ const CHART_DEFS=[
     return modeSwitch("severity")+svgHBars(rows,{color:"#ff9d3c"})+
       `<p class="chartNote">Severity comes from the impact recorded in each source, so it compares well within a source but only roughly across sources. Medium and Low are switched off by default in Controls.<br><br><b>Careful with trends.</b> Only the curated layer and EuRepoC can assign <i>Critical</i>, and both lag by a year or more, while recent volume is dominated by ransomware leak-site claims coded Medium. Critical and High therefore <i>appear</i> to decline in the most recent years even if severe incidents have not. See the <b>Where the data comes from</b> chart.</p>`;
   }},
+ {id:"gap",title:"Recorded here vs. what surveys find",group:"reference",live:false,
+  blurb:"The disclosure record beside published victimisation surveys. They disagree, and the disagreement is the point.",
+  ok:()=>!!(LAKE.estimates&&LAKE.estimates.length),
+  build:W=>{
+    /* Two series that measure different things, drawn together on purpose.
+       Recorded incidents are what somebody disclosed; survey estimates are what a
+       representative sample said happened to them. Neither is a correction of the
+       other, and the axes are deliberately separate so nobody reads a ratio off
+       the picture. */
+    const est=(LAKE.estimates||[]).filter(e=>e.value>0);
+    if(!est.length)return `<p class="chartNote">No published estimates are loaded.</p>`;
+    // group the estimates into series by publisher + metric, keyed on the year of
+    // the period they describe
+    const series={};
+    est.forEach(e=>{
+      const m=String(e.scope_period||e.published||"").match(/(20\d{2})/);
+      if(!m)return;
+      const key=(e.publisher||"?")+" \u2014 "+(e.metric||"");
+      (series[key]=series[key]||[]).push({year:+m[1],value:e.value,row:e});
+    });
+    const named=Object.keys(series).filter(k=>series[k].length>=2)
+      .sort((a,b)=>series[b].length-series[a].length);
+    // recorded incidents per year, UK victims, to sit beside a UK survey
+    const uk=attacks.filter(a=>/united kingdom|great britain/i.test(a.victimCountry||""));
+    const byYear={};
+    uk.forEach(a=>{ if(a.year>=2016)byYear[a.year]=(byYear[a.year]||0)+1 });
+    const recYears=Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+
+    const pick=named[0];
+    // One point per year: two publications can describe overlapping periods (a survey
+    // to March and one to December of the same year), and plotting both would draw a
+    // vertical spike that means nothing. Keep the most recently published.
+    const pts=[];
+    if(pick){
+      const byY={};
+      series[pick].forEach(p=>{
+        const cur=byY[p.year];
+        if(!cur||String(p.row.published||"")>String(cur.row.published||""))byY[p.year]=p;
+      });
+      Object.keys(byY).map(Number).sort((a,b)=>a-b).forEach(y=>pts.push(byY[y]));
+    }
+    const yrs=[...new Set([...recYears,...pts.map(p=>p.year)])].sort((a,b)=>a-b);
+    if(!yrs.length)return `<p class="chartNote">Not enough dated figures to compare yet.</p>`;
+
+    const H=150, padL=8, padR=8, plotW=Math.max(120,W-padL-padR);
+    const x=(y)=>padL+((y-yrs[0])/Math.max(1,yrs[yrs.length-1]-yrs[0]))*plotW;
+    const maxRec=Math.max(1,...recYears.map(y=>byYear[y]));
+    const maxEst=Math.max(1,...pts.map(p=>p.value));
+    const yRec=(v)=>H-6-(v/maxRec)*(H-30);
+    const yEst=(v)=>H-6-(v/maxEst)*(H-30);
+
+    const recPath=recYears.map((y,i)=>`${i?"L":"M"}${x(y).toFixed(1)},${yRec(byYear[y]).toFixed(1)}`).join("");
+    const estPath=pts.map((p,i)=>`${i?"L":"M"}${x(p.year).toFixed(1)},${yEst(p.value).toFixed(1)}`).join("");
+    const estDots=pts.map(p=>`<circle cx="${x(p.year).toFixed(1)}" cy="${yEst(p.value).toFixed(1)}" r="4"
+      fill="#ff9d3c"><title>${escapeHtml(p.row.metric||"")}: ${p.value.toLocaleString()} (${p.year})</title></circle>`).join("");
+    const recDots=recYears.map(y=>`<circle cx="${x(y).toFixed(1)}" cy="${yRec(byYear[y]).toFixed(1)}" r="3"
+      fill="#4dd8ff"><title>${y}: ${byYear[y].toLocaleString()} recorded here</title></circle>`).join("");
+    const ticks=yrs.filter((y,i)=>i===0||i===yrs.length-1||y%2===0)
+      .map(y=>`<text x="${x(y).toFixed(1)}" y="${H-1}" fill="#6f8bad" font-size="9" text-anchor="middle">${y}</text>`).join("");
+
+    const first=pts[0], last=pts[pts.length-1];
+    const dir=(first&&last)?(last.value<first.value?"fallen":"risen"):"";
+    const pct=(first&&last&&first.value)?Math.round(Math.abs(last.value-first.value)/first.value*100):0;
+    const recFirst=recYears.length?byYear[recYears[0]]:0, recLast=recYears.length?byYear[recYears[recYears.length-1]]:0;
+    const recDir=recLast>recFirst?"risen":"fallen";
+
+    return `<div class="chartBox">
+      <svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
+        <path d="${estPath}" fill="none" stroke="#ff9d3c" stroke-width="2"/>
+        <path d="${recPath}" fill="none" stroke="#4dd8ff" stroke-width="2"/>
+        ${estDots}${recDots}${ticks}
+      </svg></div>
+      <div class="gapKey">
+        <span><i style="background:#ff9d3c"></i>${escapeHtml(pick||"survey estimate")}</span>
+        <span><i style="background:#4dd8ff"></i>Recorded here (UK victims)</span>
+      </div>
+      <p class="chartNote"><b>Each line has its own scale.</b> They are not a ratio and must not be
+        read as one: the survey counts incidents reported by a sample of the population,
+        this record counts disclosures. What is comparable is the <i>direction</i>.
+        ${pts.length>=2?`The survey measure has ${dir} by about ${pct}% across the years shown,
+        while what is recorded here has ${recDir}.`:""}
+        Two measures of the same phenomenon moving apart is a statement about
+        disclosure, not about attacks.</p>
+      <p class="chartNote">Series are built from <code>estimates.csv</code>; add more published
+        years there and this fills in. Every figure is listed with its source in
+        <b>What is not recorded</b>.</p>`;
+  }},
  {id:"coverage",title:"Where the data comes from, by year",group:"reference",
   blurb:"Which source supplied each year's incidents \u2014 read this before trusting a trend.",
   ok:()=>attacks.length>0,
@@ -8328,6 +8526,35 @@ function renderChartsMenu(){
    authoritative and means nothing - and it would be this tool's number rather
    than any publisher's, which is exactly the sort of figure that gets quoted
    back at you. */
+/* Park it under the information button on the right, where the reader is already
+   looking - the link that opens it sits in that cluster. Wide enough on a large
+   screen that the explanations read as prose rather than as a column of fragments;
+   these entries are mostly text, and a thin window makes them unreadable. */
+function placeCoveragePanel(){
+ const f=document.getElementById("frame-coverage");
+ if(!f||f.classList.contains("hidden"))return;
+ const W=window.innerWidth;
+ const cluster=["yearBig","escalation","escWords"]
+   .map(id=>document.getElementById(id))
+   .filter(el=>el&&el.offsetParent!==null);
+ const top=cluster.length
+   ? Math.round(Math.max(...cluster.map(el=>el.getBoundingClientRect().bottom))+12)
+   : 100;
+ const bottom=(typeof safeBottom==="function")?safeBottom()-14:window.innerHeight-14;
+ // generous on a large screen, but never more than half the width
+ const w=Math.round(Math.min(Math.max(360,W*0.42),720));
+ if(W<720){                       // no room to sit beside anything
+   f.style.left="14px"; f.style.width=(W-28)+"px"; f.style.maxWidth=(W-28)+"px";
+ }else{
+   f.style.left=Math.round(W-w-18)+"px";
+   f.style.width=w+"px"; f.style.maxWidth=w+"px";
+ }
+ f.style.right="auto";
+ f.style.top=top+"px";
+ const h=Math.max(220,bottom-top);
+ f.style.height=h+"px"; f.style.maxHeight=h+"px";
+ f.dataset.placed="1"; f.dataset.sized="1";
+}
 function renderCoverage(){
   const host=document.getElementById("coverageBody");
   if(!host)return;
@@ -8342,18 +8569,18 @@ function renderCoverage(){
   const fmt=n=>Number(n).toLocaleString();
   const cards=rows.map(r=>`
     <div class="covRow">
-      <div class="covTop">
-        <span class="covMetric">${escapeHtml(r.metric||"")}</span>
-        <span class="covVal">${fmt(r.value)}<span class="covUnit">${escapeHtml(r.unit||"")}</span></span>
+      <div class="covTop"><span class="covMetric">${escapeHtml(r.metric||"")}</span></div>
+      <span class="covVal">${fmt(r.value)}<span class="covUnit">${escapeHtml(r.unit||"")}</span></span>
+      <div class="covBody">
+        <div class="covScope">${escapeHtml([r.scope_geo,r.scope_who,r.scope_period].filter(Boolean).join(" \u00b7 "))}</div>
+        ${r.comparable_note?`<div class="covWhy">${escapeHtml(r.comparable_note)}</div>`:""}
+        <div class="covSrc">
+          <span class="covTier ${r.review_status==="verified"?"verified":""}">${escapeHtml(r.review_status||"provisional")}</span>
+          <a href="${escapeHtml(r.url||"#")}" target="_blank" rel="noopener">${escapeHtml(r.source||r.publisher||"source")}</a>
+          <span style="color:#6f8bad">${escapeHtml(r.publisher||"")}${r.published?" \u00b7 "+escapeHtml(r.published):""}</span>
+        </div>
+        ${r.method?`<div class="covScope" style="margin-top:6px">${escapeHtml(r.method)}</div>`:""}
       </div>
-      <div class="covScope">${escapeHtml([r.scope_geo,r.scope_who,r.scope_period].filter(Boolean).join(" \u00b7 "))}</div>
-      ${r.comparable_note?`<div class="covWhy">${escapeHtml(r.comparable_note)}</div>`:""}
-      <div class="covSrc">
-        <span class="covTier ${r.review_status==="verified"?"verified":""}">${escapeHtml(r.review_status||"provisional")}</span>
-        <a href="${escapeHtml(r.url||"#")}" target="_blank" rel="noopener">${escapeHtml(r.source||r.publisher||"source")}</a>
-        <span style="color:#6f8bad">${escapeHtml(r.publisher||"")}${r.published?" \u00b7 "+escapeHtml(r.published):""}</span>
-      </div>
-      ${r.method?`<div class="covScope" style="margin-top:5px">${escapeHtml(r.method)}</div>`:""}
     </div>`).join("");
   host.innerHTML=`
     <p class="covLead">This tool records <b>${fmt(recorded)}</b> attacks that somebody
@@ -8361,12 +8588,10 @@ function renderCoverage(){
       the problem a different way &mdash; by asking people and businesses what happened
       to them, rather than waiting for a disclosure.</p>
     <div class="covRow covRecorded">
-      <div class="covTop">
-        <span class="covMetric">Recorded in this tool, worldwide, 2000 to today</span>
-        <span class="covVal">${fmt(recorded)}<span class="covUnit">records</span></span>
-      </div>
-      <div class="covWhy">Records held, not distinct attacks. Sources overlap and some
-        duplicates survive.</div>
+      <div class="covTop"><span class="covMetric">Recorded in this tool, worldwide, 2000 to today</span></div>
+      <span class="covVal">${fmt(recorded)}<span class="covUnit">records</span></span>
+      <div class="covBody"><div class="covWhy">Records held, not distinct attacks. Sources
+        overlap and some duplicates survive.</div></div>
     </div>
     ${cards}
     <div class="dupBox">
