@@ -523,6 +523,7 @@
     .covLegend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
     .covKey{display:flex;align-items:center;gap:4px;font-size:10.5px;color:#a8bcd6}
     .covKey i{width:9px;height:9px;border-radius:2px;display:inline-block}
+    .chartSub{margin:12px 0 6px;font-size:11.5px;color:#a8bcd6;font-weight:600}
     .grpHead{font-size:12.5px;margin:0 0 2px;color:#dbe7f5;display:flex;justify-content:space-between;align-items:baseline}
     .grpHead span{font-size:10.5px;color:#7f95b4;font-weight:400}
     .grpRow{grid-template-columns:auto 1fr auto;row-gap:2px}
@@ -1707,7 +1708,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v87";
+const APP_VERSION="v88";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -4047,7 +4048,7 @@ async function cachedLoad(key,ttlMs,loader){
    (plotted as missiles); vulns, advisories and techniques are reference data
    that drive charts and enrichment but are NOT attacks. Falls back to the
    legacy flat pack, then to remote fetching, so older deployments keep working. */
-const LAKE={manifest:null,kev:[],epss:null,epssMap:null,nvd:[],nvdMap:null,aa:[],aaByCve:null,aaByGroup:null,estimates:[],ics:[],attack:null,reports:[],cve:null};
+const LAKE={manifest:null,kev:[],epss:null,epssMap:null,nvd:[],nvdMap:null,aa:[],aaByCve:null,aaByGroup:null,estimates:[],breaches:[],ics:[],attack:null,reports:[],cve:null};
 async function grabJSON(p){try{const r=await fetch(p,{cache:"no-cache"});return r.ok?await r.json():null}catch(e){return null}}
 async function loadLake(){
  const base="cyber_data/";
@@ -4147,6 +4148,12 @@ async function loadLake(){
  const ef=(T.estimates&&T.estimates.files)||{};
  if(ef.estimates)jobs.push(grabJSON(base+ef.estimates.file).then(a=>{
    if(Array.isArray(a))LAKE.estimates=a;
+ }).catch(()=>{}));
+ /* Named breaches with account counts. Held apart from the incident tables on
+    purpose - they overlap heavily, and merging on name would double-count. */
+ const bf=(T.breaches&&T.breaches.files)||{};
+ if(bf.hibp)jobs.push(grabJSON(base+bf.hibp.file).then(a=>{
+   if(Array.isArray(a))LAKE.breaches=a;
  }).catch(()=>{}));
  /* CISA advisories: enrichment for groups and vulnerabilities, never incidents.
     Indexed by CVE and by ATT&CK group id so both panels can look up instantly. */
@@ -7989,6 +7996,53 @@ const CHART_DEFS=[
     return modeSwitch("severity")+svgHBars(rows,{color:"#ff9d3c"})+
       `<p class="chartNote">Severity comes from the impact recorded in each source, so it compares well within a source but only roughly across sources. Medium and Low are switched off by default in Controls.<br><br><b>Careful with trends.</b> Only the curated layer and EuRepoC can assign <i>Critical</i>, and both lag by a year or more, while recent volume is dominated by ransomware leak-site claims coded Medium. Critical and High therefore <i>appear</i> to decline in the most recent years even if severe incidents have not. See the <b>Where the data comes from</b> chart.</p>`;
   }},
+ {id:"people",title:"People whose data was exposed",group:"reference",live:false,
+  blurb:"Named breaches with the number of accounts involved. A different unit from everything else here: people, not incidents.",
+  ok:()=>!!(LAKE.breaches&&LAKE.breaches.length),
+  build:W=>{
+    /* Counted in people, not incidents, and deliberately kept out of every other
+       total on this page. These breaches overlap the incident tables - the same
+       event often appears in both - so adding them would double-count exactly the
+       way this tool warns about elsewhere. */
+    const all=(LAKE.breaches||[]).filter(b=>b.people>0&&/^\d{4}/.test(b.date||""));
+    if(!all.length)return `<p class="chartNote">The breach catalogue has not loaded.</p>`;
+    const mode=topOnly("people")?"people":"count";
+    const byYear={};
+    all.forEach(b=>{
+      const y=+String(b.date).slice(0,4);
+      if(y<2000||y>2100)return;
+      byYear[y]=byYear[y]||{people:0,count:0};
+      byYear[y].people+=b.people; byYear[y].count++;
+    });
+    const years=Object.keys(byYear).map(Number).sort((a,b)=>a-b);
+    const series=years.map(y=>mode==="people"?byYear[y].people:byYear[y].count);
+    const top=all.slice().sort((a,b)=>b.people-a.people).slice(0,8);
+    const totalPeople=all.reduce((a,b)=>a+b.people,0);
+    const rows=top.map(b=>{
+      const cls=(b.classes||[]).slice(0,3).join(", ");
+      return `<div class="hbar"><div class="hbarLabel">
+        <span>${escapeHtml(b.name)}${b.date?` <span style="color:#6f8bad">${escapeHtml(b.date.slice(0,4))}</span>`:""}</span>
+        <i>${b.people.toLocaleString()}</i></div>
+        <div class="hbarTrack"><div class="hbarFill" style="width:${(b.people/top[0].people*100).toFixed(1)}%;background:#9a7cff"></div></div>
+        ${cls?`<div class="small" style="color:#6f8bad;margin-top:2px">${escapeHtml(cls)}</div>`:""}</div>`;
+    }).join("");
+    // reuse the existing toggle mechanism rather than inventing a control
+    const swap=`<button class="leagueToggle" type="button" data-for="people">${
+      mode==="people"?"Show number of breaches instead \u25be":"Show accounts exposed instead \u25b4"}</button>`;
+    return swap+
+      `<div class="chartBox">${svgBars(series,{w:W,h:110,color:"#9a7cff",
+        ticks:years.map((y,i)=>({i,label:String(y)})).filter((t,i)=>i%3===0),
+        label:(i,n)=>`${years[i]}: ${n.toLocaleString()} ${mode==="people"?"accounts":"breaches"}`})}</div>
+      <p class="chartNote">${all.length.toLocaleString()} named breaches covering
+        ${totalPeople.toLocaleString()} accounts, from the Have I Been Pwned catalogue.
+        <b>Counted in people, not incidents</b> \u2014 and deliberately not added to any
+        total on this page, because the same events also appear in the incident
+        tables and would be counted twice.</p>
+      <h4 class="chartSub">Largest by accounts exposed</h4>${rows}
+      <p class="chartNote">An account is not a person: one individual may appear in
+        many breaches, and some records are duplicates or stale. Read this as the
+        order of magnitude of exposure, not a headcount.</p>`;
+  }},
  {id:"gap",title:"Recorded here vs. what surveys find",group:"reference",live:false,
   blurb:"The disclosure record beside published victimisation surveys. They disagree, and the disagreement is the point.",
   ok:()=>!!(LAKE.estimates&&LAKE.estimates.length),
@@ -8041,7 +8095,13 @@ const CHART_DEFS=[
     const yEst=(v)=>H-6-(v/maxEst)*(H-30);
 
     const recPath=recYears.map((y,i)=>`${i?"L":"M"}${x(y).toFixed(1)},${yRec(byYear[y]).toFixed(1)}`).join("");
-    const estPath=pts.map((p,i)=>`${i?"L":"M"}${x(p.year).toFixed(1)},${yEst(p.value).toFixed(1)}`).join("");
+    // break the line wherever a year is absent, rather than bridging it
+    let estPath="", prevY=null;
+    pts.forEach(p=>{
+      const cmd=(prevY===null||p.year-prevY>1)?"M":"L";
+      estPath+=`${cmd}${x(p.year).toFixed(1)},${yEst(p.value).toFixed(1)}`;
+      prevY=p.year;
+    });
     const estDots=pts.map(p=>`<circle cx="${x(p.year).toFixed(1)}" cy="${yEst(p.value).toFixed(1)}" r="4"
       fill="#ff9d3c"><title>${escapeHtml(p.row.metric||"")}: ${p.value.toLocaleString()} (${p.year})</title></circle>`).join("");
     const recDots=recYears.map(y=>`<circle cx="${x(y).toFixed(1)}" cy="${yRec(byYear[y]).toFixed(1)}" r="3"
@@ -8049,6 +8109,13 @@ const CHART_DEFS=[
     const ticks=yrs.filter((y,i)=>i===0||i===yrs.length-1||y%2===0)
       .map(y=>`<text x="${x(y).toFixed(1)}" y="${H-1}" fill="#6f8bad" font-size="9" text-anchor="middle">${y}</text>`).join("");
 
+    /* The face-to-face survey was suspended for the pandemic, so there is a genuine
+       hole in the middle of this series. Drawing a straight line across it would
+       invent two years of data, so the gap is drawn as a break and named. */
+    const have=new Set(pts.map(p=>p.year));
+    const missing=[];
+    for(let y=(pts[0]||{}).year||0; y<=((pts[pts.length-1]||{}).year||0); y++)
+      if(!have.has(y))missing.push(y);
     const first=pts[0], last=pts[pts.length-1];
     const dir=(first&&last)?(last.value<first.value?"fallen":"risen"):"";
     const pct=(first&&last&&first.value)?Math.round(Math.abs(last.value-first.value)/first.value*100):0;
@@ -8071,7 +8138,9 @@ const CHART_DEFS=[
         ${pts.length>=2?`The survey measure has ${dir} by about ${pct}% across the years shown,
         while what is recorded here has ${recDir}.`:""}
         Two measures of the same phenomenon moving apart is a statement about
-        disclosure, not about attacks.</p>
+        disclosure, not about attacks.${missing.length?` The line is broken across
+        ${missing.join(" and ")}: the survey was suspended for the pandemic and the
+        telephone survey used instead is not comparable, so there is nothing to plot.`:""}</p>
       <p class="chartNote">Series are built from <code>estimates.csv</code>; add more published
         years there and this fills in. Every figure is listed with its source in
         <b>What is not recorded</b>.</p>`;
@@ -8660,6 +8729,12 @@ function placeCoveragePanel(){
 
    Newest first. Keep entries short and say what a user would notice. */
 const CHANGELOG=[
+ {v:"v88", date:"2026-07-28", title:"People, filings and the survey series", items:[
+   "New chart: people whose data was exposed, from the Have I Been Pwned catalogue \u2014 counted in accounts, never added to the incident totals.",
+   "SEC 8-K cyber disclosures are collected nightly as candidates for review, keyed on the company\u2019s permanent SEC number. Nothing reaches the map without a human decision.",
+   "Cyber Monitoring Centre added: their modelled cost for the M&S and Co-op event, \u00a3270m\u2013\u00a3440m.",
+   "The survey comparison now runs from 2017 to 2025, with the pandemic gap drawn as a break rather than a line through missing years.",
+   "CISSM use confirmed by Dr Charles Harry; the licence line records it and the citation they ask for."]},
  {v:"v87", date:"2026-07-28", title:"Review, fixes and a change log", items:[
    "Major cities now actually appear when you tick the box \u2014 they were being drawn at a size too small to see, and were missing from the flat map entirely.",
    "The Windows menu stays available on a large screen, so saved layouts can be reached before anything is open.",

@@ -1,9 +1,29 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.17.0 (2026-07-27) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.18.1 (2026-07-28) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.18.1 The estimates connector passed a list where _manual_rows expects a boolean,
+        which switched on the "accept any unclaimed CSV" fallback. Harmless while an
+        estimates file exists, but with none present it would have picked up the SEC
+        review file instead. Also: when two files match the same source, the larger
+        one wins, so an old renamed copy left beside a new one can silently take
+        precedence. The log now names every candidate it saw, not just the winner.
+ 3.18.0 Two new sources, both deliberately outside the incident count.
+        HIBP's breach catalogue gives named breaches with the number of accounts
+        exposed - the people dimension this tool had almost nothing on. It overlaps
+        the incident tables heavily, so it is held as its own reference table and
+        never added to any total.
+        SEC EDGAR full-text search finds 8-K filings where a US-listed company has
+        declared a cyber incident. Both Item 1.05 (material) and the text of
+        voluntary filings are searched, because many companies use Item 8.01
+        precisely to avoid asserting materiality; which route found each filing is
+        recorded. Results are written to manual_sources/sec_review.csv as candidates
+        keyed on the company's permanent CIK number, and nothing reaches the map
+        until a human records a decision. Prior decisions are preserved across runs.
+        CISSM use is now confirmed by Dr Charles Harry; the licence line records it
+        along with the citation they ask for.
  3.17.0 Published estimates of what is NOT recorded, as a curated layer beside the
         incidents. The recorded tables count what somebody chose to disclose; the
         honest way to show the gap is to put named published figures next to them,
@@ -221,7 +241,7 @@ import sys
 import time
 import zipfile
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 from typing import Callable, Optional
 
@@ -231,8 +251,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.17.0"
-BUILDER_DATE = "2026-07-27"
+BUILDER_VERSION = "3.18.1"
+BUILDER_DATE = "2026-07-28b"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -1138,6 +1158,12 @@ def _manual_rows(kind="cissm", allow_any=False):
                if not any(o in p.name.lower() for o in others)
                and kind not in p.name.lower()]
     cands = sorted(named, key=lambda p: p.stat().st_size, reverse=True)
+    # Two files matching one source is a trap: the larger wins, which is arbitrary,
+    # and an old renamed copy can therefore outrank a fresh one. Say so.
+    if len(named) > 1:
+        print("  [%s] WARNING: %d files match this source - using the largest. "
+              "Delete the ones you do not want: %s"
+              % (kind, len(named), ", ".join(p.name for p in cands)))
     if allow_any:
         cands += sorted(generic, key=lambda p: p.stat().st_size, reverse=True)
     for path in cands:
@@ -1271,7 +1297,7 @@ def _cissm_manual_rows():
 
 @source(id="cissm", table="incidents",
         title="CISSM / GoTech Cyber Events Database",
-        licence="Access granted by CISSM on request - do not redistribute raw records",
+        licence="Use confirmed by CISSM (Dr Charles Harry, July 2026); cite Harry & Gallagher (2018), Journal of Information Warfare 17(3)",
         cadence="manual export", homepage="https://cybereventsdatabase.org", expected=17169)
 def build_cissm():
     rows = _cissm_fetch_remote()
@@ -2407,7 +2433,12 @@ ESTIMATE_WARNINGS = []
         licence="Figures belong to their publishers; reproduced with citation",
         cadence="manual", homepage="", expected=0)
 def build_estimates():
-    rows = _manual_rows("estimates", ["estimates.csv"])
+    # NOT allow_any: the second argument is a boolean, and passing a list here made
+    # it truthy - so with no estimates file present this would have fallen back to
+    # any unclaimed CSV in the repo, including the SEC review file the new connector
+    # writes. Every row would have been rejected for lacking a method, but the log
+    # would have been a wall of noise pointing at the wrong thing.
+    rows = _manual_rows("estimates")
     if not rows:
         print("  [estimates] no estimates.csv found - the coverage panel will be empty")
         return []
@@ -2455,6 +2486,199 @@ def build_estimates():
         print("  [estimates] NOT summed by design - different populations, periods "
               "and definitions")
     return out
+
+
+# ── Have I Been Pwned: the breach catalogue ────────────────────────────────
+# The one dimension this tool has almost nothing on is people. Incident records
+# say an organisation was attacked; they rarely say how many people's data went
+# with it. HIBP's catalogue does, for several hundred named breaches, with a date
+# and a list of what was exposed.
+#
+# Deliberately NOT added to the incident tables. These breaches overlap heavily
+# with VCDB and EuRepoC, and merging them on name would double-count exactly the
+# way the tool warns about. They are held as their own reference table - the same
+# treatment as KEV - and shown as a separate "people affected" view.
+HIBP_URLS = [
+    "https://haveibeenpwned.com/api/v3/breaches",
+]
+HIBP_MIN_PWNED = 1000          # below this the entry is noise for a global picture
+
+
+@source(id="hibp", table="breaches",
+        title="Have I Been Pwned breach catalogue",
+        licence="Free catalogue endpoint; attribution to Have I Been Pwned",
+        cadence="weekly", homepage="https://haveibeenpwned.com/API/v3",
+        expected=0)
+def build_hibp():
+    try:
+        r = get_first(HIBP_URLS, "HIBP breach catalogue")
+        data = r.json()
+    except Exception as exc:                              # noqa: BLE001
+        print("  [hibp] catalogue unavailable (%s)" % exc)
+        return []
+    if not isinstance(data, list):
+        print("  [hibp] unexpected response shape: %s" % type(data).__name__)
+        return []
+    out, skipped = [], 0
+    for b in data:
+        if not isinstance(b, dict):
+            continue
+        try:
+            pwned = int(b.get("PwnCount") or 0)
+        except (TypeError, ValueError):
+            pwned = 0
+        if pwned < HIBP_MIN_PWNED:
+            skipped += 1
+            continue
+        date = str(b.get("BreachDate") or "")[:10]
+        if not re.match(r"^\d{4}-\d{2}-\d{2}$", date):
+            skipped += 1
+            continue
+        out.append({
+            "name": str(b.get("Title") or b.get("Name") or "")[:120],
+            "domain": str(b.get("Domain") or "")[:80],
+            "date": date,
+            "added": str(b.get("AddedDate") or "")[:10],
+            "people": pwned,
+            "classes": [str(c)[:40] for c in (b.get("DataClasses") or [])][:12],
+            # HIBP's own flags, kept rather than interpreted
+            "verified": bool(b.get("IsVerified")),
+            "fabricated": bool(b.get("IsFabricated")),
+            "sensitive": bool(b.get("IsSensitive")),
+            "retired": bool(b.get("IsRetired")),
+            "spam": bool(b.get("IsSpamList")),
+            "malware": bool(b.get("IsMalware")),
+        })
+    out.sort(key=lambda x: x["date"], reverse=True)
+    ver = sum(1 for b in out if b["verified"])
+    people = sum(b["people"] for b in out)
+    print("  [hibp] %d breaches kept (%d verified by HIBP), %d skipped as too small "
+          "or undated" % (len(out), ver, skipped))
+    print("  [hibp] %s accounts across the catalogue - NOT added to the incident "
+          "count, these overlap other sources" % f"{people:,}")
+    return out
+
+
+# ── SEC EDGAR: material cyber incidents declared by US-listed companies ─────
+# Since December 2023, US-listed companies must file an 8-K within four business
+# days of concluding that a cyber incident is material. That is a disclosure
+# threshold set by a regulator rather than by a victim's press office, which
+# makes it a different kind of evidence from everything else here.
+#
+# Two important limits, both stated in the output rather than buried:
+#   * Many companies file under Item 8.01 (voluntary) precisely to avoid
+#     asserting materiality, so Item 1.05 alone undercounts. Both are searched
+#     and which was used is recorded.
+#   * These will overlap heavily with the incident tables. Nothing here is added
+#     to any count. Rows are written to a review file for a human to accept,
+#     reject, or ignore - keyed on the company's permanent CIK number, which is
+#     the only reliable de-duplication key any of these sources offer.
+EDGAR_FTS = "https://efts.sec.gov/LATEST/search-index?q=%s&forms=8-K&dateRange=custom&startdt=%s&enddt=%s"
+EDGAR_QUERIES = [
+    ('%22Item%201.05%22', "1.05"),
+    ('%22material%20cybersecurity%20incident%22', "text"),
+]
+EDGAR_MAX = 120
+EDGAR_REVIEW = Path("manual_sources") / "sec_review.csv"
+
+
+@source(id="secedgar", table="review",
+        title="SEC 8-K cyber incident disclosures (candidates for review)",
+        licence="US Government work - public domain",
+        cadence="daily", homepage="https://www.sec.gov/edgar/search/",
+        expected=0)
+def build_sec_edgar(out_dir=None):
+    # SEC requires a descriptive user agent with a contact address. Without one the
+    # request is refused, and rightly.
+    ua = dict(UA)
+    ua["User-Agent"] = ("cyber-attack-earth personal research dashboard "
+                        "(contact via https://github.com/stuartokin/cyber-attack-earth)")
+    end = date.today()
+    start = end - timedelta(days=400)
+    found, seen = [], set()
+    for q, kind in EDGAR_QUERIES:
+        url = EDGAR_FTS % (q, start.isoformat(), end.isoformat())
+        try:
+            r = requests.get(url, headers=ua, timeout=60)
+            ctype = (r.headers.get("content-type") or "").split(";")[0]
+            print("  [sec] %s -> HTTP %s, %s, %d bytes"
+                  % (kind, r.status_code, ctype or "no type", len(r.content)))
+            if r.status_code != 200:
+                continue
+            payload = r.json()
+        except Exception as exc:                          # noqa: BLE001
+            print("  [sec] %s -> error (%s)" % (kind, exc))
+            continue
+        outer = (payload or {}).get("hits")
+        hits = (outer or {}).get("hits") if isinstance(outer, dict) else None
+        # A string here would be iterated character by character; a malformed
+        # response should yield nothing, not a hundred filings named "j", "u", "n".
+        if not isinstance(hits, list):
+            print("  [sec] %s -> unexpected response shape, ignoring" % kind)
+            continue
+        print("  [sec] %s -> %d filings" % (kind, len(hits)))
+        for hit in hits[:EDGAR_MAX]:
+            if not isinstance(hit, dict):
+                continue
+            src = hit.get("_source")
+            if not isinstance(src, dict):
+                continue
+            ciks = src.get("ciks") or []
+            cik = str(ciks[0]).lstrip("0") if ciks else ""
+            filed = str(src.get("file_date") or "")[:10]
+            names = src.get("display_names") or []
+            company = str(names[0] if names else "")[:140]
+            key = cik + "|" + filed
+            if not cik or not filed or key in seen:
+                continue
+            seen.add(key)
+            adsh = str(hit.get("_id") or "").split(":")[0].replace("-", "")
+            found.append({
+                "cik": cik,
+                "company": company,
+                "filed": filed,
+                "item": kind,
+                "url": ("https://www.sec.gov/Archives/edgar/data/%s/%s/index.json"
+                        % (cik, adsh)) if adsh else
+                       "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=%s" % cik,
+                "review_status": "",          # a human fills this in
+            })
+    if not found:
+        print("  [sec] no filings returned. If every attempt above shows a non-200 "
+              "status, the endpoint or the user-agent policy has changed.")
+        return []
+    found.sort(key=lambda r: r["filed"], reverse=True)
+
+    # Write candidates for review, preserving any decision already recorded.
+    prior = {}
+    if EDGAR_REVIEW.exists():
+        try:
+            for row in csv.DictReader(EDGAR_REVIEW.open(encoding="utf-8")):
+                k = (row.get("cik", "") + "|" + row.get("filed", ""))
+                prior[k] = row.get("review_status", "")
+        except Exception:                                 # noqa: BLE001
+            prior = {}
+    decided = 0
+    for f in found:
+        k = f["cik"] + "|" + f["filed"]
+        if prior.get(k):
+            f["review_status"] = prior[k]
+            decided += 1
+    try:
+        EDGAR_REVIEW.parent.mkdir(parents=True, exist_ok=True)
+        with EDGAR_REVIEW.open("w", encoding="utf-8", newline="") as fh:
+            w = csv.DictWriter(fh, fieldnames=["cik", "company", "filed", "item",
+                                               "url", "review_status"])
+            w.writeheader()
+            w.writerows(found)
+    except Exception as exc:                              # noqa: BLE001
+        print("  [sec] could not write the review file (%s)" % exc)
+
+    print("  [sec] %d disclosures found, %d already decided; written to %s"
+          % (len(found), decided, EDGAR_REVIEW))
+    print("  [sec] NOT counted as incidents - these overlap the incident tables and "
+          "need a human decision first")
+    return found
 
 
 @source(id="reports", table="reports", title="Vendor & agency threat reports (curated)",
@@ -2634,6 +2858,31 @@ def main():
             "note": ("Published estimates from named sources. Different populations, "
                      "periods and definitions - not comparable with each other or "
                      "with the incident counts, and deliberately never totalled."),
+        }}}
+
+    # ---- breaches (people affected; reference only, never an incident count) ----
+    if results.get("hibp"):
+        hb = results["hibp"]
+        write_json(out_dir / "breaches" / "hibp.json", hb)
+        tables["breaches"] = {"files": {"hibp": {
+            "file": "breaches/hibp.json",
+            "rows": len(hb),
+            "people": sum(b.get("people", 0) for b in hb),
+            "counted_as_incidents": False,
+            "note": ("Named breaches with account counts. Overlaps the incident "
+                     "tables heavily, so it is held separately and never added."),
+        }}}
+
+    # ---- SEC disclosures awaiting a human decision ----
+    if results.get("secedgar"):
+        se = results["secedgar"]
+        tables["review"] = {"files": {"secedgar": {
+            "file": "manual_sources/sec_review.csv",
+            "rows": len(se),
+            "decided": sum(1 for r in se if r.get("review_status")),
+            "counted_as_incidents": False,
+            "note": ("Candidates only. Nothing here reaches the map until a human "
+                     "records a decision in the review file."),
         }}}
 
     # ---- reports ----
