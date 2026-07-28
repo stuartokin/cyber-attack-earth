@@ -1,9 +1,16 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.18.1 (2026-07-28) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.18.2 (2026-07-28) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.18.2 SEC returned 403 on the first run. The endpoint and query were right; the
+        User-Agent was not. SEC's fair-access policy requires a contact EMAIL
+        address, and a project URL does not satisfy it. The address now comes from
+        the SEC_CONTACT environment variable so that a personal address is never
+        committed to a public repository, and without it the connector is skipped
+        cleanly rather than repeatedly refused. Also sends Accept: application/json
+        and asks for the documented maximum page size.
  3.18.1 The estimates connector passed a list where _manual_rows expects a boolean,
         which switched on the "accept any unclaimed CSV" fallback. Harmless while an
         estimates file exists, but with none present it would have picked up the SEC
@@ -251,8 +258,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.18.1"
-BUILDER_DATE = "2026-07-28b"
+BUILDER_VERSION = "3.18.2"
+BUILDER_DATE = "2026-07-28c"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -2573,7 +2580,9 @@ def build_hibp():
 #     to any count. Rows are written to a review file for a human to accept,
 #     reject, or ignore - keyed on the company's permanent CIK number, which is
 #     the only reliable de-duplication key any of these sources offer.
-EDGAR_FTS = "https://efts.sec.gov/LATEST/search-index?q=%s&forms=8-K&dateRange=custom&startdt=%s&enddt=%s"
+# Path casing matters: /LATEST/ uppercase. size=100 is the documented maximum.
+EDGAR_FTS = ("https://efts.sec.gov/LATEST/search-index?q=%s&forms=8-K"
+             "&dateRange=custom&startdt=%s&enddt=%s&from=0&size=100")
 EDGAR_QUERIES = [
     ('%22Item%201.05%22', "1.05"),
     ('%22material%20cybersecurity%20incident%22', "text"),
@@ -2586,13 +2595,20 @@ EDGAR_REVIEW = Path("manual_sources") / "sec_review.csv"
         title="SEC 8-K cyber incident disclosures (candidates for review)",
         licence="US Government work - public domain",
         cadence="daily", homepage="https://www.sec.gov/edgar/search/",
-        expected=0)
+        expected=0, needs_key="SEC_CONTACT")
 def build_sec_edgar(out_dir=None):
-    # SEC requires a descriptive user agent with a contact address. Without one the
-    # request is refused, and rightly.
+    # SEC's fair-access policy requires a User-Agent naming the requester AND a
+    # contact EMAIL ADDRESS. A project URL is not enough - that was the cause of the
+    # 403 on the first run, not the endpoint or the query.
+    #
+    # The address comes from an environment variable rather than the source, so a
+    # personal address is never committed to a public repository. Set SEC_CONTACT as
+    # a repository secret, e.g. "Cyber Attack Earth you@example.com". Without it the
+    # connector is skipped cleanly rather than hammering a service that will refuse.
+    contact = os.environ.get("SEC_CONTACT", "").strip()
     ua = dict(UA)
-    ua["User-Agent"] = ("cyber-attack-earth personal research dashboard "
-                        "(contact via https://github.com/stuartokin/cyber-attack-earth)")
+    ua["User-Agent"] = contact
+    ua["Accept"] = "application/json"
     end = date.today()
     start = end - timedelta(days=400)
     found, seen = [], set()
@@ -2603,6 +2619,11 @@ def build_sec_edgar(out_dir=None):
             ctype = (r.headers.get("content-type") or "").split(";")[0]
             print("  [sec] %s -> HTTP %s, %s, %d bytes"
                   % (kind, r.status_code, ctype or "no type", len(r.content)))
+            if r.status_code == 403:
+                print("  [sec] refused. SEC requires a User-Agent containing a "
+                      "contact email address; SEC_CONTACT is currently %r"
+                      % (contact or "unset"))
+                continue
             if r.status_code != 200:
                 continue
             payload = r.json()
