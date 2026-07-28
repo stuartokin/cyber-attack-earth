@@ -316,6 +316,14 @@
        without this the month is painted over and simply vanishes whenever the flat
        map is showing. #escalation below already had it; this did not. */
     #yearBig{position:absolute;right:20px;top:16px;z-index:12;font-size:48px;font-weight:800;letter-spacing:-.05em;opacity:.88;pointer-events:none;text-align:right;text-shadow:0 2px 10px rgba(4,8,18,.85)}
+    /* Deliberately a link, not a number. Putting an estimated total next to the
+       recorded one would make the estimate the headline, and it would be ours rather
+       than any publisher's. This offers the published figures instead. */
+    .escGap{display:inline-block;margin-top:2px;background:transparent;border:0;padding:0;
+      color:var(--orange);font-size:11px;text-decoration:underline;text-underline-offset:2px;
+      pointer-events:auto;cursor:pointer}
+    .escGap:hover{color:#ffbe7a}
+    .escGap.hidden{display:none}
     #escalation{position:absolute;right:22px;top:74px;z-index:12;pointer-events:none;font-size:12px;color:var(--muted);line-height:1.5;max-width:255px;text-align:right;text-shadow:0 1px 6px rgba(4,8,18,.9)}
     #escalation strong{display:block;font-size:27px;color:var(--text);font-variant-numeric:tabular-nums;letter-spacing:-.02em}
     #escalation .tempo{color:var(--orange);font-weight:700}
@@ -541,6 +549,19 @@
     .frameDocked{}
     .frameFloating{position:fixed!important;top:auto;right:auto;box-shadow:0 24px 60px rgba(0,0,0,.6);border-color:#4a6a92}.sourceLinks a{font-size:11px;color:var(--accent);text-decoration:none;border:1px solid #315171;border-radius:999px;padding:4px 7px}.sourceLinks a:hover{background:#102b42}
     .sourceToggle{display:flex;align-items:flex-start;gap:8px;margin:8px 0;color:var(--text)}.sourceToggle input{margin-top:3px}
+    .covLead{font-size:12px;line-height:1.6;color:#c9d8ec;margin:0 0 10px}
+    .covRow{border:1px solid #1e3350;border-radius:9px;padding:9px 11px;margin-bottom:8px;background:rgba(10,22,38,.6)}
+    .covTop{display:flex;align-items:baseline;justify-content:space-between;gap:10px}
+    .covVal{font-size:19px;font-weight:800;color:#fff;font-variant-numeric:tabular-nums;white-space:nowrap}
+    .covUnit{font-size:10.5px;color:#7f95b4;margin-left:4px;font-weight:400}
+    .covMetric{font-size:12px;color:#dbe8f7}
+    .covScope{font-size:10.5px;color:#8fa6c2;margin-top:3px}
+    .covWhy{font-size:10.5px;color:#a8bcd6;margin-top:5px;border-left:2px solid #2c4666;padding-left:7px}
+    .covSrc{font-size:10.5px;margin-top:6px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .covSrc a{color:#7fe6ff}
+    .covTier{font-size:9.5px;padding:1px 6px;border-radius:999px;border:1px solid #2c4666;color:#8fa6c2}
+    .covTier.verified{border-color:#2f6b4f;color:#7fd6a6}
+    .covRecorded{background:rgba(77,216,255,.08);border-color:#2c5a7a}
     .dupBox{background:rgba(255,157,60,.07);border:1px solid #4a3520;border-left:3px solid var(--orange);
       border-radius:8px;padding:10px 12px;margin:10px 0}
     .dupBox b{color:#ffcf9a;font-size:12px}
@@ -827,6 +848,10 @@
         </div>
       </section>
 
+      <section class="frame hidden" id="frame-coverage" aria-label="What is not recorded">
+        <div class="frameHead"><h2>What is not recorded</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close">&#215;</button></span></div>
+        <div class="frameBody"><div id="coverageBody"></div></div>
+      </section>
       <section class="frame hidden" id="frame-bench" aria-label="Compare with published findings">
         <div class="frameHead"><h2>Compare with published findings</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Compare" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Compare">&#215;</button></span></div>
         <div class="frameBody"><div id="benchBody"></div></div>
@@ -979,7 +1004,8 @@
     </section>
     <div id="yearBig">Jun 2026</div>
     <div id="escalation" aria-live="polite">
-      <div class="escCount"><strong id="cumN">0</strong> <span class="escUnit">attacks</span></div>
+      <div class="escCount"><strong id="cumN">0</strong> <span class="escUnit">attacks recorded</span></div>
+      <button id="escGap" class="escGap hidden" type="button" title="What published surveys suggest is not recorded">the surveys suggest far more &rsaquo;</button>
       <button id="escToggle" type="button" aria-expanded="false" aria-controls="escWords" title="Show the tempo and how these counts are made">&#9432;</button>
       <div id="escWords" class="collapsed">
         <div id="escMeta"></div>
@@ -1621,7 +1647,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v84";
+const APP_VERSION="v85";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -3426,7 +3452,10 @@ async function loadEnrichmentLayers(){
  const _ss1=document.getElementById("splashStatus"); if(_ss1)_ss1.textContent="Merging and de-duplicating…";
  await Promise.allSettled(jobs); renderSourceMenu();
  if(typeof dataHealth==="function")dataHealth();
- if(typeof splashStats==="function")splashStats();   // figures, regardless of ready state
+ if(typeof splashStats==="function")splashStats();
+ // the gap link only appears if there are published figures behind it
+ const gb=document.getElementById("escGap");
+ if(gb)gb.classList.toggle("hidden",!(LAKE.estimates&&LAKE.estimates.length));   // figures, regardless of ready state
  if(typeof splashReady==="function")splashReady();
  if(selectedAttack)showDetail(selectedAttack);
 }
@@ -3890,7 +3919,7 @@ async function cachedLoad(key,ttlMs,loader){
    (plotted as missiles); vulns, advisories and techniques are reference data
    that drive charts and enrichment but are NOT attacks. Falls back to the
    legacy flat pack, then to remote fetching, so older deployments keep working. */
-const LAKE={manifest:null,kev:[],epss:null,epssMap:null,nvd:[],nvdMap:null,aa:[],aaByCve:null,aaByGroup:null,ics:[],attack:null,reports:[],cve:null};
+const LAKE={manifest:null,kev:[],epss:null,epssMap:null,nvd:[],nvdMap:null,aa:[],aaByCve:null,aaByGroup:null,estimates:[],ics:[],attack:null,reports:[],cve:null};
 async function grabJSON(p){try{const r=await fetch(p,{cache:"no-cache"});return r.ok?await r.json():null}catch(e){return null}}
 async function loadLake(){
  const base="cyber_data/";
@@ -3985,6 +4014,12 @@ async function loadLake(){
  }));
  const af=(T.advisories&&T.advisories.files)||{};
  if(af.ics)jobs.push(grabJSON(base+af.ics.file).then(a=>{if(Array.isArray(a))LAKE.ics=a}));
+ /* Published estimates of what is not recorded. Held as rows, never combined: the
+    whole point is that they measure different things. */
+ const ef=(T.estimates&&T.estimates.files)||{};
+ if(ef.estimates)jobs.push(grabJSON(base+ef.estimates.file).then(a=>{
+   if(Array.isArray(a))LAKE.estimates=a;
+ }).catch(()=>{}));
  /* CISA advisories: enrichment for groups and vulnerabilities, never incidents.
     Indexed by CVE and by ATT&CK group id so both panels can look up instantly. */
  if(af.aa)jobs.push(grabJSON(base+af.aa.file).then(a=>{
@@ -5524,6 +5559,17 @@ document.getElementById("helpExpandAll").addEventListener("click",()=>{
 });
 /* The running totals start tucked away so the map has the screen; the small
    info button brings them back. */
+/* The gap link beside the recorded count. It opens the panel rather than printing a
+   number, so the estimates keep their scope and their citation. */
+(function(){
+ const gapBtn=document.getElementById("escGap");
+ if(!gapBtn)return;
+ gapBtn.addEventListener("click",e=>{
+   e.stopPropagation();
+   if(typeof renderCoverage==="function")renderCoverage();
+   if(typeof openFrame==="function")openFrame("coverage");
+ });
+})();
 const escToggle=document.getElementById("escToggle");
 const escalationBox=document.getElementById("escalation");
 escToggle.addEventListener("click",()=>{
@@ -8270,6 +8316,77 @@ function renderChartsMenu(){
  });
 }
 /* Kept so older call sites keep working. */
+/* ── What is not recorded ──────────────────────────────────────────────────
+   The recorded count answers "what was disclosed". This panel answers "what do
+   people who measure it another way believe is out there" - by showing their
+   published figures, individually, with their scope and method attached.
+
+   It deliberately does NOT produce a total, a multiplier or an "estimated real
+   number". Those figures count different populations over different periods
+   with incompatible definitions: businesses affected, incidents experienced by
+   adults, crimes committed. Combining them would yield something that looks
+   authoritative and means nothing - and it would be this tool's number rather
+   than any publisher's, which is exactly the sort of figure that gets quoted
+   back at you. */
+function renderCoverage(){
+  const host=document.getElementById("coverageBody");
+  if(!host)return;
+  const rows=(LAKE.estimates||[]).slice(0);
+  const recorded=(typeof attacks!=="undefined")?attacks.length:0;
+  if(!rows.length){
+    host.innerHTML=`<p class="covLead">No published estimates are loaded. They live in
+      <code>estimates.csv</code> and are updated when the annual reports appear.</p>`;
+    return;
+  }
+  rows.sort((a,b)=>String(b.published||"").localeCompare(String(a.published||"")));
+  const fmt=n=>Number(n).toLocaleString();
+  const cards=rows.map(r=>`
+    <div class="covRow">
+      <div class="covTop">
+        <span class="covMetric">${escapeHtml(r.metric||"")}</span>
+        <span class="covVal">${fmt(r.value)}<span class="covUnit">${escapeHtml(r.unit||"")}</span></span>
+      </div>
+      <div class="covScope">${escapeHtml([r.scope_geo,r.scope_who,r.scope_period].filter(Boolean).join(" \u00b7 "))}</div>
+      ${r.comparable_note?`<div class="covWhy">${escapeHtml(r.comparable_note)}</div>`:""}
+      <div class="covSrc">
+        <span class="covTier ${r.review_status==="verified"?"verified":""}">${escapeHtml(r.review_status||"provisional")}</span>
+        <a href="${escapeHtml(r.url||"#")}" target="_blank" rel="noopener">${escapeHtml(r.source||r.publisher||"source")}</a>
+        <span style="color:#6f8bad">${escapeHtml(r.publisher||"")}${r.published?" \u00b7 "+escapeHtml(r.published):""}</span>
+      </div>
+      ${r.method?`<div class="covScope" style="margin-top:5px">${escapeHtml(r.method)}</div>`:""}
+    </div>`).join("");
+  host.innerHTML=`
+    <p class="covLead">This tool records <b>${fmt(recorded)}</b> attacks that somebody
+      chose to disclose. Below are published figures from organisations that measure
+      the problem a different way &mdash; by asking people and businesses what happened
+      to them, rather than waiting for a disclosure.</p>
+    <div class="covRow covRecorded">
+      <div class="covTop">
+        <span class="covMetric">Recorded in this tool, worldwide, 2000 to today</span>
+        <span class="covVal">${fmt(recorded)}<span class="covUnit">records</span></span>
+      </div>
+      <div class="covWhy">Records held, not distinct attacks. Sources overlap and some
+        duplicates survive.</div>
+    </div>
+    ${cards}
+    <div class="dupBox">
+      <b>Why there is no total here</b>
+      <p>These figures are not added up, and no multiplier is applied to the recorded
+        count. They measure different populations over different periods with
+        incompatible definitions &mdash; businesses affected, incidents experienced by
+        adults, crimes committed &mdash; so a combined figure would be arithmetic
+        without meaning.</p>
+      <p>What the comparison does support is the direction and the order of magnitude.
+        One government survey, covering one country for one year, describes a scale
+        that dwarfs everything recorded here for the whole world since 2000. That is
+        the finding: <b>the record is a sample of unknown and probably small
+        fraction</b>, not a census.</p>
+      <p>This is the <i>dark figure of crime</i> problem, long studied in criminology:
+        victimisation surveys consistently find far more than official records do. The
+        gap is not evidence that the record is wrong; it is evidence of what the record
+        is for.</p>
+    </div>`;
+}
 function renderCharts(){renderChartsMenu();refreshOpenCharts()}
 
 /* ── Look-up & navigate: find a specific attack or group, jump there, show it ── */

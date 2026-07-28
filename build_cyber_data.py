@@ -1,9 +1,18 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.16.0 (2026-07-26) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.17.0 (2026-07-27) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.17.0 Published estimates of what is NOT recorded, as a curated layer beside the
+        incidents. The recorded tables count what somebody chose to disclose; the
+        honest way to show the gap is to put named published figures next to them,
+        not to invent a multiplier. Every row must carry a source URL and a stated
+        method or it is rejected outright, and the rows are never summed - they
+        measure different populations over different periods with incompatible
+        definitions, so a total would mean nothing while looking authoritative.
+        Updated when the annual publications land, not nightly; the surveys are
+        yearly and there is nothing to research in between.
  3.16.0 Manual exports now have a visible age. The CISSM export and the EuRepoC
         TableView arrive as files downloaded by hand and cannot refresh themselves,
         so the map could drift months behind with every status light still green.
@@ -222,8 +231,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.16.0"
-BUILDER_DATE = "2026-07-26j"
+BUILDER_VERSION = "3.17.0"
+BUILDER_DATE = "2026-07-27"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -2369,6 +2378,85 @@ def notify_stale_exports():
         print("  [refresh] issue update failed (%s)" % exc)
 
 
+# ── Published estimates of what is NOT recorded ────────────────────────────
+# The incident tables count what somebody chose to disclose. Nobody seriously
+# believes that is the whole picture, but the honest way to say so is to put
+# published estimates beside the recorded count - not to invent a multiplier.
+#
+# Two rules are enforced here rather than left to discipline:
+#
+#   1. Every row must carry a source URL and a one-sentence method. A figure
+#      without a citation is rejected, not warned about.
+#   2. Nothing is summed. These estimates measure different populations over
+#      different periods with incompatible definitions - businesses affected,
+#      incidents experienced by adults, crimes committed - and adding them
+#      would produce a number that means nothing while looking authoritative.
+#      The builder therefore emits rows, never a total.
+#
+# Updated when the annual publications land, not nightly: the underlying
+# surveys are yearly. The staleness reminder covers the file like any other
+# hand-maintained export.
+ESTIMATE_COLS = ["id", "publisher", "source", "published", "scope_geo", "scope_who",
+                 "scope_period", "metric", "value", "unit", "comparable_note",
+                 "method", "url", "review_status", "last_checked", "notes"]
+ESTIMATE_WARNINGS = []
+
+
+@source(id="estimates", table="estimates",
+        title="Published estimates of unrecorded attacks (curated, per-figure sources)",
+        licence="Figures belong to their publishers; reproduced with citation",
+        cadence="manual", homepage="", expected=0)
+def build_estimates():
+    rows = _manual_rows("estimates", ["estimates.csv"])
+    if not rows:
+        print("  [estimates] no estimates.csv found - the coverage panel will be empty")
+        return []
+    out = []
+    ESTIMATE_WARNINGS.clear()
+    for i, r in enumerate(rows, 2):                       # 2 = first data line
+        if not isinstance(r, dict):
+            ESTIMATE_WARNINGS.append("line %d: not a row" % i)
+            continue
+        rid = str(r.get("id") or "").strip()
+        url = str(r.get("url") or "").strip()
+        method = str(r.get("method") or "").strip()
+        raw = str(r.get("value") if r.get("value") is not None else "").replace(",", "").strip()
+        if not rid:
+            ESTIMATE_WARNINGS.append("line %d: no id" % i)
+            continue
+        # A figure with no source is worse than no figure: it looks like the rest.
+        if not url.startswith("http"):
+            ESTIMATE_WARNINGS.append("%s: rejected, no source URL" % rid)
+            continue
+        if not method:
+            ESTIMATE_WARNINGS.append("%s: rejected, no method stated" % rid)
+            continue
+        try:
+            val = float(raw)
+        except ValueError:
+            ESTIMATE_WARNINGS.append("%s: rejected, value %r is not a number" % (rid, raw))
+            continue
+        if val <= 0:
+            ESTIMATE_WARNINGS.append("%s: rejected, value is not positive" % rid)
+            continue
+        rec = {k: str(r.get(k) or "").strip() for k in ESTIMATE_COLS if k != "value"}
+        rec["value"] = int(val) if val == int(val) else val
+        rec["review_status"] = rec.get("review_status") or "provisional"
+        out.append(rec)
+
+    for w in ESTIMATE_WARNINGS:
+        print("  [warn] estimates %s" % w)
+    ver = sum(1 for r in out if r.get("review_status") == "verified")
+    pubs = sorted({r.get("publisher", "") for r in out if r.get("publisher")})
+    print("  [estimates] %d figures kept (%d verified, %d provisional), %d rejected; "
+          "publishers: %s" % (len(out), ver, len(out) - ver, len(ESTIMATE_WARNINGS),
+                              ", ".join(pubs) or "none"))
+    if out:
+        print("  [estimates] NOT summed by design - different populations, periods "
+              "and definitions")
+    return out
+
+
 @source(id="reports", table="reports", title="Vendor & agency threat reports (curated)",
         licence="Links only - reports are copyright of their publishers",
         cadence="manual", homepage="", expected=15)
@@ -2531,6 +2619,22 @@ def main():
             "with_cves": sum(1 for r in aa if r.get("cves")),
             "with_groups": sum(1 for r in aa if r.get("groups")),
         }
+
+    # ---- published estimates (context, never added to the incident totals) ----
+    if results.get("estimates"):
+        es = results["estimates"]
+        write_json(out_dir / "estimates" / "estimates.json", es)
+        tables["estimates"] = {"files": {"estimates": {
+            "file": "estimates/estimates.json",
+            "rows": len(es),
+            "verified": sum(1 for r in es if r.get("review_status") == "verified"),
+            "publishers": len({r.get("publisher", "") for r in es if r.get("publisher")}),
+            # stated in the artefact itself so nothing downstream is tempted
+            "summed": False,
+            "note": ("Published estimates from named sources. Different populations, "
+                     "periods and definitions - not comparable with each other or "
+                     "with the incident counts, and deliberately never totalled."),
+        }}}
 
     # ---- reports ----
     if results.get("reports"):
