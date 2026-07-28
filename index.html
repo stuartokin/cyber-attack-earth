@@ -373,6 +373,12 @@
     #histo{position:relative}
     #histoSvg{display:block;line-height:0}
     #histo:hover #playhead{width:3px;margin-left:-1.5px}
+    #perfNote{bottom:calc(env(safe-area-inset-bottom,0px) + 172px)}
+    .mergeNote{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);
+      z-index:11;font-size:10.5px;color:#7f95b4;background:rgba(7,20,38,.82);border:1px solid #22364f;
+      border-radius:999px;padding:3px 11px;pointer-events:none;white-space:nowrap;max-width:calc(100vw - 24px);
+      overflow:hidden;text-overflow:ellipsis}
+    .mergeNote.hidden{display:none}
     #legend{position:absolute;left:20px;bottom:18px;background:rgba(5,12,25,.82);border:1px solid var(--line);padding:9px 11px;border-radius:9px;font-size:11px;display:flex;gap:13px}
     .dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px}
     .timelineTop{display:flex;align-items:center;gap:10px}.timelineTop strong{min-width:50px;font-size:19px}.timelineTop input{flex:1}
@@ -700,7 +706,13 @@
       #status{display:none}
       .btnrow{gap:5px}
       #dataStatus{flex-basis:100%;font-size:10.5px}
-      #legend{display:none}
+      #perfNote{bottom:calc(env(safe-area-inset-bottom,0px) + 172px)}
+    .mergeNote{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 150px);
+      z-index:11;font-size:10.5px;color:#7f95b4;background:rgba(7,20,38,.82);border:1px solid #22364f;
+      border-radius:999px;padding:3px 11px;pointer-events:none;white-space:nowrap;max-width:calc(100vw - 24px);
+      overflow:hidden;text-overflow:ellipsis}
+    .mergeNote.hidden{display:none}
+    #legend{display:none}
       .heatLegend{font-size:9.5px;gap:6px;padding:5px 9px}
       .heatLegend .heatBar{width:90px}
       .timelineBottom{flex-wrap:wrap}
@@ -1087,6 +1099,8 @@
         <div class="escNote">Counts reflect public disclosure.</div>
       </div>
     </div>
+    <div id="perfNote" class="mergeNote hidden"></div>
+    <div id="mergeNote" class="mergeNote hidden">Markers merged for speed &mdash; click an arc or use Search for detail</div>
     <div id="legend">
       <span><i class="dot" style="background:#4dd8ff"></i>Origin</span>
       <span><i class="dot" style="background:#ff4d66"></i>Victim / impact</span>
@@ -1704,7 +1718,21 @@ const globe = window.globe = Globe()(globeEl)
   .pointLabel(d=>d.type==="city"?d.name:`<b>${d.role==="origin"?"Origin":"Victim"}</b>: ${d.city}, ${d.country}<br>${d.attack.name}`)
   .onPointClick(d=>{if(d.attack) showDetail(d.attack)})
   .labelLat("lat").labelLng("lng").labelText("name").labelSize(d=>d.unknownAnchor?1.1:.95).labelColor(d=>d.unknownAnchor?"rgba(255,157,60,.95)":"rgba(226,238,252,.98)").labelDotRadius(d=>d.unknownAnchor?.5:.3).labelAltitude(d=>d.unknownAnchor?.02:.034)
-  .labelResolution(2);
+  .labelResolution(2)
+  /* ── The three defaults that made a busy month unwatchable ────────────────
+     globe.gl animates every layer's geometry when its data changes: by default
+     it spends a full second interpolating each arc, point and label from the old
+     set to the new one. Feeding it a fresh scene every quarter-second therefore
+     left it permanently mid-transition, recomputing over a thousand arcs on every
+     animation frame. The scene here is a sample that changes wholesale each month,
+     not a set of objects moving from A to B, so the interpolation buys nothing and
+     costs everything. */
+  .arcsTransitionDuration(0)
+  .pointsTransitionDuration(0)
+  .labelsTransitionDuration(0)
+  /* Each arc was being built from 64 segments. At these altitudes the curve is
+     visually identical at 24, and it is a third of the geometry. */
+  .arcCurveResolution(24);
 
 /* The globe turns gently on its own, and stops the moment anyone touches it. It
    resumes only after a spell of no interaction, so it never fights the user. */
@@ -1726,7 +1754,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v90";
+const APP_VERSION="v91";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -1736,7 +1764,10 @@ const endTimelineIndex=(_now.getFullYear()-startYear)*12+_now.getMonth();   // c
 /* Open on the last five years and a month. Recent history is where the data is
    densest and the story clearest; the slider still reaches back to 2000. */
 const DEFAULT_WINDOW_MONTHS=61;
-const defaultTimelineIndex=Math.max(0,endTimelineIndex-DEFAULT_WINDOW_MONTHS+1);
+/* Reset puts the clock back to the beginning of the record, not to a recent window.
+   "Reset all filters" should mean the whole thing from the start - which is also the
+   state the narrated runs and the welcome screen assume. */
+const defaultTimelineIndex=0;
 /* The five-year window sets the CHART range and where a replay begins. The timeline
    itself must open at the present: opening it five years back, with "build up over
    time" off, meant the map and every live chart showed a single month from 2021 -
@@ -2287,6 +2318,48 @@ function _rankedByImpact(arr){
   _rank={key,arr:copy};
   return copy;
 }
+/* ── Keeping it smooth without turning anything off ────────────────────────
+   The caps below decide how much of the visible set reaches the 3D scene. A fixed
+   number cannot be right for every machine: what a desktop draws comfortably will
+   stutter on a laptop with the same settings switched on.
+
+   So the app watches its own frame rate and adjusts how much it DRAWS - never what
+   it counts. Every filter, every total, every chart continues to use the complete
+   set; only the illustration is thinned, and the note on screen says so. Ask for
+   everything and you get everything the machine can actually render smoothly. */
+const PERF={dt:[],scale:1,lastCheck:0,worst:1};
+(function perfWatch(){
+  let last=performance.now();
+  const tick=(now)=>{
+    const d=now-last; last=now;
+    if(d>0&&d<400){                       // ignore tab switches and long stalls
+      PERF.dt.push(d);
+      if(PERF.dt.length>90)PERF.dt.shift();
+    }
+    if(now-PERF.lastCheck>1100&&PERF.dt.length>=40){
+      PERF.lastCheck=now;
+      const s=PERF.dt.slice().sort((a,b)=>a-b);
+      const p50=s[Math.floor(s.length*0.5)];
+      const before=PERF.scale;
+      // 24ms is about 40fps: below that the rotation reads as smooth
+      if(p50>24&&PERF.scale>0.3)PERF.scale=Math.max(0.3,PERF.scale*0.78);
+      else if(p50<17&&PERF.scale<1)PERF.scale=Math.min(1,PERF.scale*1.18);
+      if(PERF.scale<PERF.worst)PERF.worst=PERF.scale;
+      if(Math.abs(PERF.scale-before)>0.01){
+        const note=document.getElementById("perfNote");
+        if(note){
+          const pct=Math.round(PERF.scale*100);
+          note.textContent=PERF.scale<0.95
+            ? `Drawing ${pct}% of the sampled routes to stay smooth \u2014 every count and chart still uses all of them`
+            : "";
+          note.classList.toggle("hidden",PERF.scale>=0.95);
+        }
+      }
+    }
+    requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+})();
 function update(){
  if(heatLegend && heatToggle) heatLegend.classList.toggle("hidden",!heatToggle.checked);
  const data=filtered();
@@ -2320,9 +2393,15 @@ function update(){
  const dens=(document.getElementById("densityMode")||{}).value||"cinematic";
  // Deliberately tight. These are the numbers the 3D scene rebuilds geometry for on
  // every tick, and past a few hundred markers nothing is distinguishable anyway.
- const CAPS=(dens==="full")?{pts:1600,rings:200,arcs:1200}
+ const BASE=(dens==="full")?{pts:1600,rings:200,arcs:1200}
           :(dens==="some")?{pts:700, rings:110,arcs:560}
                           :{pts:300, rings:50, arcs:240};
+ // scaled by what this machine is actually keeping up with, with a floor so the
+ // map never empties out entirely
+ const _s=PERF.scale;
+ const CAPS={pts:Math.max(120,Math.round(BASE.pts*_s)),
+             rings:Math.max(30, Math.round(BASE.rings*_s)),
+             arcs:Math.max(90, Math.round(BASE.arcs*_s))};
  /* Choosing what to draw must not itself be expensive. The first version sorted the
     whole visible set by impact on every tick - twenty-odd thousand records, twelve
     times a second, purely to pick a few hundred. The heavy ranking is now done once
@@ -2362,7 +2441,11 @@ function update(){
  /* Handing the same array to the scene again still costs a full geometry rebuild, and
     update() runs for plenty of reasons that do not change what is drawn - a hover, a
     resize, a chart opening. A cheap signature skips those. */
- const sceneSig=mode+"|"+timelineIndex+"|"+arcShown.length+"|"+data.length+"|"+dens+"|"+_filterEpoch+"|"
+ // The quality scale belongs in the signature: without it the governor could lower
+ // the caps and the scene would keep drawing the old, heavier set until something
+ // else happened to change.
+ const _q=Math.round(PERF.scale*20);
+ const sceneSig=mode+"|"+timelineIndex+"|"+arcShown.length+"|"+data.length+"|"+dens+"|"+_filterEpoch+"|"+_q+"|"
    +(arcShown.length?arcShown[0].id+","+arcShown[arcShown.length-1].id:"")+"|"+(citiesBox.checked?1:0);
  /* The map is illustration; the counters, shading and charts are the measurement.
     They do not need the same cadence. While the clock is running the 3D scene is
@@ -2388,7 +2471,23 @@ function update(){
    attackPoints.push({lat:a.startLat,lng:a.startLng,role:"origin",city:a.originCity,country:a.originCountry,impact:a.impact,severity:a.severity,attack:a});
    attackPoints.push({lat:a.endLat,lng:a.endLng,role:"victim",city:a.victimCity,country:a.victimCountry,impact:a.impact,severity:a.severity,attack:a});
  }
- if(sceneChanged)globe.pointsData(mode==="attacks"?[...(citiesBox.checked?cities:[]),...attackPoints]:(citiesBox.checked?cities:[]));
+ const scenePoints=mode==="attacks"
+   ? [...(citiesBox.checked?cities:[]),...attackPoints]
+   : (citiesBox.checked?cities:[]);
+ /* Above a few hundred markers, globe.gl builds one three.js object per point and
+    issues a draw call for each. Merging them into a single geometry is dramatically
+    faster, at the cost of per-point hover and click. That is the right trade at this
+    density - nobody is picking one dot out of fifteen hundred - so the merge switches
+    on only when the scene is crowded, and individual markers stay clickable whenever
+    there are few enough to aim at. */
+ const wantMerge=scenePoints.length>420;
+ if(wantMerge!==window.__ptMerge){
+   window.__ptMerge=wantMerge;
+   try{ globe.pointsMerge(wantMerge) }catch(e){}
+   const note=document.getElementById("mergeNote");
+   if(note)note.classList.toggle("hidden",!wantMerge);
+ }
+ if(sceneChanged)globe.pointsData(scenePoints);
  const unattrCount=(mode==="attacks")?data.filter(isUnattributed).length:0;
  const anchorLabel=unattrCount?[{lat:0,lng:-30,unknownAnchor:true,
    name:`\u2691 Unknown / unattributed origin \u00b7 ${unattrCount.toLocaleString()}`}]:[];
@@ -4482,6 +4581,11 @@ launchSeq.addEventListener("click",()=>{
 });
 resetBtn.addEventListener("click",()=>{
  search.value=""; typeOptOut.clear(); sectorOptOut.clear();
+ // put the year range back to the full record too, or resetting to 2000 lands
+ // outside whatever window was previously selected
+ const rs=document.getElementById("rangeStart"), re_=document.getElementById("rangeEnd");
+ if(rs)rs.value=String(fromIdx(0).year);
+ if(re_)re_.value=String(fromIdx(endTimelineIndex).year);
  document.querySelectorAll(".atype").forEach(x=>x.checked=true); cumulative.checked=false; viewMode.value="attacks";
  selectedCountries.clear();renderCountryList();renderCountrySelected();
  document.querySelectorAll(".severity,.sector").forEach(x=>x.checked=true);document.getElementById("showUnattributed").checked=true;document.getElementById("showExercise").checked=false;document.getElementById("sigPause").checked=false;sigLocked=false;significantShown=null;impactLabel.classList.add("hidden");attackDrawer.classList.add("hidden");selectedAttack=null;markHistoDirty();setTimeline(defaultTimelineIndex);
@@ -8780,6 +8884,11 @@ function placeCoveragePanel(){
 
    Newest first. Keep entries short and say what a user would notice. */
 const CHANGELOG=[
+ {v:"v91", date:"2026-07-28", title:"Adaptive quality", items:[
+   "Three globe settings were costing far more than they were worth: every layer was being animated from the old data to the new over a full second, and each arc was built from 64 segments. Transitions are off and arcs use 24 segments — half the draw calls, a third less geometry.",
+   "Above about four hundred markers the globe now merges them into one object, which is much faster to draw. Below that they stay individually clickable.",
+   "The app watches its own frame rate and thins what it DRAWS if the machine cannot keep up, then restores it when it can. Counts, filters and charts always use the complete set — only the illustration is adjusted, and a note says when it is.",
+   "Reset all filters now returns the timeline to the start of the record in 2000, and restores the full year range."]},
  {v:"v90", date:"2026-07-28", title:"Everything on, and still smooth", items:[
    "Every window was blurring the turning globe behind it on every frame, for no visible effect — the backgrounds are opaque. Removing that halved frame time with several windows open.",
    "With all severities, all display options, cities, Details and three charts open, frame time went from 38ms to 17ms and stutters from 30 to 1.",
