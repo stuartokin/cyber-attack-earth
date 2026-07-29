@@ -101,6 +101,14 @@
     .splashVidRow button{font-size:10.5px;padding:5px 9px;color:#a8bcd6;border-color:#2c4666;background:#0e2036}
     .splashVidRow button i{font-style:normal;color:#6f8bad;font-size:9px;margin-left:3px}
     .splashVidRow button:hover{border-color:var(--accent);color:#eaf6ff}
+    .splashAbout{display:flex;align-items:center;gap:9px;width:100%;margin:10px 0 4px;
+      background:rgba(10,22,38,.6);border:1px solid #1e3350;border-radius:9px;
+      padding:8px 11px;text-align:left;font-size:11.5px;color:#a8bcd6}
+    .splashAbout:hover{border-color:var(--accent);color:#eaf6ff;background:rgba(20,40,64,.75)}
+    .splashAbout b{color:#dbe8f7;font-weight:600}
+    .splashAboutIco{font-size:14px;line-height:1;filter:grayscale(.3)}
+    .splashAboutChev{margin-left:auto;color:#5f7ba0;font-size:15px}
+    .splashAbout:hover .splashAboutChev{color:var(--accent)}
     .splashVer{font-size:10.5px;color:#7f97b6;margin-top:6px;letter-spacing:.05em;font-variant-numeric:tabular-nums}
     .splashJoke{margin-top:10px;min-height:2.6em;font-size:11.5px;line-height:1.5;color:#8fa6c4;
       border-top:1px solid #1e3350;padding-top:9px;transition:opacity .4s}
@@ -631,6 +639,18 @@
     .revBox b{color:#ffcf9a;font-size:12.5px}
     .revBox p{font-size:11.5px;line-height:1.55;color:#c9d8ec;margin:6px 0 0}
     .revBox code{background:#0a1626;padding:1px 5px;border-radius:4px;font-size:10.5px}
+    .authorName{font-size:15px;font-weight:800;color:#eaf6ff;margin:0 0 8px}
+    .authorBio{font-size:12px;line-height:1.65;color:#c9d8ec;margin:0 0 9px}
+    .authorBio a{color:#7fe6ff}
+    .authorHead{font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;
+      color:#7f95b4;margin:14px 0 7px}
+    .authorLinks{display:flex;flex-direction:column;gap:7px;margin-bottom:11px}
+    .authorLinks a{display:block;text-decoration:none;background:rgba(10,22,38,.7);
+      border:1px solid #1e3350;border-left:3px solid var(--accent);border-radius:8px;padding:8px 11px}
+    .authorLinks a:hover{border-color:#2c5a7a;border-left-color:var(--accent);background:rgba(20,40,64,.8)}
+    .authorLinks b{display:block;font-size:12px;color:#7fe6ff;font-weight:600;margin-bottom:2px}
+    .authorLinks span{display:block;font-size:11px;line-height:1.5;color:#a8bcd6}
+    .authorNote{font-size:10.5px;line-height:1.55;color:#7f95b4;font-style:italic;margin:0}
     .clogRow{border-left:2px solid #24405c;padding:0 0 4px 11px;margin-bottom:6px}
     .clogRow[open]{padding-bottom:10px}
     .clogHead{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap;cursor:pointer;
@@ -1007,6 +1027,34 @@
           <summary>Waiting for review</summary>
           <div class="ctlBody"><div id="reviewQueue"></div></div>
         </details>
+        <details class="ctlSec" data-sec="author">
+          <summary>About the author</summary>
+          <div class="ctlBody">
+            <p class="authorName">Stuart Okin</p>
+            <p class="authorBio">I am an optimistic, technology and science obsessed geek, that given half a chance would spend a disproportionate amount of my salary on the latest gizmos. Fortunately, my beautiful wife and amazing children have managed to keep me away from a hermit life, hidden behind large screens, eating takeaways, and only occasionally venturing out to shower or watch the latest Star Trek episode.</p>
+            <p class="authorBio">I am very lucky to have a great family and job, that surrounds me with such an amazing set of diverse people, and I literally stand on their shoulders (sorry to butcher your quote Sir Isaac).</p>
+            <p class="authorHead">Some of my other projects</p>
+            <div class="authorLinks">
+              <a href="https://www.linkedin.com/pulse/patch-wave-isnt-coming-landed-tuesday-stuart-okin-txxie/" target="_blank" rel="noopener">
+                <b>The Patch Wave Isn&rsquo;t Coming. It Landed on a Tuesday</b>
+                <span>An open research tool tracking fifteen years of security releases across 39 major vendors.</span></a>
+              <a href="https://www.linkedin.com/pulse/ai-finding-zero-day-bugs-fast-stuart-okin-khv1e" target="_blank" rel="noopener">
+                <b>AI is finding zero-day bugs fast</b>
+                <span>The companion index on how AI-assisted research is rewriting vulnerability discovery.</span></a>
+              <a href="https://www.linkedin.com/pulse/ai-models-learn-basics-decide-ecosystem-you-need-understand-okin-od7he/" target="_blank" rel="noopener">
+                <b>The AI Model Cortex</b>
+                <span>AI models &mdash; learn the basics, decide the ecosystem you need, understand how to secure, align with standards and regulation, and plan your business change.</span></a>
+              <a href="https://www.linkedin.com/pulse/i-built-q-day-clock-kept-speeding-up-stuart-okin-ku1me" target="_blank" rel="noopener">
+                <b>I Built a Q-Day Clock. It Kept Speeding Up.</b>
+                <span>The quantum-computing threat to classical cryptography and the post-quantum migration landscape &mdash; clocks, cryptographic stack, readiness and planning. Answer a few questions and see where you are.</span></a>
+              <a href="https://www.linkedin.com/pulse/mapping-ai-governance-standards-stuart-okin-w8oqe" target="_blank" rel="noopener">
+                <b>Mapping AI governance and standards</b>
+                <span>Making sense of the UK and international AI governance landscape &mdash; an interactive network map of institutions, standards and guidance.</span></a>
+            </div>
+            <p class="authorBio">Feedback welcome &mdash; <a href="https://www.linkedin.com/in/stuart-okin-b37ab69" target="_blank" rel="noopener">connect on LinkedIn</a>. Thoughts, corrections and challenge all gratefully received &mdash; disagreement with sources attached is the most useful feedback of all.</p>
+            <p class="authorNote">This is produced and published in a personal capacity; views are the author&rsquo;s own and do not represent any employer or organisation.</p>
+          </div>
+        </details>
         <details class="ctlSec" data-sec="changelog">
           <summary>What has changed</summary>
           <div class="ctlBody">
@@ -1146,6 +1194,11 @@
       </div>
       <p class="splashNote">It records what was <i>disclosed</i>, which is a small and uneven fraction of what happened. Growth over time reflects both real escalation and much better recording.</p>
       <p class="splashNote"><b>One number, several sources.</b> The same attack is often reported by more than one of them, under different names. Where that is spotted it is merged into a single record, but some duplicates will survive &mdash; so treat the total as <i>records held</i>, not a count of distinct events. More sources would not simply mean a better picture: each one added brings its own duplicates, and an attack counted twice is worse than one not counted at all. The Help window explains all of this properly before you quote anything from it.</p>
+      <button id="splashAbout" class="splashAbout" type="button">
+        <span class="splashAboutIco">&#128100;</span>
+        <span><b>About the author</b> &mdash; Stuart Okin</span>
+        <span class="splashAboutChev">&rsaquo;</span>
+      </button>
       <div class="splashAttrib" id="splashAttrib"></div>
       <label class="splashLight"><input id="splashLite" type="checkbox"> Reduce the load &mdash; fewer missiles and lighter filters, for an older or smaller device</label>
       <div class="splashBars">
@@ -1778,7 +1831,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v92";
+const APP_VERSION="v93";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -2393,6 +2446,14 @@ function renderNoticeText(){
     bits.push(`Markers are merged into one layer for speed, so individual dots are not `+
               `clickable at this density. Click an arc, or use Search, for detail.`);
   }
+  /* When nothing has been adjusted, say that plainly. An icon that does nothing when
+     clicked is worse than no icon: it reads as broken rather than as reassurance. */
+  if(!bits.length){
+    bits.push(`The map is being drawn in full: nothing has been thinned or merged, and `+
+              `every marker is individually clickable. If the machine starts to `+
+              `struggle, the tool reduces what it DRAWS and says so here \u2014 the counts, `+
+              `filters and charts always use the complete set either way.`);
+  }
   return bits.join(" ");
 }
 function renderNoticeUpdate(announce){
@@ -2400,14 +2461,8 @@ function renderNoticeUpdate(announce){
   const note=document.getElementById("renderNote");
   if(!btn||!note)return;
   const text=renderNoticeText();
-  if(!text){
-    btn.classList.add("hidden");
-    note.classList.remove("show"); note.classList.add("hidden");
-    btn.setAttribute("aria-expanded","false"); btn.classList.remove("on");
-    return;
-  }
   note.textContent=text;
-  btn.classList.remove("hidden");
+  btn.classList.remove("hidden");     // always available: it always has an answer
   if(announce){
     note.classList.remove("hidden");
     requestAnimationFrame(()=>note.classList.add("show"));
@@ -3805,6 +3860,7 @@ async function loadEnrichmentLayers(){
  await Promise.allSettled(jobs); renderSourceMenu();
  if(typeof dataHealth==="function")dataHealth();
  if(typeof splashStats==="function")splashStats();
+ if(typeof renderNoticeUpdate==="function")renderNoticeUpdate(false);
  // the gap link only appears if there are published figures behind it
  const gb=document.getElementById("escGap");
  if(gb)gb.classList.toggle("hidden",!(LAKE.estimates&&LAKE.estimates.length));   // figures, regardless of ready state
@@ -5641,6 +5697,20 @@ const fromSplash=(mode)=>{
   if(typeof NARR!=="undefined")NARR.cameFromSplash=true;
   splashDismiss(()=>narrStart(mode));
 };
+/* Takes the viewer straight into Help with the author section open and scrolled to,
+   rather than leaving them to hunt for it among a dozen collapsed sections. */
+document.getElementById("splashAbout").addEventListener("click",()=>{
+  splashDismiss(()=>{
+    if(typeof openFrame==="function")openFrame("help");
+    setTimeout(()=>{
+      const sec=document.querySelector('#frame-help .ctlSec[data-sec="author"]');
+      if(!sec)return;
+      document.querySelectorAll('#frame-help .ctlSec').forEach(d=>{ if(d!==sec)d.open=false });
+      sec.open=true;
+      sec.scrollIntoView({block:"start",behavior:"smooth"});
+    },260);
+  });
+});
 document.getElementById("splashTour").addEventListener("click",()=>fromSplash("demo"));
 document.getElementById("splashStory").addEventListener("click",()=>fromSplash("presentation"));
 document.getElementById("splashKiosk").addEventListener("click",()=>fromSplash("kiosk"));
@@ -8964,6 +9034,10 @@ function placeCoveragePanel(){
 
    Newest first. Keep entries short and say what a user would notice. */
 const CHANGELOG=[
+ {v:"v93", date:"2026-07-28", title:"About the author", items:[
+   "An About the author section added to Help, with links to related projects.",
+   "A link to it on the welcome screen, which opens Help at that section.",
+   "The information marker beside the colour scale now explains that nothing has been thinned, rather than appearing to do nothing when there is no adjustment to report."]},
  {v:"v92", date:"2026-07-28", title:"Smaller fixes", items:[
    "Switching to the flat map while paused now starts the missiles — it previously waited for a tick that never came.",
    "The two notices about how the map is being drawn are now announced briefly, then fold away to an information marker on the colour scale.",
