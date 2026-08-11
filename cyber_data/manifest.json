@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.18.2",
  "builder_date": "2026-07-28c",
- "generated": "2026-08-10T04:59:58+00:00",
+ "generated": "2026-08-11T04:44:53+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -138,7 +138,7 @@
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17289,
+     "rows": 17293,
      "min_score": 0.1
     },
     "cve": {
@@ -238,7 +238,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 3.9
+   "seconds": 4.3
   },
   {
    "id": "vcdb",
@@ -250,7 +250,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10367,
-   "seconds": 5.7
+   "seconds": 5.8
   },
   {
    "id": "rwlive",
@@ -262,7 +262,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 22233,
-   "seconds": 149.0
+   "seconds": 156.6
   },
   {
    "id": "kev",
@@ -274,7 +274,7 @@
    "status": "ok",
    "expected": 1650,
    "rows": 1662,
-   "seconds": 0.1
+   "seconds": 0.2
   },
   {
    "id": "epss",
@@ -285,7 +285,7 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17289,
+   "rows": 17293,
    "seconds": 1.1
   },
   {
@@ -298,7 +298,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 873,
-   "seconds": 0.6
+   "seconds": 2.6
   },
   {
    "id": "icsadv",
@@ -310,7 +310,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 3926,
-   "seconds": 0.5
+   "seconds": 0.7
   },
   {
    "id": "eurepoc_live",
@@ -322,7 +322,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 992,
-   "seconds": 0.5
+   "seconds": 0.4
   },
   {
    "id": "cissm",
@@ -346,7 +346,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 320,
-   "seconds": 23.8
+   "seconds": 26.1
   },
   {
    "id": "impact_overlay",
@@ -382,7 +382,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 17,
-   "seconds": 1.1
+   "seconds": 2.1
   },
   {
    "id": "estimates",
@@ -418,7 +418,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 43,
-   "seconds": 0.4
+   "seconds": 0.5
   },
   {
    "id": "reports",
@@ -448,13 +448,13 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-07-23.csv",
    "dated": "2026-07-23",
-   "age_days": 18,
+   "age_days": 19,
    "limit_days": 40
   },
   "cissm": {
    "file": "cyber_events_2026-07-24.csv",
    "dated": "2026-07-24",
-   "age_days": 17,
+   "age_days": 18,
    "limit_days": 40
   },
   "estimates": {
