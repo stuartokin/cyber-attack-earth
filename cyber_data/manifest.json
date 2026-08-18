@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.18.2",
  "builder_date": "2026-07-28c",
- "generated": "2026-08-17T04:07:47+00:00",
+ "generated": "2026-08-18T04:06:30+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -124,21 +124,21 @@
    "counts": {
     "eurepoc": 4296,
     "vcdb": 10367,
-    "rwlive": 22255,
+    "rwlive": 22256,
     "cissm": 17169,
     "eurepoc_live": 992
    },
-   "total": 55079
+   "total": 55080
   },
   "vulns": {
    "files": {
     "kev": {
      "file": "vulns/kev.json",
-     "rows": 1665
+     "rows": 1666
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17308,
+     "rows": 17310,
      "min_score": 0.1
     },
     "cve": {
@@ -147,8 +147,8 @@
     },
     "nvd": {
      "file": "vulns/nvd.json",
-     "rows": 1665,
-     "scored": 1665
+     "rows": 1666,
+     "scored": 1666
     }
    }
   },
@@ -198,17 +198,6 @@
     }
    }
   },
-  "review": {
-   "files": {
-    "secedgar": {
-     "file": "manual_sources/sec_review.csv",
-     "rows": 43,
-     "decided": 0,
-     "counted_as_incidents": false,
-     "note": "Candidates only. Nothing here reaches the map until a human records a decision in the review file."
-    }
-   }
-  },
   "reports": {
    "files": {
     "vendor": {
@@ -238,7 +227,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 3.2
+   "seconds": 4.2
   },
   {
    "id": "vcdb",
@@ -250,7 +239,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10367,
-   "seconds": 5.4
+   "seconds": 5.8
   },
   {
    "id": "rwlive",
@@ -261,8 +250,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 21000,
-   "rows": 22255,
-   "seconds": 144.6
+   "rows": 22256,
+   "seconds": 191.0
   },
   {
    "id": "kev",
@@ -273,8 +262,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 1650,
-   "rows": 1665,
-   "seconds": 0.2
+   "rows": 1666,
+   "seconds": 0.3
   },
   {
    "id": "epss",
@@ -285,8 +274,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17308,
-   "seconds": 0.9
+   "rows": 17310,
+   "seconds": 1.1
   },
   {
    "id": "attack",
@@ -298,7 +287,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 873,
-   "seconds": 0.5
+   "seconds": 0.6
   },
   {
    "id": "icsadv",
@@ -310,7 +299,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 3943,
-   "seconds": 0.4
+   "seconds": 0.7
   },
   {
    "id": "eurepoc_live",
@@ -346,7 +335,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 320,
-   "seconds": 25.8
+   "seconds": 180.7
   },
   {
    "id": "impact_overlay",
@@ -369,8 +358,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 0,
-   "rows": 1665,
-   "seconds": 0.2
+   "rows": 1666,
+   "seconds": 9.7
   },
   {
    "id": "cisaaa",
@@ -382,7 +371,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 17,
-   "seconds": 1.2
+   "seconds": 1.7
   },
   {
    "id": "estimates",
@@ -406,7 +395,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1025,
-   "seconds": 0.1
+   "seconds": 0.3
   },
   {
    "id": "secedgar",
@@ -414,11 +403,9 @@
    "table": "review",
    "licence": "US Government work - public domain",
    "homepage": "https://www.sec.gov/edgar/search/",
-   "cadence": "daily",
-   "status": "ok",
    "expected": 0,
-   "rows": 43,
-   "seconds": 0.6
+   "status": "failed: connector returned an empty result",
+   "rows": 0
   },
   {
    "id": "reports",
@@ -448,13 +435,13 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-07-23.csv",
    "dated": "2026-07-23",
-   "age_days": 25,
+   "age_days": 26,
    "limit_days": 40
   },
   "cissm": {
    "file": "cyber_events_2026-07-24.csv",
    "dated": "2026-07-24",
-   "age_days": 24,
+   "age_days": 25,
    "limit_days": 40
   },
   "estimates": {
