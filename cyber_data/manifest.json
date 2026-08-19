@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.18.2",
  "builder_date": "2026-07-28c",
- "generated": "2026-08-18T04:06:30+00:00",
+ "generated": "2026-08-19T04:05:31+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -134,11 +134,11 @@
    "files": {
     "kev": {
      "file": "vulns/kev.json",
-     "rows": 1666
+     "rows": 1670
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17310,
+     "rows": 17311,
      "min_score": 0.1
     },
     "cve": {
@@ -147,8 +147,8 @@
     },
     "nvd": {
      "file": "vulns/nvd.json",
-     "rows": 1666,
-     "scored": 1666
+     "rows": 1670,
+     "scored": 1670
     }
    }
   },
@@ -156,7 +156,7 @@
    "files": {
     "ics": {
      "file": "advisories/ics.json",
-     "rows": 3943
+     "rows": 3945
     },
     "aa": {
      "file": "advisories/aa.json",
@@ -191,10 +191,21 @@
    "files": {
     "hibp": {
      "file": "breaches/hibp.json",
-     "rows": 1025,
-     "people": 17779441664,
+     "rows": 1027,
+     "people": 17781574515,
      "counted_as_incidents": false,
      "note": "Named breaches with account counts. Overlaps the incident tables heavily, so it is held separately and never added."
+    }
+   }
+  },
+  "review": {
+   "files": {
+    "secedgar": {
+     "file": "manual_sources/sec_review.csv",
+     "rows": 43,
+     "decided": 0,
+     "counted_as_incidents": false,
+     "note": "Candidates only. Nothing here reaches the map until a human records a decision in the review file."
     }
    }
   },
@@ -227,7 +238,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 4.2
+   "seconds": 5.0
   },
   {
    "id": "vcdb",
@@ -239,7 +250,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10367,
-   "seconds": 5.8
+   "seconds": 6.5
   },
   {
    "id": "rwlive",
@@ -251,7 +262,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 22256,
-   "seconds": 191.0
+   "seconds": 194.3
   },
   {
    "id": "kev",
@@ -262,8 +273,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 1650,
-   "rows": 1666,
-   "seconds": 0.3
+   "rows": 1670,
+   "seconds": 0.2
   },
   {
    "id": "epss",
@@ -274,8 +285,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17310,
-   "seconds": 1.1
+   "rows": 17311,
+   "seconds": 0.9
   },
   {
    "id": "attack",
@@ -287,7 +298,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 873,
-   "seconds": 0.6
+   "seconds": 3.0
   },
   {
    "id": "icsadv",
@@ -298,8 +309,8 @@
    "cadence": "weekly",
    "status": "ok",
    "expected": 3800,
-   "rows": 3943,
-   "seconds": 0.7
+   "rows": 3945,
+   "seconds": 1.4
   },
   {
    "id": "eurepoc_live",
@@ -311,7 +322,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 992,
-   "seconds": 0.4
+   "seconds": 0.5
   },
   {
    "id": "cissm",
@@ -335,7 +346,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 320,
-   "seconds": 180.7
+   "seconds": 43.8
   },
   {
    "id": "impact_overlay",
@@ -358,8 +369,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 0,
-   "rows": 1666,
-   "seconds": 9.7
+   "rows": 1670,
+   "seconds": 5.4
   },
   {
    "id": "cisaaa",
@@ -371,7 +382,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 17,
-   "seconds": 1.7
+   "seconds": 1.6
   },
   {
    "id": "estimates",
@@ -394,8 +405,8 @@
    "cadence": "weekly",
    "status": "ok",
    "expected": 0,
-   "rows": 1025,
-   "seconds": 0.3
+   "rows": 1027,
+   "seconds": 0.1
   },
   {
    "id": "secedgar",
@@ -403,9 +414,11 @@
    "table": "review",
    "licence": "US Government work - public domain",
    "homepage": "https://www.sec.gov/edgar/search/",
+   "cadence": "daily",
+   "status": "ok",
    "expected": 0,
-   "status": "failed: connector returned an empty result",
-   "rows": 0
+   "rows": 43,
+   "seconds": 0.5
   },
   {
    "id": "reports",
@@ -435,13 +448,13 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-07-23.csv",
    "dated": "2026-07-23",
-   "age_days": 26,
+   "age_days": 27,
    "limit_days": 40
   },
   "cissm": {
    "file": "cyber_events_2026-07-24.csv",
    "dated": "2026-07-24",
-   "age_days": 25,
+   "age_days": 26,
    "limit_days": 40
   },
   "estimates": {
