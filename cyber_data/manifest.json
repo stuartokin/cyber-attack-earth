@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.18.2",
  "builder_date": "2026-07-28c",
- "generated": "2026-08-25T04:05:34+00:00",
+ "generated": "2026-08-26T04:08:21+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -134,11 +134,11 @@
    "files": {
     "kev": {
      "file": "vulns/kev.json",
-     "rows": 1675
+     "rows": 1676
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17335,
+     "rows": 17340,
      "min_score": 0.1
     },
     "cve": {
@@ -156,7 +156,7 @@
    "files": {
     "ics": {
      "file": "advisories/ics.json",
-     "rows": 3946
+     "rows": 3953
     },
     "aa": {
      "file": "advisories/aa.json",
@@ -191,8 +191,8 @@
    "files": {
     "hibp": {
      "file": "breaches/hibp.json",
-     "rows": 1029,
-     "people": 17782149577,
+     "rows": 1030,
+     "people": 17795082990,
      "counted_as_incidents": false,
      "note": "Named breaches with account counts. Overlaps the incident tables heavily, so it is held separately and never added."
     }
@@ -238,7 +238,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 3.0
+   "seconds": 5.0
   },
   {
    "id": "vcdb",
@@ -250,7 +250,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10367,
-   "seconds": 5.5
+   "seconds": 5.9
   },
   {
    "id": "rwlive",
@@ -262,7 +262,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 22263,
-   "seconds": 143.1
+   "seconds": 171.2
   },
   {
    "id": "kev",
@@ -273,7 +273,7 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 1650,
-   "rows": 1675,
+   "rows": 1676,
    "seconds": 0.2
   },
   {
@@ -285,7 +285,7 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17335,
+   "rows": 17340,
    "seconds": 1.0
   },
   {
@@ -298,7 +298,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 873,
-   "seconds": 0.5
+   "seconds": 0.7
   },
   {
    "id": "icsadv",
@@ -309,7 +309,7 @@
    "cadence": "weekly",
    "status": "ok",
    "expected": 3800,
-   "rows": 3946,
+   "rows": 3953,
    "seconds": 0.5
   },
   {
@@ -346,7 +346,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 320,
-   "seconds": 25.7
+   "seconds": 31.5
   },
   {
    "id": "impact_overlay",
@@ -370,7 +370,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1675,
-   "seconds": 1.1
+   "seconds": 1.2
   },
   {
    "id": "cisaaa",
@@ -382,7 +382,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 17,
-   "seconds": 1.1
+   "seconds": 1.8
   },
   {
    "id": "estimates",
@@ -405,7 +405,7 @@
    "cadence": "weekly",
    "status": "ok",
    "expected": 0,
-   "rows": 1029,
+   "rows": 1030,
    "seconds": 0.2
   },
   {
@@ -418,7 +418,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 43,
-   "seconds": 0.5
+   "seconds": 0.7
   },
   {
    "id": "reports",
@@ -448,13 +448,13 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-07-23.csv",
    "dated": "2026-07-23",
-   "age_days": 33,
+   "age_days": 34,
    "limit_days": 40
   },
   "cissm": {
    "file": "cyber_events_2026-07-24.csv",
    "dated": "2026-07-24",
-   "age_days": 32,
+   "age_days": 33,
    "limit_days": 40
   },
   "estimates": {
