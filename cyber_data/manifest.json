@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.18.2",
  "builder_date": "2026-07-28c",
- "generated": "2026-08-31T09:53:17+00:00",
+ "generated": "2026-09-01T08:46:27+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -124,31 +124,31 @@
    "counts": {
     "eurepoc": 4296,
     "vcdb": 10367,
-    "rwlive": 22263,
+    "rwlive": 23192,
     "cissm": 17169,
     "eurepoc_live": 992
    },
-   "total": 55087
+   "total": 56016
   },
   "vulns": {
    "files": {
     "kev": {
      "file": "vulns/kev.json",
-     "rows": 1685
+     "rows": 1687
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17348,
+     "rows": 17350,
      "min_score": 0.1
     },
     "cve": {
      "file": "vulns/cve.json",
-     "months": 320
+     "months": 321
     },
     "nvd": {
      "file": "vulns/nvd.json",
-     "rows": 1685,
-     "scored": 1685
+     "rows": 1687,
+     "scored": 1687
     }
    }
   },
@@ -191,8 +191,8 @@
    "files": {
     "hibp": {
      "file": "breaches/hibp.json",
-     "rows": 1030,
-     "people": 17795082990,
+     "rows": 1031,
+     "people": 17796309199,
      "counted_as_incidents": false,
      "note": "Named breaches with account counts. Overlaps the incident tables heavily, so it is held separately and never added."
     }
@@ -202,7 +202,7 @@
    "files": {
     "secedgar": {
      "file": "manual_sources/sec_review.csv",
-     "rows": 42,
+     "rows": 43,
      "decided": 0,
      "counted_as_incidents": false,
      "note": "Candidates only. Nothing here reaches the map until a human records a decision in the review file."
@@ -238,7 +238,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 5.1
+   "seconds": 30.0
   },
   {
    "id": "vcdb",
@@ -250,7 +250,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10367,
-   "seconds": 3.9
+   "seconds": 5.9
   },
   {
    "id": "rwlive",
@@ -261,8 +261,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 21000,
-   "rows": 22263,
-   "seconds": 174.6
+   "rows": 23192,
+   "seconds": 175.9
   },
   {
    "id": "kev",
@@ -273,7 +273,7 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 1650,
-   "rows": 1685,
+   "rows": 1687,
    "seconds": 0.1
   },
   {
@@ -285,8 +285,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17348,
-   "seconds": 0.8
+   "rows": 17350,
+   "seconds": 1.0
   },
   {
    "id": "attack",
@@ -298,7 +298,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 873,
-   "seconds": 0.4
+   "seconds": 0.6
   },
   {
    "id": "icsadv",
@@ -310,7 +310,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 3958,
-   "seconds": 0.5
+   "seconds": 0.9
   },
   {
    "id": "eurepoc_live",
@@ -322,7 +322,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 992,
-   "seconds": 0.2
+   "seconds": 0.5
   },
   {
    "id": "cissm",
@@ -334,7 +334,7 @@
    "status": "ok",
    "expected": 17169,
    "rows": 17169,
-   "seconds": 0.2
+   "seconds": 0.3
   },
   {
    "id": "cve",
@@ -345,8 +345,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 320,
-   "rows": 320,
-   "seconds": 27.6
+   "rows": 321,
+   "seconds": 24.8
   },
   {
    "id": "impact_overlay",
@@ -369,8 +369,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 0,
-   "rows": 1685,
-   "seconds": 0.2
+   "rows": 1687,
+   "seconds": 2.3
   },
   {
    "id": "cisaaa",
@@ -382,7 +382,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 17,
-   "seconds": 1.3
+   "seconds": 1.4
   },
   {
    "id": "estimates",
@@ -405,7 +405,7 @@
    "cadence": "weekly",
    "status": "ok",
    "expected": 0,
-   "rows": 1030,
+   "rows": 1031,
    "seconds": 0.2
   },
   {
@@ -417,8 +417,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 0,
-   "rows": 42,
-   "seconds": 3.4
+   "rows": 43,
+   "seconds": 0.5
   },
   {
    "id": "reports",
@@ -448,13 +448,13 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-07-23.csv",
    "dated": "2026-07-23",
-   "age_days": 39,
+   "age_days": 40,
    "limit_days": 40
   },
   "cissm": {
    "file": "cyber_events_2026-07-24.csv",
    "dated": "2026-07-24",
-   "age_days": 38,
+   "age_days": 39,
    "limit_days": 40
   },
   "estimates": {
