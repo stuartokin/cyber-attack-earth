@@ -2,11 +2,10 @@
  "schema": 3,
  "builder": "3.18.2",
  "builder_date": "2026-07-28c",
- "generated": "2026-09-12T08:02:57+00:00",
+ "generated": "2026-09-13T08:27:32+00:00",
  "tables": {
   "incidents": {
    "files": {
-    "eurepoc": "incidents/eurepoc.json",
     "vcdb_partitions": {
      "2000": {
       "file": "incidents/vcdb-2000.json",
@@ -122,13 +121,12 @@
     "eurepoc_live": "incidents/eurepoc_live.json"
    },
    "counts": {
-    "eurepoc": 4296,
     "vcdb": 10367,
-    "rwlive": 23223,
+    "rwlive": 9421,
     "cissm": 17169,
     "eurepoc_live": 992
    },
-   "total": 56047
+   "total": 37949
   },
   "vulns": {
    "files": {
@@ -138,7 +136,7 @@
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17368,
+     "rows": 17369,
      "min_score": 0.1
     },
     "cve": {
@@ -234,11 +232,9 @@
    "table": "incidents",
    "licence": "See Zenodo record terms",
    "homepage": "https://eurepoc.eu/",
-   "cadence": "on release",
-   "status": "ok",
    "expected": 4300,
-   "rows": 4296,
-   "seconds": 6.4
+   "status": "failed: all mirrors failed for EuRepoC: 504 Server Error: Gateway Time-out for url: https://zenodo.org/records/14965395/files/eurepoc_global_dataset_1_3.csv?download=1",
+   "rows": 0
   },
   {
    "id": "vcdb",
@@ -250,7 +246,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10367,
-   "seconds": 6.7
+   "seconds": 5.5
   },
   {
    "id": "rwlive",
@@ -261,8 +257,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 21000,
-   "rows": 23223,
-   "seconds": 243.1
+   "rows": 9421,
+   "seconds": 207.5
   },
   {
    "id": "kev",
@@ -274,7 +270,7 @@
    "status": "ok",
    "expected": 1650,
    "rows": 1709,
-   "seconds": 0.1
+   "seconds": 0.2
   },
   {
    "id": "epss",
@@ -285,8 +281,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17368,
-   "seconds": 2.3
+   "rows": 17369,
+   "seconds": 1.0
   },
   {
    "id": "attack",
@@ -298,7 +294,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 873,
-   "seconds": 1.3
+   "seconds": 0.6
   },
   {
    "id": "icsadv",
@@ -310,7 +306,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 3976,
-   "seconds": 1.3
+   "seconds": 0.4
   },
   {
    "id": "eurepoc_live",
@@ -322,7 +318,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 992,
-   "seconds": 0.4
+   "seconds": 0.5
   },
   {
    "id": "cissm",
@@ -346,7 +342,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 321,
-   "seconds": 32.6
+   "seconds": 24.0
   },
   {
    "id": "impact_overlay",
@@ -370,7 +366,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1709,
-   "seconds": 8.1
+   "seconds": 0.2
   },
   {
    "id": "cisaaa",
@@ -382,7 +378,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 17,
-   "seconds": 2.7
+   "seconds": 1.3
   },
   {
    "id": "estimates",
@@ -406,7 +402,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1033,
-   "seconds": 0.2
+   "seconds": 0.7
   },
   {
    "id": "secedgar",
@@ -418,7 +414,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 48,
-   "seconds": 2.4
+   "seconds": 3.0
   },
   {
    "id": "reports",
@@ -433,28 +429,17 @@
    "seconds": 0.0
   }
  ],
- "releases": {
-  "eurepoc": {
-   "record": 14965395,
-   "concept": "14965394",
-   "version": "1.3.2",
-   "doi": "10.5281/zenodo.14965395",
-   "published": "2025-03-04",
-   "title": "Global Dataset of Cyber Incidents",
-   "file": "eurepoc_dyadic_dataset_0_1.csv"
-  }
- },
  "manual_exports": {
   "eurepoc": {
    "file": "eurepoc_tableview_2026-07-23.csv",
    "dated": "2026-07-23",
-   "age_days": 51,
+   "age_days": 52,
    "limit_days": 40
   },
   "cissm": {
    "file": "cyber_events_2026-07-24.csv",
    "dated": "2026-07-24",
-   "age_days": 50,
+   "age_days": 51,
    "limit_days": 40
   },
   "estimates": {
