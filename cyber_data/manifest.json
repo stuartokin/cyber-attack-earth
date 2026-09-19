@@ -2,11 +2,10 @@
  "schema": 3,
  "builder": "3.18.2",
  "builder_date": "2026-07-28c",
- "generated": "2026-09-18T08:22:09+00:00",
+ "generated": "2026-09-19T08:12:09+00:00",
  "tables": {
   "incidents": {
    "files": {
-    "eurepoc": "incidents/eurepoc.json",
     "vcdb_partitions": {
      "2000": {
       "file": "incidents/vcdb-2000.json",
@@ -122,23 +121,22 @@
     "eurepoc_live": "incidents/eurepoc_live.json"
    },
    "counts": {
-    "eurepoc": 4296,
     "vcdb": 10367,
     "rwlive": 23230,
     "cissm": 17169,
     "eurepoc_live": 992
    },
-   "total": 56054
+   "total": 51758
   },
   "vulns": {
    "files": {
     "kev": {
      "file": "vulns/kev.json",
-     "rows": 1713
+     "rows": 1716
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17384,
+     "rows": 17386,
      "min_score": 0.1
     },
     "cve": {
@@ -147,8 +145,8 @@
     },
     "nvd": {
      "file": "vulns/nvd.json",
-     "rows": 1713,
-     "scored": 1713
+     "rows": 1716,
+     "scored": 1716
     }
    }
   },
@@ -202,7 +200,7 @@
    "files": {
     "secedgar": {
      "file": "manual_sources/sec_review.csv",
-     "rows": 48,
+     "rows": 47,
      "decided": 0,
      "counted_as_incidents": false,
      "note": "Candidates only. Nothing here reaches the map until a human records a decision in the review file."
@@ -234,11 +232,9 @@
    "table": "incidents",
    "licence": "See Zenodo record terms",
    "homepage": "https://eurepoc.eu/",
-   "cadence": "on release",
-   "status": "ok",
    "expected": 4300,
-   "rows": 4296,
-   "seconds": 6.2
+   "status": "failed: all mirrors failed for EuRepoC: 504 Server Error: Gateway Time-out for url: https://zenodo.org/records/14965395/files/eurepoc_global_dataset_1_3.csv?download=1",
+   "rows": 0
   },
   {
    "id": "vcdb",
@@ -250,7 +246,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10367,
-   "seconds": 5.9
+   "seconds": 5.8
   },
   {
    "id": "rwlive",
@@ -262,7 +258,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 23230,
-   "seconds": 180.8
+   "seconds": 205.3
   },
   {
    "id": "kev",
@@ -273,8 +269,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 1650,
-   "rows": 1713,
-   "seconds": 0.1
+   "rows": 1716,
+   "seconds": 0.3
   },
   {
    "id": "epss",
@@ -285,8 +281,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17384,
-   "seconds": 0.9
+   "rows": 17386,
+   "seconds": 1.2
   },
   {
    "id": "attack",
@@ -298,7 +294,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 873,
-   "seconds": 2.8
+   "seconds": 0.7
   },
   {
    "id": "icsadv",
@@ -310,7 +306,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 3991,
-   "seconds": 0.6
+   "seconds": 0.5
   },
   {
    "id": "eurepoc_live",
@@ -346,7 +342,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 321,
-   "seconds": 26.3
+   "seconds": 28.7
   },
   {
    "id": "impact_overlay",
@@ -369,8 +365,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 0,
-   "rows": 1713,
-   "seconds": 1.0
+   "rows": 1716,
+   "seconds": 3.3
   },
   {
    "id": "cisaaa",
@@ -382,7 +378,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 17,
-   "seconds": 1.2
+   "seconds": 2.2
   },
   {
    "id": "estimates",
@@ -417,8 +413,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 0,
-   "rows": 48,
-   "seconds": 0.6
+   "rows": 47,
+   "seconds": 2.7
   },
   {
    "id": "reports",
@@ -433,28 +429,17 @@
    "seconds": 0.0
   }
  ],
- "releases": {
-  "eurepoc": {
-   "record": 14965395,
-   "concept": "14965394",
-   "version": "1.3.2",
-   "doi": "10.5281/zenodo.14965395",
-   "published": "2025-03-04",
-   "title": "Global Dataset of Cyber Incidents",
-   "file": "eurepoc_dyadic_dataset_0_1.csv"
-  }
- },
  "manual_exports": {
   "eurepoc": {
    "file": "eurepoc_tableview_2026-07-23.csv",
    "dated": "2026-07-23",
-   "age_days": 57,
+   "age_days": 58,
    "limit_days": 40
   },
   "cissm": {
    "file": "cyber_events_2026-07-24.csv",
    "dated": "2026-07-24",
-   "age_days": 56,
+   "age_days": 57,
    "limit_days": 40
   },
   "estimates": {
