@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.18.2",
  "builder_date": "2026-07-28c",
- "generated": "2026-10-04T09:55:24+00:00",
+ "generated": "2026-10-05T10:36:09+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -124,21 +124,21 @@
    "counts": {
     "eurepoc": 4296,
     "vcdb": 10367,
-    "rwlive": 23971,
+    "rwlive": 23970,
     "cissm": 17169,
     "eurepoc_live": 992
    },
-   "total": 56795
+   "total": 56794
   },
   "vulns": {
    "files": {
     "kev": {
      "file": "vulns/kev.json",
-     "rows": 1733
+     "rows": 1734
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17290,
+     "rows": 17292,
      "min_score": 0.1
     },
     "cve": {
@@ -147,7 +147,7 @@
     },
     "nvd": {
      "file": "vulns/nvd.json",
-     "rows": 1733,
+     "rows": 1734,
      "scored": 1733
     }
    }
@@ -238,7 +238,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 3.2
+   "seconds": 4.5
   },
   {
    "id": "vcdb",
@@ -250,7 +250,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10367,
-   "seconds": 5.4
+   "seconds": 5.9
   },
   {
    "id": "rwlive",
@@ -261,8 +261,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 21000,
-   "rows": 23971,
-   "seconds": 172.3
+   "rows": 23970,
+   "seconds": 184.7
   },
   {
    "id": "kev",
@@ -273,8 +273,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 1650,
-   "rows": 1733,
-   "seconds": 0.1
+   "rows": 1734,
+   "seconds": 0.2
   },
   {
    "id": "epss",
@@ -285,7 +285,7 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17290,
+   "rows": 17292,
    "seconds": 1.0
   },
   {
@@ -298,7 +298,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 873,
-   "seconds": 0.5
+   "seconds": 0.6
   },
   {
    "id": "icsadv",
@@ -310,7 +310,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 4015,
-   "seconds": 0.4
+   "seconds": 0.6
   },
   {
    "id": "eurepoc_live",
@@ -346,7 +346,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 322,
-   "seconds": 23.1
+   "seconds": 28.3
   },
   {
    "id": "impact_overlay",
@@ -369,8 +369,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 0,
-   "rows": 1733,
-   "seconds": 0.2
+   "rows": 1734,
+   "seconds": 1.1
   },
   {
    "id": "cisaaa",
@@ -382,7 +382,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 17,
-   "seconds": 1.1
+   "seconds": 1.6
   },
   {
    "id": "estimates",
@@ -406,7 +406,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1037,
-   "seconds": 0.8
+   "seconds": 0.2
   },
   {
    "id": "secedgar",
@@ -418,7 +418,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 46,
-   "seconds": 0.6
+   "seconds": 0.8
   },
   {
    "id": "reports",
@@ -448,13 +448,13 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-07-23.csv",
    "dated": "2026-07-23",
-   "age_days": 73,
+   "age_days": 74,
    "limit_days": 40
   },
   "cissm": {
    "file": "cyber_events_2026-07-24.csv",
    "dated": "2026-07-24",
-   "age_days": 72,
+   "age_days": 73,
    "limit_days": 40
   },
   "estimates": {
