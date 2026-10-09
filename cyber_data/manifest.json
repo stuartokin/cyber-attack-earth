@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.18.2",
  "builder_date": "2026-07-28c",
- "generated": "2026-10-08T10:43:00+00:00",
+ "generated": "2026-10-09T10:42:29+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -124,21 +124,21 @@
    "counts": {
     "eurepoc": 4296,
     "vcdb": 10367,
-    "rwlive": 23993,
+    "rwlive": 24002,
     "cissm": 17169,
     "eurepoc_live": 992
    },
-   "total": 56817
+   "total": 56826
   },
   "vulns": {
    "files": {
     "kev": {
      "file": "vulns/kev.json",
-     "rows": 1734
+     "rows": 1739
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17293,
+     "rows": 17298,
      "min_score": 0.1
     },
     "cve": {
@@ -147,8 +147,8 @@
     },
     "nvd": {
      "file": "vulns/nvd.json",
-     "rows": 1734,
-     "scored": 1734
+     "rows": 1739,
+     "scored": 1739
     }
    }
   },
@@ -156,7 +156,7 @@
    "files": {
     "ics": {
      "file": "advisories/ics.json",
-     "rows": 4021
+     "rows": 4024
     },
     "aa": {
      "file": "advisories/aa.json",
@@ -191,8 +191,8 @@
    "files": {
     "hibp": {
      "file": "breaches/hibp.json",
-     "rows": 1040,
-     "people": 17845047979,
+     "rows": 1041,
+     "people": 17845483942,
      "counted_as_incidents": false,
      "note": "Named breaches with account counts. Overlaps the incident tables heavily, so it is held separately and never added."
     }
@@ -238,7 +238,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 3.4
+   "seconds": 20.8
   },
   {
    "id": "vcdb",
@@ -250,7 +250,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10367,
-   "seconds": 5.4
+   "seconds": 3.4
   },
   {
    "id": "rwlive",
@@ -261,8 +261,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 21000,
-   "rows": 23993,
-   "seconds": 159.6
+   "rows": 24002,
+   "seconds": 161.7
   },
   {
    "id": "kev",
@@ -273,8 +273,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 1650,
-   "rows": 1734,
-   "seconds": 0.1
+   "rows": 1739,
+   "seconds": 0.2
   },
   {
    "id": "epss",
@@ -285,8 +285,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17293,
-   "seconds": 1.0
+   "rows": 17298,
+   "seconds": 0.8
   },
   {
    "id": "attack",
@@ -309,8 +309,8 @@
    "cadence": "weekly",
    "status": "ok",
    "expected": 3800,
-   "rows": 4021,
-   "seconds": 0.3
+   "rows": 4024,
+   "seconds": 0.6
   },
   {
    "id": "eurepoc_live",
@@ -322,7 +322,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 992,
-   "seconds": 0.5
+   "seconds": 0.3
   },
   {
    "id": "cissm",
@@ -334,7 +334,7 @@
    "status": "ok",
    "expected": 17169,
    "rows": 17169,
-   "seconds": 0.3
+   "seconds": 0.2
   },
   {
    "id": "cve",
@@ -346,7 +346,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 322,
-   "seconds": 23.2
+   "seconds": 28.7
   },
   {
    "id": "impact_overlay",
@@ -369,8 +369,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 0,
-   "rows": 1734,
-   "seconds": 0.3
+   "rows": 1739,
+   "seconds": 5.3
   },
   {
    "id": "cisaaa",
@@ -382,7 +382,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 17,
-   "seconds": 1.2
+   "seconds": 2.1
   },
   {
    "id": "estimates",
@@ -405,8 +405,8 @@
    "cadence": "weekly",
    "status": "ok",
    "expected": 0,
-   "rows": 1040,
-   "seconds": 0.5
+   "rows": 1041,
+   "seconds": 0.4
   },
   {
    "id": "secedgar",
@@ -418,7 +418,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 48,
-   "seconds": 1.4
+   "seconds": 1.5
   },
   {
    "id": "reports",
@@ -433,28 +433,17 @@
    "seconds": 0.0
   }
  ],
- "releases": {
-  "eurepoc": {
-   "record": 14965395,
-   "concept": "14965394",
-   "version": "1.3.2",
-   "doi": "10.5281/zenodo.14965395",
-   "published": "2025-03-04",
-   "title": "Global Dataset of Cyber Incidents",
-   "file": "eurepoc_dyadic_dataset_0_1.csv"
-  }
- },
  "manual_exports": {
   "eurepoc": {
    "file": "eurepoc_tableview_2026-07-23.csv",
    "dated": "2026-07-23",
-   "age_days": 77,
+   "age_days": 78,
    "limit_days": 40
   },
   "cissm": {
    "file": "cyber_events_2026-07-24.csv",
    "dated": "2026-07-24",
-   "age_days": 76,
+   "age_days": 77,
    "limit_days": 40
   },
   "estimates": {
