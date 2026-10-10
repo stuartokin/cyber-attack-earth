@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.18.2",
  "builder_date": "2026-07-28c",
- "generated": "2026-10-09T10:42:29+00:00",
+ "generated": "2026-10-10T09:58:57+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -124,11 +124,11 @@
    "counts": {
     "eurepoc": 4296,
     "vcdb": 10367,
-    "rwlive": 24002,
+    "rwlive": 24006,
     "cissm": 17169,
     "eurepoc_live": 992
    },
-   "total": 56826
+   "total": 56830
   },
   "vulns": {
    "files": {
@@ -138,7 +138,7 @@
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17298,
+     "rows": 17300,
      "min_score": 0.1
     },
     "cve": {
@@ -238,7 +238,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 20.8
+   "seconds": 65.5
   },
   {
    "id": "vcdb",
@@ -250,7 +250,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10367,
-   "seconds": 3.4
+   "seconds": 5.7
   },
   {
    "id": "rwlive",
@@ -261,8 +261,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 21000,
-   "rows": 24002,
-   "seconds": 161.7
+   "rows": 24006,
+   "seconds": 145.7
   },
   {
    "id": "kev",
@@ -285,8 +285,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17298,
-   "seconds": 0.8
+   "rows": 17300,
+   "seconds": 1.0
   },
   {
    "id": "attack",
@@ -310,7 +310,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 4024,
-   "seconds": 0.6
+   "seconds": 0.5
   },
   {
    "id": "eurepoc_live",
@@ -322,7 +322,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 992,
-   "seconds": 0.3
+   "seconds": 0.5
   },
   {
    "id": "cissm",
@@ -334,7 +334,7 @@
    "status": "ok",
    "expected": 17169,
    "rows": 17169,
-   "seconds": 0.2
+   "seconds": 0.3
   },
   {
    "id": "cve",
@@ -346,7 +346,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 322,
-   "seconds": 28.7
+   "seconds": 23.4
   },
   {
    "id": "impact_overlay",
@@ -370,7 +370,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1739,
-   "seconds": 5.3
+   "seconds": 0.1
   },
   {
    "id": "cisaaa",
@@ -382,7 +382,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 17,
-   "seconds": 2.1
+   "seconds": 1.3
   },
   {
    "id": "estimates",
@@ -406,7 +406,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1041,
-   "seconds": 0.4
+   "seconds": 0.8
   },
   {
    "id": "secedgar",
@@ -418,7 +418,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 48,
-   "seconds": 1.5
+   "seconds": 0.5
   },
   {
    "id": "reports",
@@ -433,17 +433,28 @@
    "seconds": 0.0
   }
  ],
+ "releases": {
+  "eurepoc": {
+   "record": 14965395,
+   "concept": "14965394",
+   "version": "1.3.2",
+   "doi": "10.5281/zenodo.14965395",
+   "published": "2025-03-04",
+   "title": "Global Dataset of Cyber Incidents",
+   "file": "eurepoc_dyadic_dataset_0_1.csv"
+  }
+ },
  "manual_exports": {
   "eurepoc": {
    "file": "eurepoc_tableview_2026-07-23.csv",
    "dated": "2026-07-23",
-   "age_days": 78,
+   "age_days": 79,
    "limit_days": 40
   },
   "cissm": {
    "file": "cyber_events_2026-07-24.csv",
    "dated": "2026-07-24",
-   "age_days": 77,
+   "age_days": 78,
    "limit_days": 40
   },
   "estimates": {
