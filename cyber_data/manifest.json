@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.18.2",
  "builder_date": "2026-07-28c",
- "generated": "2026-10-18T08:09:08+00:00",
+ "generated": "2026-10-19T09:03:02+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -124,11 +124,11 @@
    "counts": {
     "eurepoc": 4296,
     "vcdb": 10367,
-    "rwlive": 24013,
+    "rwlive": 24020,
     "cissm": 17169,
     "eurepoc_live": 992
    },
-   "total": 56837
+   "total": 56844
   },
   "vulns": {
    "files": {
@@ -138,7 +138,7 @@
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17319,
+     "rows": 17321,
      "min_score": 0.1
     },
     "cve": {
@@ -238,7 +238,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 3.5
+   "seconds": 5.2
   },
   {
    "id": "vcdb",
@@ -261,8 +261,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 21000,
-   "rows": 24013,
-   "seconds": 175.5
+   "rows": 24020,
+   "seconds": 238.2
   },
   {
    "id": "kev",
@@ -285,7 +285,7 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17319,
+   "rows": 17321,
    "seconds": 1.0
   },
   {
@@ -298,7 +298,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 884,
-   "seconds": 0.6
+   "seconds": 3.1
   },
   {
    "id": "icsadv",
@@ -346,7 +346,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 322,
-   "seconds": 24.3
+   "seconds": 28.2
   },
   {
    "id": "impact_overlay",
@@ -406,7 +406,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1044,
-   "seconds": 0.5
+   "seconds": 0.2
   },
   {
    "id": "secedgar",
@@ -418,7 +418,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 49,
-   "seconds": 0.5
+   "seconds": 0.7
   },
   {
    "id": "reports",
@@ -448,13 +448,13 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-07-23.csv",
    "dated": "2026-07-23",
-   "age_days": 87,
+   "age_days": 88,
    "limit_days": 40
   },
   "cissm": {
    "file": "cyber_events_2026-07-24.csv",
    "dated": "2026-07-24",
-   "age_days": 86,
+   "age_days": 87,
    "limit_days": 40
   },
   "estimates": {
