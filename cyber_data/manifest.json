@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.18.2",
  "builder_date": "2026-07-28c",
- "generated": "2026-10-20T08:39:56+00:00",
+ "generated": "2026-10-21T08:42:00+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -134,11 +134,11 @@
    "files": {
     "kev": {
      "file": "vulns/kev.json",
-     "rows": 1748
+     "rows": 1754
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17323,
+     "rows": 17328,
      "min_score": 0.1
     },
     "cve": {
@@ -147,8 +147,8 @@
     },
     "nvd": {
      "file": "vulns/nvd.json",
-     "rows": 1748,
-     "scored": 1748
+     "rows": 1754,
+     "scored": 1754
     }
    }
   },
@@ -156,7 +156,7 @@
    "files": {
     "ics": {
      "file": "advisories/ics.json",
-     "rows": 4031
+     "rows": 4036
     },
     "aa": {
      "file": "advisories/aa.json",
@@ -202,7 +202,7 @@
    "files": {
     "secedgar": {
      "file": "manual_sources/sec_review.csv",
-     "rows": 49,
+     "rows": 50,
      "decided": 0,
      "counted_as_incidents": false,
      "note": "Candidates only. Nothing here reaches the map until a human records a decision in the review file."
@@ -238,7 +238,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 3.8
+   "seconds": 4.9
   },
   {
    "id": "vcdb",
@@ -250,7 +250,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10367,
-   "seconds": 4.1
+   "seconds": 3.8
   },
   {
    "id": "rwlive",
@@ -262,7 +262,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 24019,
-   "seconds": 154.7
+   "seconds": 157.9
   },
   {
    "id": "kev",
@@ -273,7 +273,7 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 1650,
-   "rows": 1748,
+   "rows": 1754,
    "seconds": 0.3
   },
   {
@@ -285,8 +285,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17323,
-   "seconds": 0.8
+   "rows": 17328,
+   "seconds": 0.7
   },
   {
    "id": "attack",
@@ -309,8 +309,8 @@
    "cadence": "weekly",
    "status": "ok",
    "expected": 3800,
-   "rows": 4031,
-   "seconds": 0.6
+   "rows": 4036,
+   "seconds": 0.5
   },
   {
    "id": "eurepoc_live",
@@ -322,7 +322,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 992,
-   "seconds": 0.3
+   "seconds": 0.2
   },
   {
    "id": "cissm",
@@ -346,7 +346,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 322,
-   "seconds": 24.0
+   "seconds": 28.3
   },
   {
    "id": "impact_overlay",
@@ -369,8 +369,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 0,
-   "rows": 1748,
-   "seconds": 0.3
+   "rows": 1754,
+   "seconds": 7.1
   },
   {
    "id": "cisaaa",
@@ -382,7 +382,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 18,
-   "seconds": 2.1
+   "seconds": 2.0
   },
   {
    "id": "estimates",
@@ -406,7 +406,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1045,
-   "seconds": 0.5
+   "seconds": 0.4
   },
   {
    "id": "secedgar",
@@ -417,8 +417,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 0,
-   "rows": 49,
-   "seconds": 0.9
+   "rows": 50,
+   "seconds": 0.8
   },
   {
    "id": "reports",
@@ -448,13 +448,13 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-07-23.csv",
    "dated": "2026-07-23",
-   "age_days": 89,
+   "age_days": 90,
    "limit_days": 40
   },
   "cissm": {
    "file": "cyber_events_2026-07-24.csv",
    "dated": "2026-07-24",
-   "age_days": 88,
+   "age_days": 89,
    "limit_days": 40
   },
   "estimates": {
