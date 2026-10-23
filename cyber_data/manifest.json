@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.18.2",
  "builder_date": "2026-07-28c",
- "generated": "2026-10-22T08:44:41+00:00",
+ "generated": "2026-10-23T08:40:05+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -124,11 +124,11 @@
    "counts": {
     "eurepoc": 4296,
     "vcdb": 10367,
-    "rwlive": 24019,
+    "rwlive": 24017,
     "cissm": 17169,
     "eurepoc_live": 992
    },
-   "total": 56843
+   "total": 56841
   },
   "vulns": {
    "files": {
@@ -138,7 +138,7 @@
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17333,
+     "rows": 17336,
      "min_score": 0.1
     },
     "cve": {
@@ -156,7 +156,7 @@
    "files": {
     "ics": {
      "file": "advisories/ics.json",
-     "rows": 4036
+     "rows": 4055
     },
     "aa": {
      "file": "advisories/aa.json",
@@ -238,7 +238,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 4.3
+   "seconds": 3.2
   },
   {
    "id": "vcdb",
@@ -250,7 +250,7 @@
    "status": "ok",
    "expected": 10400,
    "rows": 10367,
-   "seconds": 5.3
+   "seconds": 5.9
   },
   {
    "id": "rwlive",
@@ -261,8 +261,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 21000,
-   "rows": 24019,
-   "seconds": 190.4
+   "rows": 24017,
+   "seconds": 173.4
   },
   {
    "id": "kev",
@@ -285,8 +285,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17333,
-   "seconds": 0.9
+   "rows": 17336,
+   "seconds": 1.2
   },
   {
    "id": "attack",
@@ -298,7 +298,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 884,
-   "seconds": 3.5
+   "seconds": 0.6
   },
   {
    "id": "icsadv",
@@ -309,8 +309,8 @@
    "cadence": "weekly",
    "status": "ok",
    "expected": 3800,
-   "rows": 4036,
-   "seconds": 1.0
+   "rows": 4055,
+   "seconds": 0.4
   },
   {
    "id": "eurepoc_live",
@@ -322,7 +322,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 992,
-   "seconds": 0.3
+   "seconds": 0.4
   },
   {
    "id": "cissm",
@@ -346,7 +346,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 322,
-   "seconds": 29.6
+   "seconds": 35.8
   },
   {
    "id": "impact_overlay",
@@ -370,7 +370,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1754,
-   "seconds": 0.1
+   "seconds": 0.2
   },
   {
    "id": "cisaaa",
@@ -406,7 +406,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1045,
-   "seconds": 0.2
+   "seconds": 0.5
   },
   {
    "id": "secedgar",
@@ -448,13 +448,13 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-07-23.csv",
    "dated": "2026-07-23",
-   "age_days": 91,
+   "age_days": 92,
    "limit_days": 40
   },
   "cissm": {
    "file": "cyber_events_2026-07-24.csv",
    "dated": "2026-07-24",
-   "age_days": 90,
+   "age_days": 91,
    "limit_days": 40
   },
   "estimates": {
