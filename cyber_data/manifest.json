@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.18.2",
  "builder_date": "2026-07-28c",
- "generated": "2026-11-08T10:31:32+00:00",
+ "generated": "2026-11-09T11:42:36+00:00",
  "tables": {
   "incidents": {
    "files": {
@@ -138,7 +138,7 @@
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17524,
+     "rows": 17526,
      "min_score": 0.1
     },
     "cve": {
@@ -238,7 +238,7 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 5.1
+   "seconds": 3.1
   },
   {
    "id": "vcdb",
@@ -262,7 +262,7 @@
    "status": "ok",
    "expected": 21000,
    "rows": 25021,
-   "seconds": 164.9
+   "seconds": 135.9
   },
   {
    "id": "kev",
@@ -285,8 +285,8 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17524,
-   "seconds": 0.9
+   "rows": 17526,
+   "seconds": 1.1
   },
   {
    "id": "attack",
@@ -298,7 +298,7 @@
    "status": "ok",
    "expected": 870,
    "rows": 884,
-   "seconds": 0.6
+   "seconds": 0.7
   },
   {
    "id": "icsadv",
@@ -310,7 +310,7 @@
    "status": "ok",
    "expected": 3800,
    "rows": 4060,
-   "seconds": 0.6
+   "seconds": 0.5
   },
   {
    "id": "eurepoc_live",
@@ -346,7 +346,7 @@
    "status": "ok",
    "expected": 320,
    "rows": 323,
-   "seconds": 25.6
+   "seconds": 24.5
   },
   {
    "id": "impact_overlay",
@@ -382,7 +382,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 18,
-   "seconds": 1.0
+   "seconds": 1.2
   },
   {
    "id": "estimates",
@@ -406,7 +406,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1047,
-   "seconds": 0.1
+   "seconds": 0.5
   },
   {
    "id": "secedgar",
@@ -418,7 +418,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 52,
-   "seconds": 0.6
+   "seconds": 0.5
   },
   {
    "id": "reports",
@@ -448,13 +448,13 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-07-23.csv",
    "dated": "2026-07-23",
-   "age_days": 108,
+   "age_days": 109,
    "limit_days": 40
   },
   "cissm": {
    "file": "cyber_events_2026-07-24.csv",
    "dated": "2026-07-24",
-   "age_days": 107,
+   "age_days": 108,
    "limit_days": 40
   },
   "estimates": {
