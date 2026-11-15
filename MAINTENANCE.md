@@ -326,3 +326,10 @@ quoted:
 
 *Maintained by Stuart Okin, Director of Cyber Regulation and Emerging Technologies,
 Ofgem. Published in a personal capacity; views are his own and not those of Ofgem.*
+
+## Kill switch
+
+`automation.json` at the top of this repo switches the nightly refresh off
+(`"paused": true`) or on (`false`). The master switch for every repo is
+`automation.json` in `stuartokin/stuartokin.github.io`. Manual "Run workflow"
+runs always go ahead.

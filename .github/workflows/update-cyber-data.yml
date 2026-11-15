@@ -28,7 +28,56 @@ permissions:
                               # export goes stale, and close it once refreshed
 
 jobs:
+  # ---- Kill switch -------------------------------------------------------
+  # Reads two small files before anything else runs:
+  #   master: stuartokin.github.io/automation.json  (turns off every app)
+  #   local:  automation.json at the top of this repo (turns off this app)
+  # If either says "paused": true, automatic runs (schedule, issues,
+  # comments, other workflows) stop here and change nothing. Runs started by
+  # hand ("Run workflow") and your own uploads always go ahead.
+  switch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    outputs:
+      go: ${{ steps.check.outputs.go }}
+    steps:
+      - id: check
+        name: Check the kill switches
+        env:
+          EVENT: ${{ github.event_name }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+        run: |
+          flag() {
+            local v
+            v=$(curl -fsSL --retry 2 -H 'Cache-Control: no-cache' "$1?t=$(date +%s)" 2>/dev/null | jq -r '.paused' 2>/dev/null) || v=""
+            case "$v" in true|false) echo "$v" ;; null) echo false ;; *) echo unknown ;; esac
+          }
+          MASTER=$(flag "https://raw.githubusercontent.com/stuartokin/stuartokin.github.io/main/automation.json")
+          LOCAL=$(flag "https://raw.githubusercontent.com/$REPO/$SHA/automation.json")
+          echo "Master switch (stuartokin.github.io/automation.json): paused = $MASTER"
+          echo "This repo's switch (automation.json): paused = $LOCAL"
+          GO=true
+          if [ "$EVENT" = "workflow_dispatch" ] || [ "$EVENT" = "push" ]; then
+            if [ "$MASTER" = "true" ] || [ "$LOCAL" = "true" ]; then
+              echo "::notice title=Kill switch::A switch is set to paused, but this run was started by hand or by an upload, so it goes ahead."
+            fi
+          elif [ "$MASTER" = "true" ]; then
+            GO=false
+            echo "::notice title=Kill switch::Paused by master switch (stuartokin.github.io/automation.json). Nothing was changed."
+          elif [ "$LOCAL" = "true" ]; then
+            GO=false
+            echo "::notice title=Kill switch::Paused by this repo's switch (automation.json). Nothing was changed."
+          fi
+          if [ "$MASTER" = "unknown" ]; then
+            echo "::warning title=Kill switch::Could not read the master switch, so carrying on as normal."
+          fi
+          echo "go=$GO" >> "$GITHUB_OUTPUT"
+          echo "Kill switch: master paused = $MASTER, this repo paused = $LOCAL, event = $EVENT, go = $GO" >> "$GITHUB_STEP_SUMMARY"
+
   refresh:
+    needs: switch
+    if: needs.switch.outputs.go == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

@@ -1,0 +1,4 @@
+{
+  "paused": false,
+  "note": "Kill switch for this repo's automatic workflows (schedules, agents, issue triggers). Set \"paused\" to true to stop them, false to let them run. Runs started by hand with 'Run workflow' still go ahead. The master switch for every repo is automation.json in stuartokin/stuartokin.github.io."
+}
