@@ -324,8 +324,8 @@ quoted:
 
 ---
 
-*Maintained by Stuart Okin, Director of Cyber Regulation and Emerging Technologies,
-Ofgem. Published in a personal capacity; views are his own and not those of Ofgem.*
+*Maintained by Stuart Okin. Written in a personal capacity and does not represent the
+position of any organisation he is engaged with.*
 
 ## Kill switch
 
