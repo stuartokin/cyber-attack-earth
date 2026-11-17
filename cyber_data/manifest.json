@@ -2,16 +2,15 @@
  "schema": 3,
  "builder": "3.20.0",
  "builder_date": "2026-11-17",
- "generated": "2026-11-17T21:11:25+00:00",
+ "generated": "2026-11-17T21:54:59+00:00",
  "run": "partial",
  "tables": {
-  "techniques": {
+  "impact": {
    "files": {
-    "attack": {
-     "file": "techniques/attack.json",
-     "techniques": 706,
-     "groups": 178,
-     "campaigns": 57
+    "impact_overlay": {
+     "file": "impact/overlay.json",
+     "rows": 56,
+     "figures": 142
     }
    }
   },
@@ -177,6 +176,16 @@
     }
    }
   },
+  "techniques": {
+   "files": {
+    "attack": {
+     "file": "techniques/attack.json",
+     "techniques": 706,
+     "groups": 178,
+     "campaigns": 57
+    }
+   }
+  },
   "estimates": {
    "files": {
     "estimates": {
@@ -216,15 +225,6 @@
     "vendor": {
      "file": "reports/vendor.json",
      "rows": 15
-    }
-   }
-  },
-  "impact": {
-   "files": {
-    "impact_overlay": {
-     "file": "impact/overlay.json",
-     "rows": 56,
-     "figures": 142
     }
    }
   }
@@ -372,9 +372,9 @@
    "status": "ok with 1 warning(s)",
    "expected": 0,
    "rows": 56,
-   "refreshed": "2026-11-17T21:11:21+00:00",
+   "refreshed": "2026-11-17T21:54:59+00:00",
    "seconds": 0.0,
-   "change": 7,
+   "change": 0,
    "changed_at": "2026-11-17T21:11:21+00:00",
    "warnings": [
     "singapore-telcos-unc3886-2026: no valid figures - it will plot only if scored elsewhere"

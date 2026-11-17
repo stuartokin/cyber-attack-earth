@@ -4,7 +4,7 @@ For a new session or a new maintainer. Read with `MAINTENANCE.md` (the operating
 `docs/LESSONS.md`, `docs/ROADMAP.md` and the newest entry in `docs/CHANGELOG.md`.
 
 State at the last update (2026-11-17): app **v95**, builder **3.20.0**, 17 sources all
-"ok", 59,335 incident rows in the pack, 56 curated landmark incidents (8 from before 2011),
+"ok", 59,335 incident rows in the pack, 56 curated landmark incidents (8 from before 2011, all verified),
 57 ATT&CK named campaigns as context.
 
 ## 1. What it is

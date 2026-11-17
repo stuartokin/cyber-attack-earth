@@ -3,6 +3,8 @@
 Open work, decisions and questions. Update with every session.
 
 ## Done
+- 2026-11-17 — Stuart confirmed the seven 2000–2009 landmark incidents and their scores
+  (now `verified`).
 - 2026-11-17 — **Phase 3 and 4** (app v95, builder 3.20.0): Insights window, optional
   "Ask the analyst" (visitor's own Gemini key), ATT&CK campaigns as context, per-source
   change tracking, seven 2000–2009 landmark incidents (Blaster, TJX, Estonia, Heartland,
@@ -21,8 +23,8 @@ Open work, decisions and questions. Update with every session.
    Bearer token against `strapi.eurepoc.eu/api/incidents`. With it, Claude adds a
    connector and the TableView download stops. Store as secret `EUREPOC_API_TOKEN`.
 2. **CISSM API key** — done 2026-11-17. Secret set; first GitHub run fetched all 17,753
-   events. Hand export removed from the repo. Tell Dr Harry: getDataset returns 503,
-   and the entities route seemed to answer without checking the key.
+   events. Hand export removed from the repo. Stuart wrote to Dr Harry about the getDataset 503 and the
+   entities route not checking the key (2026-11-17); await his reply.
 3. **CISSM redistribution** — resolved by the API: no raw file in the repo now (it remains
    in git history from July–November 2026; say if Dr Harry wants that purged).
 4. Until EuRepoC grants API access: refresh the TableView export monthly (MAINTENANCE
@@ -48,7 +50,6 @@ Also: Singapore telecoms (added) has no scores, so it is not on the impact chart
   per-country insight when a country is selected; save an insight as an image.
 
 ## Open questions for Stuart
-- Early landmarks (2000–2009) and their proposed scores are provisional — confirm or adjust.
 - Try "Ask the analyst" with your own key and say whether to keep it.
 - Mark the new estimates / incidents `verified` once you have read them on the publishers'
   pages (tell Claude which).

@@ -4,6 +4,13 @@ Newest first. App versions are `APP_VERSION` in `index.html` (also shown in the 
 changelog under Help); builder versions are `BUILDER_VERSION` in `build_cyber_data.py`
 (full history at the top of that file).
 
+## 2026-11-17 — early landmarks confirmed
+
+- Stuart confirmed the seven 2000–2009 landmark incidents (Blaster, TJX, Estonia,
+  Heartland, Georgia, GhostNet, Aurora) and their scores: marked `verified`; score notes
+  now read "Editorial judgement, confirmed by Stuart".
+- No app or builder change (app v95, builder 3.20.0).
+
 ## 2026-11-17 — app v95, builder 3.20.0: phase 3 (history) and phase 4 (insights)
 
 Backup before this release: branch `backup/2026-11-17-pre-phase3-4`.
