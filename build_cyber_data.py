@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.19.2 (2026-11-17) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.19.3 (2026-11-17) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.19.3 CISSM fetch follows Dr Harry's sample code: Base44 entities endpoint for
+        CyberEvent, api_key header, pages of 5,000 sorted by -event_date (4 calls,
+        was 36), repeated rows dropped by id. getDataset is now only a fallback.
  3.19.2 CISSM API key issued. When CISSM arrives by API, the old hand export's age
         is no longer carried forward (it would have raised "refresh due" issues
         for a file that is no longer used). Note: the portal's documented
@@ -290,7 +293,7 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.19.2"
+BUILDER_VERSION = "3.19.3"
 BUILDER_DATE = "2026-11-17"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
@@ -1157,7 +1160,8 @@ CISSM_API_ROOT = "https://app.base44.com/api/apps"
 CISSM_DATASET_URL = "https://cybereventsdatabase.org/api/functions/api/getDataset"
 CISSM_ENTITY_CANDIDATES = ["CyberEvent", "CyberEvents", "Event", "Events",
                            "CyberEventRecord", "Incident", "Incidents"]
-CISSM_PAGE_SIZE = 500
+CISSM_PAGE_SIZE = 5000          # as in Dr Harry's sample code (Nov 2026)
+CISSM_SORT = "-event_date"      # stable order for paging, as in the sample code
 CISSM_MAX_PAGES = 200
 CISSM_DIAG = ""          # short summary, surfaced in manifest.json so it can be read
                          # without opening the Actions log
@@ -1187,7 +1191,8 @@ def _cissm_pull_entity(url, key):
     rows, skip = [], 0
     for page in range(CISSM_MAX_PAGES):
         try:
-            r = _cissm_get(url, key, {"limit": CISSM_PAGE_SIZE, "skip": skip})
+            r = _cissm_get(url, key, {"limit": CISSM_PAGE_SIZE, "skip": skip,
+                                      "sort": CISSM_SORT})
         except Exception as exc:                                  # noqa: BLE001
             print("  [cissm] %s failed: %s" % (url, str(exc)[:90]))
             return rows
@@ -1212,7 +1217,19 @@ def _cissm_pull_entity(url, key):
             break
         skip += len(batch)
         time.sleep(0.4)
-    return rows
+    # Paging by skip/limit can repeat or miss a row at a page boundary when many
+    # share a date; drop exact repeats by the record id (or slug) and say so.
+    seen, out = set(), []
+    for r in rows:
+        k = str(r.get("id") or r.get("slug") or "") if isinstance(r, dict) else ""
+        if k and k in seen:
+            continue
+        if k:
+            seen.add(k)
+        out.append(r)
+    if len(out) != len(rows):
+        print("  [cissm] dropped %d repeated rows from paging" % (len(rows) - len(out)))
+    return out
 
 
 def _cissm_fetch_remote():
@@ -1229,20 +1246,6 @@ def _cissm_fetch_remote():
         print("  [cissm] %s" % CISSM_DIAG)
         return None
     print("  [cissm] CISSM_API_KEY seen (%d chars)" % len(key))
-
-    # The portal's own API page (checked November 2026) documents one endpoint for
-    # the full dataset, with the key in an x-api-key header. Try that first.
-    try:
-        r = _cissm_get(CISSM_DATASET_URL, key)
-        if r.status_code == 200:
-            rows = _cissm_rows_from_json(r.json())
-            if rows:
-                CISSM_DIAG = "ok via the documented getDataset API"
-                print("  [cissm] %d rows from getDataset" % len(rows))
-                return rows
-        print("  [cissm] getDataset answered HTTP %s - trying the other routes" % r.status_code)
-    except Exception as exc:                              # noqa: BLE001
-        print("  [cissm] getDataset failed (%s) - trying the other routes" % str(exc)[:80])
 
     explicit = os.environ.get("CISSM_DOWNLOAD_URL", "").strip()
     if explicit:
@@ -1267,6 +1270,19 @@ def _cissm_fetch_remote():
             print("  [cissm] entity %s returned %d records" % (ent, len(rows)))
             CISSM_DIAG = "ok via entity %s (%d records)" % (ent, len(rows))
             return rows
+    # Fallback: the portal's API page documents a getDataset endpoint (x-api-key).
+    # It answered HTTP 503 on 2026-11-17, so it is tried only after the entity route.
+    try:
+        r = _cissm_get(CISSM_DATASET_URL, key)
+        if r.status_code == 200:
+            rows = _cissm_rows_from_json(r.json())
+            if rows:
+                CISSM_DIAG = "ok via the documented getDataset API"
+                print("  [cissm] %d rows from getDataset" % len(rows))
+                return rows
+        print("  [cissm] getDataset answered HTTP %s" % r.status_code)
+    except Exception as exc:                              # noqa: BLE001
+        print("  [cissm] getDataset failed (%s)" % str(exc)[:80])
     CISSM_DIAG = ("API key accepted but no entity matched (tried: %s). Open the Api "
                   "Management page, copy the exact request URL, and set it as "
                   "CISSM_DOWNLOAD_URL - or set CISSM_ENTITY to the entity name."

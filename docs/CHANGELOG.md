@@ -4,6 +4,12 @@ Newest first. App versions are `APP_VERSION` in `index.html` (also shown in the 
 changelog under Help); builder versions are `BUILDER_VERSION` in `build_cyber_data.py`
 (full history at the top of that file).
 
+## 2026-11-17 — builder 3.19.3: CISSM fetch as Dr Harry's sample code
+
+- Entities endpoint for CyberEvent with the `api_key` header, pages of 5,000 sorted by
+  `-event_date` (4 requests instead of 36), repeated rows dropped by id. getDataset is
+  only a fallback now. Tested here: 17,753 events, no repeats.
+
 ## 2026-11-17 — builder 3.19.2: CISSM API key
 
 - Key received from Dr Harry; stored as GitHub secret `CISSM_API_KEY` and as a network

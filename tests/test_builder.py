@@ -216,6 +216,21 @@ class CissmByApi(unittest.TestCase):
         B.REMOTE_OK.clear()
 
 
+class CissmPaging(unittest.TestCase):
+    def test_sorted_pages_and_repeats_dropped(self):
+        pages = [[{"id": "a"}, {"id": "b"}], [{"id": "b"}, {"id": "c"}], [{"id": "d"}]]
+        seen = []
+
+        def fake(url, key, params=None):
+            seen.append(dict(params or {}))
+            return FakeResp(200, pages[len(seen) - 1])
+        with mock.patch.object(B, "_cissm_get", side_effect=fake), \
+                mock.patch.object(B, "CISSM_PAGE_SIZE", 2), mock.patch.object(B.time, "sleep"):
+            rows = B._cissm_pull_entity("u", "k")
+        self.assertEqual([r["id"] for r in rows], ["a", "b", "c", "d"])
+        self.assertEqual(seen[0]["sort"], "-event_date")
+
+
 class SecLinks(unittest.TestCase):
     def test_dashed_accession(self):
         self.assertEqual(B._dashed("000121390026119240"), "0001213900-26-119240")
