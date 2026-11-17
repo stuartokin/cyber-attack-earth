@@ -19,7 +19,8 @@ Open work, decisions and questions. Update with every session.
    public repo, and publishing description/url fields in the pack, is covered by the
    permission. ATTRIBUTION.md records it as an open question.
 4. Until 1 and 2 arrive: refresh both exports monthly (MAINTENANCE §2a/2b). The current
-   CISSM was refreshed on 2026-11-17 (to September 2026); EuRepoC TableView is still July 2026.
+   Both refreshed on 2026-11-17 (CISSM to September 2026, EuRepoC TableView to November
+   2026). Next refresh due by 27 December 2026 (40-day limit).
 
 ## Next (planned, not started)
 - **Phase 3 — more history (2000–2009 is thin: ~540 incidents).** In order of value:

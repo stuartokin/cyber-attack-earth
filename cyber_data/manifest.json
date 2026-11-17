@@ -2,12 +2,12 @@
  "schema": 3,
  "builder": "3.19.1",
  "builder_date": "2026-11-17",
- "generated": "2026-11-17T12:06:45+00:00",
+ "generated": "2026-11-17T12:11:28+00:00",
  "run": "partial",
  "tables": {
   "incidents": {
    "files": {
-    "cissm": "incidents/cissm.json",
+    "eurepoc_live": "incidents/eurepoc_live.json",
     "eurepoc": "incidents/eurepoc.json",
     "vcdb_partitions": {
      "2000": {
@@ -120,16 +120,16 @@
      }
     },
     "rwlive": "incidents/rwlive.json",
-    "eurepoc_live": "incidents/eurepoc_live.json"
+    "cissm": "incidents/cissm.json"
    },
    "counts": {
-    "cissm": 17753,
+    "eurepoc_live": 1321,
     "eurepoc": 4296,
     "vcdb": 10367,
     "rwlive": 25591,
-    "eurepoc_live": 992
+    "cissm": 17753
    },
-   "total": 58999
+   "total": 59328
   },
   "vulns": {
    "files": {
@@ -329,9 +329,9 @@
    "cadence": "manual export",
    "status": "ok",
    "expected": 0,
-   "rows": 992,
-   "refreshed": "2026-11-17T11:41:07+00:00",
-   "seconds": 0.4
+   "rows": 1321,
+   "refreshed": "2026-11-17T12:11:28+00:00",
+   "seconds": 0.6
   },
   {
    "id": "cissm",
@@ -463,16 +463,16 @@
   }
  },
  "manual_exports": {
-  "cissm": {
-   "file": "cyber_events_2026-11-17.csv",
+  "eurepoc": {
+   "file": "eurepoc_tableview_2026-11-17.csv",
    "dated": "2026-11-17",
    "age_days": 0,
    "limit_days": 40
   },
-  "eurepoc": {
-   "file": "eurepoc_tableview_2026-07-23.csv",
-   "dated": "2026-07-23",
-   "age_days": 117,
+  "cissm": {
+   "file": "cyber_events_2026-11-17.csv",
+   "dated": "2026-11-17",
+   "age_days": 0,
    "limit_days": 40
   },
   "estimates": {
