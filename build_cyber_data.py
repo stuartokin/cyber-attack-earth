@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.19.0 (2026-11-17) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.19.1 (2026-11-17) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.19.1 CISSM "expected" rows raised to 17,700 for the November 2026 export
+        (17,753 events, to September 2026).
  3.19.0 Review fixes (November 2026).
         A failed source no longer vanishes from the map: its last good files stay
         listed in the manifest ("carried"), as the docs always said they did.
@@ -283,7 +285,7 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.19.0"
+BUILDER_VERSION = "3.19.1"
 BUILDER_DATE = "2026-11-17"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
@@ -1438,7 +1440,7 @@ def _cissm_manual_rows():
 @source(id="cissm", table="incidents",
         title="CISSM / GoTech Cyber Events Database",
         licence="Use confirmed by CISSM (Dr Charles Harry, July 2026); cite Harry & Gallagher (2018), Journal of Information Warfare 17(3)",
-        cadence="manual export", homepage="https://cybereventsdatabase.org", expected=17169)
+        cadence="manual export", homepage="https://cybereventsdatabase.org", expected=17700)
 def build_cissm():
     rows = _cissm_fetch_remote()
     if rows is None:

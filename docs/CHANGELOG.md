@@ -4,6 +4,12 @@ Newest first. App versions are `APP_VERSION` in `index.html` (also shown in the 
 changelog under Help); builder versions are `BUILDER_VERSION` in `build_cyber_data.py`
 (full history at the top of that file).
 
+## 2026-11-17 — builder 3.19.1: new CISSM export
+
+- `manual_sources/cyber_events_2026-11-17.csv` replaces the July export: 17,753 events
+  (+584), event dates to September 2026 (was June). All rows usable.
+- EuRepoC TableView export still dated July 2026 — refresh due.
+
 ## 2026-11-17 — app v94, builder 3.19.0: review fixes and new data cadence
 
 Backup before this release: branch `backup/2026-11-17-pre-review-fixes` (the proxy

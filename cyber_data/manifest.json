@@ -1,12 +1,13 @@
 {
  "schema": 3,
- "builder": "3.19.0",
+ "builder": "3.19.1",
  "builder_date": "2026-11-17",
- "generated": "2026-11-17T11:41:07+00:00",
- "run": "manual",
+ "generated": "2026-11-17T12:06:45+00:00",
+ "run": "partial",
  "tables": {
   "incidents": {
    "files": {
+    "cissm": "incidents/cissm.json",
     "eurepoc": "incidents/eurepoc.json",
     "vcdb_partitions": {
      "2000": {
@@ -119,17 +120,16 @@
      }
     },
     "rwlive": "incidents/rwlive.json",
-    "cissm": "incidents/cissm.json",
     "eurepoc_live": "incidents/eurepoc_live.json"
    },
    "counts": {
+    "cissm": 17753,
     "eurepoc": 4296,
     "vcdb": 10367,
     "rwlive": 25591,
-    "cissm": 17169,
     "eurepoc_live": 992
    },
-   "total": 58415
+   "total": 58999
   },
   "vulns": {
    "files": {
@@ -341,9 +341,9 @@
    "homepage": "https://cybereventsdatabase.org",
    "cadence": "manual export",
    "status": "ok",
-   "expected": 17169,
-   "rows": 17169,
-   "refreshed": "2026-11-17T11:41:07+00:00",
+   "expected": 17700,
+   "rows": 17753,
+   "refreshed": "2026-11-17T12:06:45+00:00",
    "seconds": 0.3
   },
   {
@@ -463,16 +463,16 @@
   }
  },
  "manual_exports": {
+  "cissm": {
+   "file": "cyber_events_2026-11-17.csv",
+   "dated": "2026-11-17",
+   "age_days": 0,
+   "limit_days": 40
+  },
   "eurepoc": {
    "file": "eurepoc_tableview_2026-07-23.csv",
    "dated": "2026-07-23",
    "age_days": 117,
-   "limit_days": 40
-  },
-  "cissm": {
-   "file": "cyber_events_2026-07-24.csv",
-   "dated": "2026-07-24",
-   "age_days": 116,
    "limit_days": 40
   },
   "estimates": {
