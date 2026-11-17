@@ -133,7 +133,7 @@ class MainKeepsFailedSource(unittest.TestCase):
             B.REGISTRY[:] = [B.Source(id="reports", table="reports", title="R",
                                       licence="", homepage="", fn=boom)]
             with mock.patch.object(sys, "argv", ["x", str(d)]), \
-                    mock.patch.dict(os.environ, {"GITHUB_TOKEN": "", "ONLY_SOURCES": ""}):
+                    mock.patch.dict(os.environ, {"GITHUB_TOKEN": "", "ONLY_SOURCES": "", "GITHUB_ACTIONS": ""}):
                 B.main()
             m = json.loads((d / "manifest.json").read_text())
             self.assertEqual(m["tables"]["reports"]["files"]["vendor"]["file"], "reports/vendor.json")

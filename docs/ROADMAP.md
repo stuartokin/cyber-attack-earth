@@ -11,16 +11,13 @@ Open work, decisions and questions. Update with every session.
    requirements (including API access)"). Their Python package (`eurepoc` on PyPI) uses a
    Bearer token against `strapi.eurepoc.eu/api/incidents`. With it, Claude adds a
    connector and the TableView download stops. Store as secret `EUREPOC_API_TOKEN`.
-2. **CISSM API key** — received 2026-11-17. Add it as GitHub secret `CISSM_API_KEY`
-   (Stuart). Tested here: the documented getDataset endpoint is broken on CISSM's side
-   (HTTP 503, "no handler"); the Base44 entity route returned all 17,753 events. Tell
-   Dr Harry about both points (see CHANGELOG 3.19.2).
-3. **CISSM redistribution.** Confirm with Dr Harry that keeping the raw export in this
-   public repo, and publishing description/url fields in the pack, is covered by the
-   permission. ATTRIBUTION.md records it as an open question.
-4. Until 1 and 2 arrive: refresh both exports monthly (MAINTENANCE §2a/2b). The current
-   Both refreshed on 2026-11-17 (CISSM to September 2026, EuRepoC TableView to November
-   2026). Next refresh due by 27 December 2026 (40-day limit).
+2. **CISSM API key** — done 2026-11-17. Secret set; first GitHub run fetched all 17,753
+   events. Hand export removed from the repo. Tell Dr Harry: getDataset returns 503,
+   and the entities route seemed to answer without checking the key.
+3. **CISSM redistribution** — resolved by the API: no raw file in the repo now (it remains
+   in git history from July–November 2026; say if Dr Harry wants that purged).
+4. Until EuRepoC grants API access: refresh the TableView export monthly (MAINTENANCE
+   §2b). Last refreshed 2026-11-17; due by 27 December 2026.
 
 ## Held back for checking (2026-11-17)
 Drafted landmark incidents whose sources could not be opened here. Check each, then add

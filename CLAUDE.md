@@ -24,8 +24,8 @@ Read, in order: **`MAINTENANCE.md`** (the full guide: sources, cadence, review q
 - **Tests:** `cd tests && npm test` — `test_builder.py` (unit checks, no network), `test_pack.py` (manifest and
   every listed file), `smoke.js` (Playwright, five screens, all other sites blocked). All must pass before a push.
   Add a check whenever you fix a bug.
-- Hand exports (CISSM, EuRepoC TableView) live in `manual_sources/` with the date in the filename. Both go away
-  once their API keys arrive (see ROADMAP).
+- CISSM comes by API (secret `CISSM_API_KEY`, since 2026-11-17). The EuRepoC TableView is still a hand export in
+  `manual_sources/` with the date in the filename, until EuRepoC grants API access (see ROADMAP).
 - Disclosed incidents are a small, uneven fraction of what happened; the page says so. Keep that honesty.
 
 <!-- STANDARD:BEGIN v1 — the same block is in every one of Stuart's repos. Master copy:

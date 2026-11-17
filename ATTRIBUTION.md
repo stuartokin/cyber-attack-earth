@@ -86,11 +86,11 @@ victims dispute them. They are placed at country level with no attacker origin a
 Academically coded public cyber events from 2014 onwards.
 Site: https://cybereventsdatabase.org
 Access is granted on request; there is no public bulk download, and this project does
-not scrape the portal or use third-party mirrors. The layer is present only if the
-operator has supplied their own authorised export. Use was confirmed by Dr Charles
-Harry in July 2026. *Open question (November 2026):* the raw export sits in this public
-repository (`manual_sources/`) and selected fields are published in the data pack;
-confirmation that this redistribution is covered has been requested.
+not scrape the portal or use third-party mirrors. The layer is fetched with the
+API key CISSM issued to this project. Use was confirmed by Dr Charles
+Harry in July 2026; an API key was issued in November 2026 and the raw export is no
+longer kept in this repository. The data pack publishes only date, actor, countries,
+organisation, industry, event type, description and source link per event.
 Required citation: Harry, C., & Gallagher, N. (2018). *Classifying Cyber Events*.
 Journal of Information Warfare, 17(3), 17–31.
 

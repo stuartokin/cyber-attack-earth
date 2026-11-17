@@ -64,30 +64,13 @@ fails. Nothing disappears from the map because one night went wrong.
 
 ## 2. The monthly pass (about 30 minutes)
 
-### 2a. Refresh the CISSM export (~5 min)
+### 2a. CISSM — automatic since 17 November 2026
 
-CISSM has no open API, so the dataset arrives as a manual download.
-
-**This step disappears once Dr Harry issues an API key**: add it as the repository
-secret `CISSM_API_KEY` and the build fetches CISSM itself. (The site's own dataset API
-needs a key, and only CISSM's admins can create one — checked November 2026.)
-
-1. Go to https://cybereventsdatabase.org and use **Download Dataset**.
-2. Save as `.csv` or `.json` — **not** `.xlsx`, which the builder cannot read.
-3. Put it in `manual_sources/` with the date in its name, e.g.
-   `manual_sources/cyber_events_2026-12-01.csv` (upload it on GitHub, or send it to
-   Claude to commit).
-4. **Delete the previous CISSM export in the same commit.**
-
-> **Why deleting matters:** when several unnamed exports are present the builder takes
-> the **largest**, not the newest. Leaving an old file behind can silently pin you to
-> stale data. Name the file with `cissm` in it and this ambiguity disappears entirely.
-
-Filenames the builder understands:
-
-- anything containing `cissm` → the CISSM export
-- anything containing `eurepoc` → the EuRepoC TableView export
-- anything containing `impact` → the curated overlay (never treated as incident data)
+Dr Harry issued an API key; it is the repository secret `CISSM_API_KEY`, and the build
+fetches CISSM itself (Base44 entities endpoint, as in his sample R code). Nothing to
+download. If the key ever stops working, the map keeps the last good CISSM data, a
+`data-guard` issue appears, and a hand export dropped into `manual_sources/` (named
+`cyber_events_<date>.csv`) is used as a fallback.
 
 ### 2b. Refresh the EuRepoC TableView export (~5 min)
 
@@ -267,7 +250,7 @@ without them.
 |---|---|---|
 | `NVD_API_KEY` | Free key from nvd.nist.gov. Raises the CVE and vulnerability request rate. | Backfill is much slower but still works. |
 | `SEC_CONTACT` | `Your Project Name you@example.com`. SEC refuses requests without a contact email in the User-Agent. | The SEC connector is **skipped**, not failed. |
-| `CISSM_API_KEY` | For when Dr Harry issues the key. | Falls back to the manual export in `manual_sources/`. |
+| `CISSM_API_KEY` | Dr Harry's key (issued Nov 2026). The build fetches CISSM with it. | Falls back to a manual export in `manual_sources/`, if any; otherwise keeps the last good data. |
 
 `SEC_CONTACT` is a secret rather than a line in the source deliberately: this
 repository is public, and an email address in the code is a durable spam magnet.

@@ -4,6 +4,12 @@ Newest first. App versions are `APP_VERSION` in `index.html` (also shown in the 
 changelog under Help); builder versions are `BUILDER_VERSION` in `build_cyber_data.py`
 (full history at the top of that file).
 
+## 2026-11-17 — CISSM fully automatic
+
+- First GitHub run with the `CISSM_API_KEY` secret fetched all 17,753 events; the
+  "Data refresh due" issue closed itself. Hand export removed from `manual_sources/`.
+- Builder unit test no longer prints a false "reports failed" warning on GitHub.
+
 ## 2026-11-17 — builder 3.19.3: CISSM fetch as Dr Harry's sample code
 
 - Entities endpoint for CyberEvent with the `api_key` header, pages of 5,000 sorted by
