@@ -231,6 +231,47 @@ class CissmPaging(unittest.TestCase):
         self.assertEqual(seen[0]["sort"], "-event_date")
 
 
+class AttackCampaigns(unittest.TestCase):
+    def test_campaigns_with_attribution_and_clean_text(self):
+        bundle = {"objects": [
+            {"type": "intrusion-set", "id": "intrusion-set--1", "name": "APT Test"},
+            {"type": "campaign", "id": "campaign--1", "name": "Op Test",
+             "first_seen": "2009-11-01T00:00:00Z", "last_seen": "2011-02-01T00:00:00Z",
+             "description": "[Op Test](https://attack.mitre.org/campaigns/C0001) targeted energy firms. More.(Citation: X)",
+             "external_references": [{"source_name": "mitre-attack", "external_id": "C0001",
+                                      "url": "https://attack.mitre.org/campaigns/C0001"}]},
+            {"type": "campaign", "id": "campaign--2", "name": "Gone", "revoked": True,
+             "external_references": [{"source_name": "mitre-attack", "external_id": "C0002"}]},
+            {"type": "relationship", "relationship_type": "attributed-to",
+             "source_ref": "campaign--1", "target_ref": "intrusion-set--1"}]}
+        c = B._attack_campaigns(bundle)
+        self.assertEqual(len(c), 1)
+        self.assertEqual(c[0]["first_seen"], "2009-11")
+        self.assertEqual(c[0]["groups"], ["APT Test"])
+        self.assertEqual(c[0]["desc"], "Op Test targeted energy firms.")
+
+
+class ChangeSinceLastRun(unittest.TestCase):
+    def test_manifest_records_change(self):
+        d = Path(tempfile.mkdtemp())
+        reg = list(B.REGISTRY)
+        try:
+            (d / "manifest.json").write_text(json.dumps({"tables": {}, "sources": [
+                {"id": "reports", "status": "ok", "rows": 10, "refreshed": "2026-11-01T00:00:00+00:00"}]}))
+            B.REGISTRY[:] = [B.Source(id="reports", table="reports", title="R", licence="",
+                                      homepage="", fn=lambda: [{"org": "A"}] * 12)]
+            with mock.patch.object(sys, "argv", ["x", str(d)]), \
+                    mock.patch.dict(os.environ, {"GITHUB_TOKEN": "", "ONLY_SOURCES": "", "GITHUB_ACTIONS": ""}):
+                B.main()
+            e = json.loads((d / "manifest.json").read_text())["sources"][0]
+            self.assertEqual(e["change"], 2)
+            self.assertTrue(e["changed_at"])
+        finally:
+            B.REGISTRY[:] = reg
+            B.PROBLEMS.clear()
+            shutil.rmtree(d)
+
+
 class SecLinks(unittest.TestCase):
     def test_dashed_accession(self):
         self.assertEqual(B._dashed("000121390026119240"), "0001213900-26-119240")

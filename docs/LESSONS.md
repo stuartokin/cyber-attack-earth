@@ -55,4 +55,12 @@ What went wrong or surprised us, so the next session does not repeat it. Newest 
     host in the environment and read the page.
 17. **The Play button is slow on the test machine's software renderer.** Tests must wait for
     a state change (up to 15 s), not sleep a fixed time.
+18. **Open-licensed sources before 2010 are scarce.** Most pre-2010 datasets (CFR, DCID,
+    PRC) need permission, and VCDB already covers the US health breach portal. Curated,
+    primary-sourced landmarks were the honest way to fill 2000–2009.
+19. **Test an AI feature with a fake reply.** Playwright can answer the Gemini request
+    itself, so the test checks labelling, escaping and that the key goes in a header —
+    with no real key and no cost.
+20. **Insights must say what they count.** The first draft listed "most recorded victims"
+    mixing claims and incidents, and "Other" as the top sector; both were misleading.
 

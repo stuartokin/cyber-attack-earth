@@ -198,3 +198,13 @@ ask the publisher rather than assume.*
 globe.gl 2.46.1, three-globe 2.44.0 (Earth textures from its examples), D3 7.9.0,
 topojson-client 3.1.0, world-atlas 2.0.2 (Natural Earth, public domain) — MIT or ISC
 licences. fflate 0.8.2 — MIT.
+
+---
+
+**MITRE ATT&CK named campaigns** — from the ATT&CK Enterprise bundle (MITRE terms of use,
+attribution required); shown as context with MITRE's link, not as incidents.
+
+**Ask the analyst (optional)** — uses Google Gemini with the visitor's own API key; Google's
+terms apply to the visitor. Answers are AI-generated, labelled unverified, and never added
+to any count.
+

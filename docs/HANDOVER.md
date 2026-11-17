@@ -3,8 +3,9 @@
 For a new session or a new maintainer. Read with `MAINTENANCE.md` (the operating guide),
 `docs/LESSONS.md`, `docs/ROADMAP.md` and the newest entry in `docs/CHANGELOG.md`.
 
-State at the last update (2026-11-17): app **v94**, builder **3.19.3**, 17 sources all
-"ok", 59,335 incident rows in the pack, both formerly-manual sources current.
+State at the last update (2026-11-17): app **v95**, builder **3.20.0**, 17 sources all
+"ok", 59,335 incident rows in the pack, 56 curated landmark incidents (8 from before 2011),
+57 ATT&CK named campaigns as context.
 
 ## 1. What it is
 
@@ -59,7 +60,36 @@ returned 503 on 2026-11-17 and is only a fallback. Secret: `CISSM_API_KEY`.
 one-column-per-type flags, turns `"['Health']"` list text into `Health`, and reads
 `weighted_intensity`. The 1.3 `economic_impact_value` is deliberately ignored (no unit).
 
-## 5. Honesty rules the code enforces
+## 5. Insights and the optional analyst (app v95)
+
+**Insights** (✦ on the tool bar, `computeInsights()` in `index.html`) is deterministic: it
+counts the records that pass the visitor's filters in a window ending at the timeline
+month (this month / 3 / 12 / 36 months) and compares with the window before. Verified and
+academic incidents are counted separately from ransomware leak-site claims. It lists top
+victim countries, the biggest rise (≥10 records), sectors (excluding Other/unknown),
+claims by group, the most severe incident (with an "open" button), ATT&CK campaigns active
+in the window, KEV additions, and the builder's per-source `change` since the last run.
+Caveats come first when the window runs past the verified sources.
+
+**Ask the analyst** is optional and off by default:
+- The visitor pastes their own Google AI Studio key; it is kept in their browser
+  (`localStorage` key `cae_gemini_key`) and sent only to Google in an `x-goog-api-key`
+  header. Model `gemini-2.5-flash` (`AI_MODEL`), Google Search grounding on.
+- The system prompt is the Insights facts plus rules: no new numbers, documented ≠ all,
+  claims are assertions, attribution only as sourced, no speculation about named
+  organisations, British English, <180 words.
+- The answer is HTML-escaped and labelled "AI-generated … Unverified … never added to the
+  counts", with up to four Google Search sources.
+- **Cost to Stuart: nothing.** **What it can change: nothing** — display only, no writes, no
+  server. **How to switch it off:** it is off for anyone without a key; to remove the
+  feature entirely, delete the `renderAnalystBox()` section (ask Claude). No workflow, so
+  no kill switch is involved.
+
+**ATT&CK campaigns** come from the ATT&CK bundle the builder already downloads
+(`_attack_campaigns`), with MITRE's attribution relationships. They have no victim country,
+so they are context only — never mapped or counted.
+
+## 6. Honesty rules the code enforces
 
 - Counts are of *documented* incidents; the page says so.
 - Status chip turns amber when any hand export is past 40 days, a source is showing
@@ -69,19 +99,20 @@ one-column-per-type flags, turns `"['Health']"` list text into `Health`, and rea
 - Estimates are never summed; every row needs a URL and a method.
 - Curated rows stay `provisional` until Stuart has seen the figure on the publisher's page.
 
-## 6. Environment notes (cloud sessions)
+## 7. Environment notes (cloud sessions)
 
 - The session's network only reaches hosts the environment allows. The `cyber-attack-earth`
   environment allows EuRepoC, Zenodo, CISSM/Base44 and the publishers used to check curated
   figures (ONS, GOV.UK, Cyber Monitoring Centre, CISA, NCA, CERT Polska, CSA Singapore,
-  SEC, Microsoft, Google Cloud, Asahi, Coupang, NCSC). GitHub runners have open internet.
+  SEC, Microsoft, Google Cloud, Asahi, Coupang, NCSC, US DoJ, FTC, NATO CCDCOE, CERT/CC,
+  Citizen Lab, Google blog, FBI, Europol). GitHub runners have open internet.
 - A CISSM key is also saved as a network secret on that environment (for testing only);
   GitHub's `CISSM_API_KEY` secret is the one the build uses.
 - Pushing git **tags** from a session was refused; make backups as **branches** via the
   GitHub API (`backup/YYYY-MM-DD-what`).
 - Playwright and Chromium are preinstalled in sessions; the tests use them directly.
 
-## 7. Releasing a change
+## 8. Releasing a change
 
 1. Edit; bump `APP_VERSION` + in-app changelog (app) or `BUILDER_VERSION` + history (builder).
 2. `cd tests && npm test` — everything must pass. Look at `npm run shots`.

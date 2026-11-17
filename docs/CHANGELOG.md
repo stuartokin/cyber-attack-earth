@@ -4,6 +4,25 @@ Newest first. App versions are `APP_VERSION` in `index.html` (also shown in the 
 changelog under Help); builder versions are `BUILDER_VERSION` in `build_cyber_data.py`
 (full history at the top of that file).
 
+## 2026-11-17 — app v95, builder 3.20.0: phase 3 (history) and phase 4 (insights)
+
+Backup before this release: branch `backup/2026-11-17-pre-phase3-4`.
+
+- **Insights window** (✦): findings counted from the records on screen for this month or
+  the last 3/12/36 months, compared with the period before; claims counted apart from
+  verified incidents; caveats first; "open" jumps to the most severe incident.
+- **Ask the analyst** (optional): the visitor's own Gemini key, kept in their browser;
+  given only the Insights facts and strict rules; answers escaped and labelled
+  unverified; never added to counts. No cost, no server.
+- **ATT&CK named campaigns** (57, from 2009) extracted by the builder with MITRE's
+  attribution; shown in Insights as context, not mapped.
+- **Per-source change** since the previous run recorded in the manifest (`change`,
+  `changed_at`) and shown in Insights.
+- **Seven landmark incidents from 2000–2009**, each checked against a primary source
+  (DoJ, SEC, NATO CCDCOE, Citizen Lab, Google, Microsoft); provisional, scores proposed.
+- Tests: 15 builder checks; browser test covers Insights, campaigns and the analyst (with a
+  fake Google reply: labelled, escaped, key sent in a header only).
+
 ## 2026-11-17 — wrap-up: test rig extended, documentation
 
 - New `tests/test_curated.py` (Stuart's CSVs) and `tests/test_workflows.py` (kill switch,

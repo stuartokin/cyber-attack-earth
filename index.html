@@ -393,6 +393,23 @@
     .tlCoverage{font-size:10.5px;line-height:1.2;color:#ffd08a;border:1px solid #8a5a1f;background:rgba(60,35,8,.6);
       border-radius:999px;padding:3px 8px;white-space:nowrap;cursor:help}
     .tlCoverage.hidden{display:none}
+    /* Insights window */
+    .insControls{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;margin-bottom:6px}
+    .insNote{color:#7f95b4}
+    .insList{margin:0 0 8px;padding-left:18px;line-height:1.5;font-size:12.5px}
+    .insList li{margin-bottom:5px}
+    .insOpen{font-size:11px;padding:1px 7px;margin-left:4px}
+    .insCaveats p{color:#ffd08a;margin:4px 0}
+    .insSince{color:#96a9c4}
+    .aiBox{border-top:1px solid #22374f;margin-top:10px;padding-top:8px}
+    .aiBox h3{font-size:13px;margin:0 0 6px}
+    .aiTag{font-size:10px;font-weight:400;color:#ffd08a;border:1px solid #8a5a1f;border-radius:999px;padding:1px 6px;margin-left:4px}
+    .aiRow{display:flex;gap:6px;margin:6px 0}.aiRow input{flex:1;min-width:0}
+    .aiSugg{display:flex;flex-wrap:wrap;gap:5px}.aiSugg button{font-size:11px;padding:4px 8px}
+    .aiAnswer{font-size:12.5px;line-height:1.5}
+    .aiLabel{font-size:10.5px;color:#ffd08a;border-left:3px solid #8a5a1f;padding-left:7px;margin:6px 0}
+    .aiErr{color:#ff9aa4}
+    .linkBtn{background:none;border:0;color:var(--accent);padding:0;text-decoration:underline;cursor:pointer;font-size:11px}
     /* No room in the phone's timeline row: sit just above the timeline instead. */
     @media(max-width:720px){.tlCoverage{position:absolute;right:10px;top:-24px;font-size:10px;padding:2px 7px;background:rgba(40,24,6,.95)}}
     #histo svg{display:block;width:100%;height:100%}
@@ -789,6 +806,7 @@
     <button class="tbBtn" data-frame="details" type="button" title="Details — visible counts, rankings and the significant incident" aria-label="Details"><span class="tbIco">▤</span><span class="tbLabel">Details</span></button>
     <button class="tbBtn" data-frame="search" type="button" title="Search — look up an attack or threat group and jump to it" aria-label="Search"><span class="tbIco">🔍</span><span class="tbLabel">Search</span></button>
     <button class="tbBtn" data-frame="charts" type="button" title="Charts — incident, KEV, ICS advisory and EPSS charts" aria-label="Charts"><span class="tbIco">📊</span><span class="tbLabel">Charts</span></button>
+    <button class="tbBtn" data-frame="insights" type="button" title="Insights — what stands out in the period on screen, worked out from the data" aria-label="Insights"><span class="tbIco">&#10022;</span><span class="tbLabel">Insights</span></button>
     <button class="tbBtn" data-frame="bench" type="button" title="Compare against published findings from ENISA, Verizon and Dragos" aria-label="Compare"><span class="tbIco">⚖</span><span class="tbLabel">Compare</span></button>
     <div class="tbWinWrap hidden" id="tbWinWrap">
       <button id="tbWindows" class="tbBtn tbWindows" type="button" title="Arrange, reset or close the open windows" aria-haspopup="true" aria-expanded="false"><span class="tbIco">&#9783;</span><span class="tbLabel">Windows</span></button>
@@ -990,6 +1008,11 @@
         <div class="frameHead"><h2>What is not recorded</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close">&#215;</button></span></div>
         <div class="frameBody"><div id="coverageBody"></div></div>
       </section>
+      <section class="frame hidden" id="frame-insights" aria-label="Insights">
+        <div class="frameHead"><h2>Insights</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Insights" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Insights">&#215;</button></span></div>
+        <div class="frameBody"><div id="insightsBody"><p class="small">Working out what stands out&hellip;</p></div></div>
+      </section>
+
       <section class="frame hidden" id="frame-bench" aria-label="Compare with published findings">
         <div class="frameHead"><h2>Compare with published findings</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Compare" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Compare">&#215;</button></span></div>
         <div class="frameBody"><div id="benchBody"></div></div>
@@ -1852,7 +1875,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v94";
+const APP_VERSION="v95";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -2527,6 +2550,7 @@ function update(){
  const dt=fromIdx(timelineIndex);year=dt.year;month=dt.month;
  yearLabel.textContent=`${mon(month)} ${year}`;yearBig.textContent=`${mon(month)} ${year}`;
  updateCoverageBadge();
+ maybeRenderInsights();
  if(yearSlider.max!=String(endTimelineIndex))yearSlider.max=String(endTimelineIndex);
  if(yearSlider.step!=="any")yearSlider.step="any";
  const mode=viewMode.value;
@@ -4871,6 +4895,7 @@ function openFrame(name){
  // generated on demand can never open.
  if(name==="charts")renderChartsMenu();
  if(name==="bench")renderBenchmarks();
+ if(name==="insights"){INS.lastKey="";renderInsights()}
  if(name==="help")renderSourceMenu();
  // Guard against blank windows: content must exist before the frame is shown.
  // Stray empty frames during look-up came from opening before rendering.
@@ -5083,6 +5108,209 @@ function openFrameCount(){return document.querySelectorAll(".frame:not(.hidden)"
    the volume expected, amber when something is thin or a source is missing, red when
    there is no lake at all and the map is running on its embedded fallback. Clicking
    it opens the source health table rather than making you go looking. */
+/* ── Insights (v95) ─────────────────────────────────────────────────────────
+   Plain-English findings worked out IN CODE from the data on screen: the
+   visitor's filters, and a window ending at the timeline month. Every number
+   here is counted from the records - nothing is estimated, and nothing comes
+   from an AI. The optional analyst below may only restate these facts.
+
+   Windows compare like with like: the chosen window against the one before it.
+   Ransomware leak-site claims are counted separately from the verified and
+   academic sources, because they are attacker assertions. */
+const INS={win:12,lastKey:""};
+const AI_KEY_STORE="cae_gemini_key";
+const AI_MODEL="gemini-2.5-flash";
+function _insPct(a,b){if(!b)return a?"new":"no change";const p=Math.round(100*(a-b)/b);return (p>0?"+":"")+p+"%"}
+function _insTop(rows,key,n){
+ const m=new Map();
+ for(const a of rows){const k=a[key];if(!k||/^(unknown|other|not categorised)/i.test(k))continue;m.set(k,(m.get(k)||0)+1)}
+ return [...m.entries()].sort((x,y)=>y[1]-x[1]||String(x[0]).localeCompare(String(y[0]))).slice(0,n);
+}
+function _insGroup(a){return String(a.actor||"").replace(/\s*\(ransomware group\)\s*$/,"")}
+function computeInsights(win){
+ win=win||INS.win;
+ const all=(typeof filterPass==="function")?filterPass("all"):attacks;
+ const end=timelineIndex, start=end-win+1, pStart=start-win, pEnd=start-1;
+ const iOf=a=>(a._i!==undefined)?a._i:(a._i=idx(a.year,a.month));
+ const cur=[],prev=[];
+ for(const a of all){const i=iOf(a);if(i>=start&&i<=end)cur.push(a);else if(i>=pStart&&i<=pEnd)prev.push(a)}
+ const isClaim=a=>a.source===CLAIMS_LAYER;
+ const cv=cur.filter(a=>!isClaim(a)), cc=cur.filter(isClaim), pv=prev.filter(a=>!isClaim(a)), pc=prev.filter(isClaim);
+ const s=fromIdx(start), e=fromIdx(end), period=`${mon(s.month)} ${s.year} to ${mon(e.month)} ${e.year}`;
+ const facts=[];   // {k: short label, t: sentence}
+ facts.push({k:"Period",t:`${period} (${win} months), with the filters currently set.`});
+ facts.push({k:"Recorded",t:`${cv.length.toLocaleString()} incidents from verified and academic sources (${_insPct(cv.length,pv.length)} on the previous ${win} months, ${pv.length.toLocaleString()}), plus ${cc.length.toLocaleString()} ransomware leak-site claims (${_insPct(cc.length,pc.length)}, was ${pc.length.toLocaleString()}).`});
+ const topC=_insTop(cur,"victimCountry",5);
+ if(topC.length){
+   const pm=new Map(_insTop(prev,"victimCountry",400));
+   facts.push({k:"Most recorded victim countries (incidents and claims together)",t:topC.map(([c,n])=>`${c} ${n.toLocaleString()} (${_insPct(n,pm.get(c)||0)})`).join("; ")+"."});
+   // biggest absolute riser, ignoring tiny numbers
+   const cm=new Map(_insTop(cur,"victimCountry",400));
+   let best=null;
+   for(const [c,n] of cm){const d=n-(pm.get(c)||0);if(n>=10&&(!best||d>best.d))best={c,n,d,p:pm.get(c)||0}}
+   if(best&&best.d>0)facts.push({k:"Biggest rise",t:`${best.c}: ${best.n.toLocaleString()} records, up from ${best.p.toLocaleString()} (+${best.d.toLocaleString()}).`});
+ }
+ const topS=_insTop(cur,"sector",5);
+ if(topS.length)facts.push({k:"Sectors (where known)",t:topS.map(([c,n])=>`${c} ${n.toLocaleString()}`).join("; ")+"."});
+ if(cc.length){
+   const g=new Map();for(const a of cc){const k=_insGroup(a);if(k)g.set(k,(g.get(k)||0)+1)}
+   const tg=[...g.entries()].sort((x,y)=>y[1]-x[1]).slice(0,5);
+   if(tg.length)facts.push({k:"Ransomware claims by group",t:tg.map(([c,n])=>`${c} ${n.toLocaleString()}`).join("; ")+". These are the groups' own claims, not confirmed attacks."});
+ }
+ const sig=cv.slice().sort((x,y)=>(y.impact||0)-(x.impact||0))[0];
+ if(sig)facts.push({k:"Most severe on record here",t:`${sig.name} (${mon(sig.month)} ${sig.year}, ${sig.victimCountry}${sig.actor&&!/^unknown/i.test(sig.actor)?", "+sig.actor:""}), from ${sig.source}.`,id:sig.id});
+ const camps=((LAKE.attack&&LAKE.attack.campaigns)||[]).filter(c=>{
+   const f=monthIdxOf(c.first_seen), l=monthIdxOf(c.last_seen||c.first_seen);
+   return f!=null&&f<=end&&(l==null?f:l)>=start;
+ });
+ if(camps.length)facts.push({k:"Named campaigns active (MITRE ATT&CK)",t:camps.slice(0,6).map(c=>`${c.name}${c.groups&&c.groups.length?" ("+c.groups.join(", ")+")":""}`).join("; ")+(camps.length>6?`; and ${camps.length-6} more`:"")+". Context only; not counted on the map."});
+ if(LAKE.kev&&LAKE.kev.length){
+   const k=LAKE.kev.filter(v=>{const i=monthIdxOf(v.added);return i!=null&&i>=start&&i<=end});
+   if(k.length)facts.push({k:"Newly exploited flaws",t:`CISA added ${k.length.toLocaleString()} vulnerabilities to its Known Exploited list in this period${k.filter(v=>/known/i.test(v.ransomware||"")).length?`, ${k.filter(v=>/known/i.test(v.ransomware||"")).length} of them known to be used by ransomware`:""}.`});
+ }
+ // Honesty: where the period runs past the verified sources, say so first.
+ const vend=verifiedCoverageEnd();
+ const caveats=[];
+ if(vend>=0&&end>vend){const d=fromIdx(vend);caveats.push(`Verified sources currently end in ${mon(d.month)} ${d.year}; later months hold leak-site claims only.`)}
+ caveats.push("Counts are of publicly documented incidents, a small and uneven fraction of what happens. A rise can reflect better disclosure as much as more attacks.");
+ if(win>=3&&cur.length<20)caveats.push("Very few records in this period with these filters; treat any change as noise.");
+ // Since the last data update
+ const ch=((LAKE.manifest&&LAKE.manifest.sources)||[]).filter(x=>x.change);
+ const since=ch.length?ch.map(x=>`${x.title||x.id} ${x.change>0?"+":""}${x.change.toLocaleString()}`).join("; "):"";
+ return {period,win,facts,caveats,since,counts:{cv:cv.length,cc:cc.length,pv:pv.length,pc:pc.length}};
+}
+function monthIdxOf(s){const m=String(s||"").match(/^(\d{4})-(\d{2})/);return m?idx(+m[1],+m[2]):null}
+function renderInsights(){
+ const body=document.getElementById("insightsBody"); if(!body)return;
+ const r=computeInsights(INS.win);
+ INS.last=r;
+ const li=f=>`<li><b>${escapeHtml(f.k)}:</b> ${escapeHtml(f.t)}${f.id?` <button type="button" class="insOpen" data-id="${escapeHtml(f.id)}">open</button>`:""}</li>`;
+ body.innerHTML=
+  `<div class="insControls"><label class="small">Window <select id="insWin" aria-label="Insight window">
+     ${[1,3,12,36].map(w=>`<option value="${w}"${w===INS.win?" selected":""}>${w===1?"this month":w+" months"}</option>`).join("")}
+   </select></label><span class="small insNote">Counted from the records on screen. Changes with the timeline and filters.</span></div>`+
+  `<ul class="insList">${r.facts.map(li).join("")}</ul>`+
+  `<div class="insCaveats">${r.caveats.map(c=>`<p class="small">${escapeHtml(c)}</p>`).join("")}</div>`+
+  (r.since?`<p class="small insSince"><b>Since the previous data update:</b> ${escapeHtml(r.since)} rows.</p>`:"")+
+  renderAnalystBox();
+ const ws=document.getElementById("insWin");
+ if(ws)ws.addEventListener("change",()=>{INS.win=+ws.value;renderInsights()});
+ body.querySelectorAll(".insOpen").forEach(b=>b.addEventListener("click",()=>{
+   const a=attacks.find(x=>x.id===b.dataset.id); if(a)showDetail(a);
+ }));
+ wireAnalyst();
+}
+/* Refresh while the window is open, at most twice a second. */
+function maybeRenderInsights(){
+ const f=document.getElementById("frame-insights");
+ if(!f||f.classList.contains("hidden"))return;
+ const key=[timelineIndex,INS.win,(typeof _filterEpoch!=="undefined"?_filterEpoch:0),attacks.length].join(":");
+ if(key===INS.lastKey)return;
+ const now=performance.now(); if(now-(INS.at||0)<500)return;
+ INS.at=now; INS.lastKey=key;
+ // keep the analyst's text if the visitor is typing
+ const q=document.getElementById("aiQ"); const keepQ=q?q.value:"";
+ const ans=document.getElementById("aiAnswer"); const keepA=ans?ans.innerHTML:"";
+ renderInsights();
+ const q2=document.getElementById("aiQ"); if(q2&&keepQ)q2.value=keepQ;
+ const a2=document.getElementById("aiAnswer"); if(a2&&keepA)a2.innerHTML=keepA;
+}
+
+/* ── Ask the analyst (optional, visitor's own Gemini key) ──────────────────
+   Off unless the visitor pastes their own Google AI Studio key. The key stays
+   in their browser (localStorage) and is sent only to Google. No cost to the
+   site, no server, nothing logged here. The model is given ONLY the facts
+   above and told not to add numbers; its answer is labelled unverified and is
+   never added to any count. */
+function aiKey(){try{return localStorage.getItem(AI_KEY_STORE)||""}catch(e){return window.__aiKey||""}}
+function aiSetKey(k){try{k?localStorage.setItem(AI_KEY_STORE,k):localStorage.removeItem(AI_KEY_STORE)}catch(e){window.__aiKey=k||""}}
+function renderAnalystBox(){
+ const has=!!aiKey();
+ return `<div class="aiBox"><h3>Ask the analyst <span class="aiTag">optional · AI · unverified</span></h3>`+
+  (has?
+   `<p class="small">Answers come from Google Gemini, using only the findings above plus web search. They can be wrong: check the sources it gives. Your key stays in this browser.</p>
+    <div class="aiSugg">${["What stands out in this period?","Is the rise real or a reporting effect?","What should a small business take from this?"].map(s=>`<button type="button" class="aiS">${s}</button>`).join("")}</div>
+    <div class="aiRow"><input id="aiQ" type="text" maxlength="300" placeholder="Ask about what is on screen…" aria-label="Question for the analyst"><button id="aiAsk" type="button" class="primary">Ask</button></div>
+    <div id="aiAnswer" class="aiAnswer" aria-live="polite"></div>
+    <p class="small"><button id="aiForget" type="button" class="linkBtn">Remove my key from this browser</button></p>`
+  :
+   `<p class="small">Turn on an AI analyst that answers questions about what is on screen. It uses <b>your own</b> free Google AI Studio key, which stays in this browser and is sent only to Google; this site never sees it and pays nothing. Get a key at <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com</a>.</p>
+    <div class="aiRow"><input id="aiKeyIn" type="password" autocomplete="off" placeholder="Paste your Gemini API key" aria-label="Gemini API key"><button id="aiKeySave" type="button">Turn on</button></div>`)+
+  `</div>`;
+}
+function wireAnalyst(){
+ const save=document.getElementById("aiKeySave");
+ if(save)save.addEventListener("click",()=>{const v=(document.getElementById("aiKeyIn").value||"").trim();if(v){aiSetKey(v);renderInsights()}});
+ const forget=document.getElementById("aiForget");
+ if(forget)forget.addEventListener("click",()=>{aiSetKey("");renderInsights()});
+ const ask=document.getElementById("aiAsk"), q=document.getElementById("aiQ");
+ if(ask&&q){
+   ask.addEventListener("click",()=>askAnalyst(q.value));
+   q.addEventListener("keydown",e=>{if(e.key==="Enter")askAnalyst(q.value)});
+ }
+ document.querySelectorAll(".aiS").forEach(b=>b.addEventListener("click",()=>{if(q)q.value=b.textContent;askAnalyst(b.textContent)}));
+}
+function analystPrompt(r){
+ return [
+  "You help a visitor read Cyber Attack Earth, a public map of publicly documented cyber incidents since 2000.",
+  "",
+  "FACTS (counted by the app from its data, for the visitor's current filters and period):",
+  ...r.facts.map(f=>`- ${f.k}: ${f.t}`),
+  ...r.caveats.map(c=>`- Caveat: ${c}`),
+  "",
+  "RULES:",
+  "1. For any number about this map, use only the FACTS. Never invent, estimate or total numbers.",
+  "2. Counts are of documented incidents, not all incidents; a rise can reflect better disclosure or new sources.",
+  "3. Ransomware leak-site claims are attacker assertions, not confirmed attacks. Say so if you mention them.",
+  "4. Do not attribute any incident to a state or group beyond what the FACTS or a source you cite says; write 'attributed by <source>'.",
+  "5. Do not speculate about any named organisation's security weaknesses, suppliers or controls.",
+  "6. You may use Google Search for background. Say what you found and where.",
+  "7. If the facts do not answer the question, say so plainly.",
+  "8. British English. Under 180 words. Plain sentences, no tables."
+ ].join("\n");
+}
+function describeAiError(status,text){
+ const t=String(text||"");
+ if(status===400&&/API key/i.test(t))return "Google did not accept that key. Check it at aistudio.google.com, then remove and re-enter it.";
+ if(status===403)return "This key is not allowed to use Gemini (403). Check the key's project settings at aistudio.google.com.";
+ if(status===429)return "The free allowance for this key is used up for now (429). Try again later.";
+ if(status===404)return "The AI model is not available to this key (404).";
+ if(!status)return "Could not reach Google. Check the connection and try again.";
+ return "The AI service returned an error ("+status+").";
+}
+async function askAnalyst(question){
+ const out=document.getElementById("aiAnswer"); if(!out)return;
+ question=String(question||"").trim(); if(!question)return;
+ const key=aiKey(); if(!key){renderInsights();return}
+ const r=INS.last||computeInsights(INS.win);
+ out.innerHTML=`<p class="small">Thinking…</p>`;
+ let status=0,text="";
+ try{
+   const res=await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${AI_MODEL}:generateContent`,{
+     method:"POST",
+     headers:{"Content-Type":"application/json","x-goog-api-key":key},
+     body:JSON.stringify({
+       systemInstruction:{parts:[{text:analystPrompt(r)}]},
+       contents:[{role:"user",parts:[{text:question}]}],
+       tools:[{google_search:{}}],
+       generationConfig:{temperature:0.2,maxOutputTokens:600}
+     })
+   });
+   status=res.status; text=await res.text();
+   if(!res.ok){out.innerHTML=`<p class="small aiErr">${escapeHtml(describeAiError(status,text))}</p>`;return}
+   const j=JSON.parse(text);
+   const cand=(j.candidates||[])[0]||{};
+   const ans=((cand.content&&cand.content.parts)||[]).map(p=>p.text||"").join("").replace(/\*\*/g,"").trim();
+   const chunks=((cand.groundingMetadata&&cand.groundingMetadata.groundingChunks)||[]).map(c=>c.web).filter(w=>w&&w.uri).slice(0,4);
+   out.innerHTML=
+     `<div class="aiLabel">AI-generated by Google Gemini from the findings above${chunks.length?" and web search":""}. Unverified — it can be wrong. Nothing here is added to the map's counts.</div>`+
+     `<div class="aiText">${escapeHtml(ans||"No answer was returned.").replace(/\n/g,"<br>")}</div>`+
+     (chunks.length?`<div class="small aiSrc">Sources (Google Search): ${chunks.map(w=>`<a href="${escapeHtml(w.uri)}" target="_blank" rel="noopener">${escapeHtml(w.title||"link")}</a>`).join(" · ")}</div>`:"");
+ }catch(e){
+   out.innerHTML=`<p class="small aiErr">${escapeHtml(describeAiError(status,text))}</p>`;
+ }
+}
+
 /* ── Source state, export age and coverage end (v94) ────────────────────────
    One place that decides what a manifest source entry means, so the chip, the
    data-status panel and the timeline all say the same thing.
@@ -9165,6 +9393,11 @@ function placeCoveragePanel(){
 
    Newest first. Keep entries short and say what a user would notice. */
 const CHANGELOG=[
+ {v:"v95", date:"2026-11-17", title:"Insights, an optional analyst, and more history", items:[
+   "New Insights window (\u2726 on the tool bar): what stands out in the period on screen, counted from the records with your filters \u2014 totals and change on the previous period, most recorded victims, the biggest rise, sectors, ransomware claims by group, the most severe incident, named campaigns, newly exploited flaws, and what changed at the last data update.",
+   "Ask the analyst (optional): answers questions about the findings using Google Gemini with your own free key, which stays in your browser. Answers are labelled unverified and never change the counts.",
+   "MITRE ATT&CK named campaigns are listed as context in Insights (they have no victim country, so they are not placed on the map).",
+   "More landmark incidents from 2000 to 2009, each checked against a primary source."]},
  {v:"v94", date:"2026-11-17", title:"Review fixes: honest status, sectors, speed", items:[
    "EuRepoC incidents now show their real sector (health, finance, telecoms and so on) and technique; before, every one said \u201cNot categorised\u201d and one filter option showed raw code text.",
    "The data status no longer says \u201cData OK\u201d when the hand-downloaded CISSM and EuRepoC exports are months old. It turns amber and says how old they are.",

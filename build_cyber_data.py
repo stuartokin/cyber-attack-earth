@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.19.3 (2026-11-17) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.20.0 (2026-11-17) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.20.0 Phase 3/4. ATT&CK named campaigns (when they ran, who MITRE attributes them
+        to, MITRE's own first sentence and link) added to techniques/attack.json as
+        context: never mapped or counted, because ATT&CK gives no victim country.
+        Each source entry now records "change" (rows since the previous run) and
+        "changed_at", which the app's Insights window reports.
  3.19.3 CISSM fetch follows Dr Harry's sample code: Base44 entities endpoint for
         CyberEvent, api_key header, pages of 5,000 sorted by -event_date (4 calls,
         was 36), repeated rows dropped by id. getDataset is now only a fallback.
@@ -293,7 +298,7 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.19.3"
+BUILDER_VERSION = "3.20.0"
 BUILDER_DATE = "2026-11-17"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
@@ -861,6 +866,7 @@ ATTACK_URL = ("https://raw.githubusercontent.com/mitre-attack/attack-stix-data/"
 def build_attack():
     bundle = get_json(ATTACK_URL, timeout=300)
     techniques, groups = [], []
+    campaigns = _attack_campaigns(bundle)
     for o in bundle.get("objects", []):
         if o.get("revoked") or o.get("x_mitre_deprecated"):
             continue
@@ -945,14 +951,63 @@ def build_attack():
     # advisory enrichment permanently one build out of date - it saw the PREVIOUS
     # run's data, which is why it produced nothing the first time this shipped.
     ATTACK_RESULT.clear()
-    ATTACK_RESULT.update({"techniques": techniques, "groups": groups})
+    ATTACK_RESULT.update({"techniques": techniques, "groups": groups,
+                          "campaigns": campaigns})
     if not adv_total:
         print("  [attack] NOTE: no CISA advisory citations found. The advisory "
               "enrichment will be empty - paste a group's external_references to fix "
               "the pattern.")
     if not techniques:
         raise RuntimeError("zero techniques parsed")
-    return {"techniques": techniques, "groups": groups}
+    print("  [attack] %d named campaigns (first seen %s to %s)"
+          % (len(campaigns), min((c["first_seen"] for c in campaigns), default="-"),
+             max((c["first_seen"] for c in campaigns), default="-")))
+    return {"techniques": techniques, "groups": groups, "campaigns": campaigns}
+
+
+def _attack_campaigns(bundle):
+    """MITRE's named campaigns: when they ran and who MITRE attributes them to.
+
+    Context, not incidents. ATT&CK records no victim country for a campaign, so these
+    are never placed on the map or counted; the app lists them in Insights and Search
+    with MITRE's own wording and link."""
+    objs = bundle.get("objects", [])
+    names = {}
+    for o in objs:
+        if o.get("type") == "intrusion-set" and not o.get("revoked"):
+            names[o["id"]] = (o.get("name") or "")[:80]
+    by_campaign = {}
+    for o in objs:
+        if (o.get("type") == "relationship" and o.get("relationship_type") == "attributed-to"
+                and str(o.get("source_ref", "")).startswith("campaign--")
+                and not o.get("revoked")):
+            g = names.get(o.get("target_ref"))
+            if g:
+                by_campaign.setdefault(o["source_ref"], []).append(g)
+    out = []
+    for o in objs:
+        if o.get("type") != "campaign" or o.get("revoked") or o.get("x_mitre_deprecated"):
+            continue
+        ref = next((r for r in o.get("external_references", [])
+                    if r.get("source_name") == "mitre-attack"), None)
+        if not ref:
+            continue
+        desc = str(o.get("description") or "")
+        desc = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", desc)       # [Name](url) -> Name
+        desc = re.sub(r"\(Citation:[^)]*\)", "", desc)
+        desc = re.sub(r"\s+", " ", desc).strip()
+        first = desc.split(". ")[0].rstrip(".") + "." if desc else ""
+        out.append({
+            "id": ref.get("external_id", ""),
+            "name": (o.get("name") or "")[:100],
+            "first_seen": (o.get("first_seen") or "")[:7],
+            "last_seen": (o.get("last_seen") or "")[:7],
+            "groups": sorted(set(by_campaign.get(o["id"], [])))[:4],
+            "desc": first[:300],
+            "url": ref.get("url", ""),
+        })
+    out.sort(key=lambda c: (c["first_seen"], c["id"]))
+    return out
 
 
 # ===========================================================================
@@ -3127,6 +3182,13 @@ def main():
                      "expected": src.expected, "rows": rows_now,
                      "refreshed": now_iso,
                      "seconds": round(time.time() - t0, 1)}
+            # For the app's "since the last update" insight: the row change against
+            # the previous run, and when the count last actually moved.
+            old = prev_entries.get(src.id) or {}
+            if old.get("rows") is not None and str(old.get("status", "")).startswith("ok"):
+                entry["change"] = rows_now - int(old.get("rows") or 0)
+                entry["changed_at"] = (now_iso if entry["change"]
+                                       else old.get("changed_at", old.get("refreshed", "")))
             # Surface the overlay's validation notes so a bad hand edit is visible in
             # the manifest the next morning, rather than silently plotting a wrong dot.
             if src.id == "impact_overlay" and IMPACT_WARNINGS:
@@ -3213,7 +3275,8 @@ def main():
         write_json(out_dir / "techniques" / "attack.json", a)
         tables["techniques"] = {"files": {"attack": {
             "file": "techniques/attack.json",
-            "techniques": len(a["techniques"]), "groups": len(a["groups"])}}}
+            "techniques": len(a["techniques"]), "groups": len(a["groups"]),
+            "campaigns": len(a.get("campaigns") or [])}}}
 
     # ---- CISA advisories (enrichment, not incidents) ----
     if results.get("cisaaa"):

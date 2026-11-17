@@ -192,6 +192,51 @@ function check(screen, ok, msg) {
     check(s.name, flat, "flat map draws");
     await page.click("#tlGlobeBtn").catch(() => {});
 
+    // Insights: findings counted from the data, with caveats; analyst off until a key
+    const ins = await page.evaluate(() => {
+      timelineIndex = endTimelineIndex; update();
+      openFrame("insights");
+      const items = document.querySelectorAll("#insightsBody .insList li").length;
+      const text = document.getElementById("insightsBody").textContent;
+      return { items, caveat: /publicly documented/.test(text), keyBox: !!document.getElementById("aiKeyIn") };
+    });
+    check(s.name, ins.items >= 4, `Insights lists findings (${ins.items})`);
+    const camp = await page.evaluate(() => {
+      const c = (LAKE.attack && LAKE.attack.campaigns) || [];
+      if (!c.length) return "none in pack";
+      timelineIndex = monthIdxOf(c[c.length - 1].first_seen); INS.win = 12; renderInsights();
+      const ok = /Named campaigns active/.test(document.getElementById("insightsBody").textContent);
+      timelineIndex = endTimelineIndex; update(); renderInsights();
+      return ok ? "ok" : "not listed";
+    });
+    check(s.name, camp === "ok", `ATT&CK campaigns appear in Insights (${camp})`);
+    check(s.name, ins.caveat, "Insights carries the documented-incidents caveat");
+    check(s.name, ins.keyBox, "analyst is off until a visitor adds their own key");
+    if (SHOTS) await page.screenshot({ path: path.join(__dirname, "out", `${s.name}-insights.png`) });
+
+    // Analyst with a fake Google reply: answer labelled, HTML escaped, key only in a header
+    let aiReq = null;
+    await page.route("https://generativelanguage.googleapis.com/**", route => {
+      aiReq = { url: route.request().url(), headers: route.request().headers(), body: route.request().postData() || "" };
+      route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify({ candidates: [{
+        content: { parts: [{ text: "Test answer <script>x</script>" }] },
+        groundingMetadata: { groundingChunks: [{ web: { uri: "https://example.org/a", title: "Example" } }] } }] }) });
+    });
+    const ai = await page.evaluate(async () => {
+      aiSetKey("TEST-KEY"); renderInsights();
+      await askAnalyst("What stands out?");
+      const out = document.getElementById("aiAnswer");
+      const res = { label: /Unverified/.test(out.textContent), escaped: !out.querySelector("script") && /<script>/.test(out.textContent),
+                    src: !!out.querySelector(".aiSrc a") };
+      aiSetKey(""); renderInsights();
+      return res;
+    });
+    check(s.name, ai.label && ai.escaped && ai.src, `analyst answer labelled, escaped and sourced (${JSON.stringify(ai)})`);
+    check(s.name, !!aiReq && !/TEST-KEY/.test(aiReq.url) && aiReq.headers["x-goog-api-key"] === "TEST-KEY"
+      && /FACTS/.test(aiReq.body) && /Never invent/.test(aiReq.body),
+      "analyst sends only the computed facts, key in a header not the address");
+    await page.unroute("https://generativelanguage.googleapis.com/**");
+
     if (SHOTS) await page.screenshot({ path: path.join(__dirname, "out", `${s.name}.png`) });
 
     check(s.name, errors.length === 0, `no script errors${errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""}`);

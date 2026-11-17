@@ -3,6 +3,10 @@
 Open work, decisions and questions. Update with every session.
 
 ## Done
+- 2026-11-17 — **Phase 3 and 4** (app v95, builder 3.20.0): Insights window, optional
+  "Ask the analyst" (visitor's own Gemini key), ATT&CK campaigns as context, per-source
+  change tracking, seven 2000–2009 landmark incidents (Blaster, TJX, Estonia, Heartland,
+  Georgia, GhostNet, Aurora) checked against primary sources.
 - 2026-11-17 — Test rig extended: curated-file and workflow-rule checks, search / data
   status / Play / flat map in the browser test. `docs/HANDOVER.md`, `tests/README.md`,
   README written.
@@ -34,20 +38,18 @@ confirmed ones).
 Also: Singapore telecoms (added) has no scores, so it is not on the impact chart.
 
 ## Next (planned, not started)
-- **Phase 3 — more history (2000–2009 is thin: ~540 incidents).** In order of value:
-  MITRE ATT&CK campaigns (already downloaded; ~57 from 2009), US HHS OCR breach portal
-  (2009+, public domain), US state AG breach lists, then CFR Cyber Operations Tracker
-  (2005+) and the DCID dataset (2000–2020) — both need permission first. CSIS and
-  Wikipedia lists as checklists for the curated overlay only.
-- **Phase 4 — insights on the fly**, copying energy-resilience's pattern:
-  - Deterministic, no AI: the nightly build writes factual sentences into the pack
-    (what changed this week, top movers by country/sector/group, unusual spikes,
-    coverage caveats).
-  - Optional "Ask the analyst" panel: visitor's own Gemini key kept in their browser;
-    grounded only on facts the app computed; never adds numbers or attribution; never
-    in totals; every answer labelled unverified. No cost to Stuart, no Cloudflare step.
+- **More history still needing permission:** CFR Cyber Operations Tracker (2005+) and the
+  DCID dataset (2000–2020). Drafts of the permission emails were given to Stuart on
+  2026-11-17. Also left out of the early landmarks for want of a reachable primary page:
+  Code Red, SQL Slammer, ILOVEYOU, Titan Rain, Agent.btz; and Conficker (no country in the
+  source). US HHS breach portal deliberately not added: VCDB already draws on it, so it
+  would double-count.
+- **Insights next steps (ideas):** a nightly "what changed this week" note in the pack;
+  per-country insight when a country is selected; save an insight as an image.
 
 ## Open questions for Stuart
+- Early landmarks (2000–2009) and their proposed scores are provisional — confirm or adjust.
+- Try "Ask the analyst" with your own key and say whether to keep it.
 - Mark the new estimates / incidents `verified` once you have read them on the publishers'
   pages (tell Claude which).
 - Singapore telecoms has no scores, so is not on the impact chart — add a judgement?
@@ -66,6 +68,9 @@ Also: Singapore telecoms (added) has no scores, so it is not on the impact chart
 - Small touch targets on window buttons (32×25).
 
 ## Decisions
+- 2026-11-17 — AI analyst: visitor's own key in their browser only; no site key, no server,
+  no cost; display only. Same pattern as energy-resilience.
+- 2026-11-17 — ATT&CK campaigns are context, not incidents (no victim country).
 - 2026-11-17 — Hand exports are not scraped; wait for official API keys.
 - 2026-11-17 — Data cadence: fast sources nightly, everything weekly, full by hand.
 - 2026-11-17 — No CDNs; libraries in `vendor/`.

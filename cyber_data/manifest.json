@@ -1,10 +1,20 @@
 {
  "schema": 3,
- "builder": "3.19.3",
+ "builder": "3.20.0",
  "builder_date": "2026-11-17",
- "generated": "2026-11-17T14:11:38+00:00",
- "run": "manual",
+ "generated": "2026-11-17T21:11:25+00:00",
+ "run": "partial",
  "tables": {
+  "techniques": {
+   "files": {
+    "attack": {
+     "file": "techniques/attack.json",
+     "techniques": 706,
+     "groups": 178,
+     "campaigns": 57
+    }
+   }
+  },
   "incidents": {
    "files": {
     "eurepoc": "incidents/eurepoc.json",
@@ -167,15 +177,6 @@
     }
    }
   },
-  "techniques": {
-   "files": {
-    "attack": {
-     "file": "techniques/attack.json",
-     "techniques": 706,
-     "groups": 178
-    }
-   }
-  },
   "estimates": {
    "files": {
     "estimates": {
@@ -222,8 +223,8 @@
    "files": {
     "impact_overlay": {
      "file": "impact/overlay.json",
-     "rows": 49,
-     "figures": 126
+     "rows": 56,
+     "figures": 142
     }
    }
   }
@@ -304,8 +305,10 @@
    "status": "ok",
    "expected": 870,
    "rows": 884,
-   "refreshed": "2026-11-17T14:11:38+00:00",
-   "seconds": 0.6
+   "refreshed": "2026-11-17T21:11:25+00:00",
+   "seconds": 1.1,
+   "change": 0,
+   "changed_at": "2026-11-17T14:11:38+00:00"
   },
   {
    "id": "icsadv",
@@ -368,9 +371,11 @@
    "cadence": "manual",
    "status": "ok with 1 warning(s)",
    "expected": 0,
-   "rows": 49,
-   "refreshed": "2026-11-17T14:11:38+00:00",
+   "rows": 56,
+   "refreshed": "2026-11-17T21:11:21+00:00",
    "seconds": 0.0,
+   "change": 7,
+   "changed_at": "2026-11-17T21:11:21+00:00",
    "warnings": [
     "singapore-telcos-unc3886-2026: no valid figures - it will plot only if scored elsewhere"
    ]
