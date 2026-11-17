@@ -201,6 +201,21 @@ class ManualFiles(unittest.TestCase):
             shutil.rmtree(d)
 
 
+class CissmByApi(unittest.TestCase):
+    def test_api_fetch_stops_export_age_reminders(self):
+        B.MANUAL_EXPORTS.clear(); B.REMOTE_OK.clear()
+        with mock.patch.object(B, "_cissm_fetch_remote",
+                               return_value=[{"event_date": "2026-01-01", "country": "GB"}]):
+            try:
+                B.build_cissm()
+            except Exception:
+                pass                    # row mapping is not under test here
+        self.assertIn("cissm", B.REMOTE_OK)
+        B.carry_manual_exports({"manual_exports": {"cissm": {"dated": "2026-07-24", "age_days": 1}}})
+        self.assertNotIn("cissm", B.MANUAL_EXPORTS)
+        B.REMOTE_OK.clear()
+
+
 class SecLinks(unittest.TestCase):
     def test_dashed_accession(self):
         self.assertEqual(B._dashed("000121390026119240"), "0001213900-26-119240")

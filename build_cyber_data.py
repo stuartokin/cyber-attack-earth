@@ -1,9 +1,14 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.19.1 (2026-11-17) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.19.2 (2026-11-17) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.19.2 CISSM API key issued. When CISSM arrives by API, the old hand export's age
+        is no longer carried forward (it would have raised "refresh due" issues
+        for a file that is no longer used). Note: the portal's documented
+        getDataset endpoint answered HTTP 503 ("no handler") on 2026-11-17; the
+        Base44 entity route returned all 17,753 events, so that is what runs.
  3.19.1 CISSM "expected" rows raised to 17,700 for the November 2026 export
         (17,753 events, to September 2026).
  3.19.0 Review fixes (November 2026).
@@ -285,7 +290,7 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.19.1"
+BUILDER_VERSION = "3.19.2"
 BUILDER_DATE = "2026-11-17"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
@@ -1443,6 +1448,10 @@ def _cissm_manual_rows():
         cadence="manual export", homepage="https://cybereventsdatabase.org", expected=17700)
 def build_cissm():
     rows = _cissm_fetch_remote()
+    if rows is not None:
+        # Fetched by API: the hand export no longer applies, so its age must not
+        # be carried forward and raise "refresh due" reminders.
+        REMOTE_OK.add("cissm")
     if rows is None:
         rows = _cissm_manual_rows()
     if rows is None:
@@ -2878,6 +2887,7 @@ def build_reports():
 # what the manifest lists. Before 3.19.0 a failed source was dropped from the
 # manifest and its layer silently vanished from the map.
 PROBLEMS = []                  # failed / held sources this run, for the guard issue
+REMOTE_OK = set()              # manual-export kinds fetched by API this run
 GUARD_LABEL = "data-guard"
 MIN_SHRINK_ROWS = 25           # ignore tiny wobbles (withdrawn claims and the like)
 
@@ -2969,7 +2979,7 @@ def carry_forward(tables, prev_tables, fresh, out_dir):
 def carry_manual_exports(prev):
     """Keep the age record of exports that were not read this run, re-aged to today."""
     for kind, info in (prev.get("manual_exports") or {}).items():
-        if kind in MANUAL_EXPORTS or not isinstance(info, dict):
+        if kind in MANUAL_EXPORTS or kind in REMOTE_OK or not isinstance(info, dict):
             continue
         info = dict(info)
         try:

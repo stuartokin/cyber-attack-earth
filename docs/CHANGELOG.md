@@ -4,6 +4,18 @@ Newest first. App versions are `APP_VERSION` in `index.html` (also shown in the 
 changelog under Help); builder versions are `BUILDER_VERSION` in `build_cyber_data.py`
 (full history at the top of that file).
 
+## 2026-11-17 — builder 3.19.2: CISSM API key
+
+- Key received from Dr Harry; stored as GitHub secret `CISSM_API_KEY` and as a network
+  secret on the session environment for testing. Once the secret is set, the build
+  fetches CISSM itself and the monthly hand download stops.
+- getDataset endpoint returned HTTP 503 ("registered no Deno.serve() handler"); the
+  Base44 entity route returned all 17,753 events and is what runs.
+- The entity route also answered with a placeholder key, i.e. it appears not to check
+  the key. Reported to Stuart to pass to Dr Harry. Creator fields in that response are
+  never published (the pack keeps only date, actor, countries, org, industry, type,
+  description and source link).
+
 ## 2026-11-17 — curated data: new estimates and landmark incidents
 
 - `estimates.csv`: ONS computer misuse for YE March 2026 (798,000) and YE June 2026
