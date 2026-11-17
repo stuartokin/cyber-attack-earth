@@ -2,12 +2,32 @@
  "schema": 3,
  "builder": "3.19.1",
  "builder_date": "2026-11-17",
- "generated": "2026-11-17T12:11:28+00:00",
+ "generated": "2026-11-17T12:48:30+00:00",
  "run": "partial",
  "tables": {
+  "estimates": {
+   "files": {
+    "estimates": {
+     "file": "estimates/estimates.json",
+     "rows": 16,
+     "verified": 11,
+     "publishers": 3,
+     "summed": false,
+     "note": "Published estimates from named sources. Different populations, periods and definitions - not comparable with each other or with the incident counts, and deliberately never totalled."
+    }
+   }
+  },
+  "impact": {
+   "files": {
+    "impact_overlay": {
+     "file": "impact/overlay.json",
+     "rows": 49,
+     "figures": 126
+    }
+   }
+  },
   "incidents": {
    "files": {
-    "eurepoc_live": "incidents/eurepoc_live.json",
     "eurepoc": "incidents/eurepoc.json",
     "vcdb_partitions": {
      "2000": {
@@ -120,14 +140,15 @@
      }
     },
     "rwlive": "incidents/rwlive.json",
-    "cissm": "incidents/cissm.json"
+    "cissm": "incidents/cissm.json",
+    "eurepoc_live": "incidents/eurepoc_live.json"
    },
    "counts": {
-    "eurepoc_live": 1321,
     "eurepoc": 4296,
     "vcdb": 10367,
     "rwlive": 25591,
-    "cissm": 17753
+    "cissm": 17753,
+    "eurepoc_live": 1321
    },
    "total": 59328
   },
@@ -176,18 +197,6 @@
     }
    }
   },
-  "estimates": {
-   "files": {
-    "estimates": {
-     "file": "estimates/estimates.json",
-     "rows": 13,
-     "verified": 11,
-     "publishers": 3,
-     "summed": false,
-     "note": "Published estimates from named sources. Different populations, periods and definitions - not comparable with each other or with the incident counts, and deliberately never totalled."
-    }
-   }
-  },
   "breaches": {
    "files": {
     "hibp": {
@@ -215,15 +224,6 @@
     "vendor": {
      "file": "reports/vendor.json",
      "rows": 15
-    }
-   }
-  },
-  "impact": {
-   "files": {
-    "impact_overlay": {
-     "file": "impact/overlay.json",
-     "rows": 43,
-     "figures": 119
     }
    }
   }
@@ -366,11 +366,14 @@
    "licence": "Compiled from cited primary sources; figures are estimates where noted",
    "homepage": "",
    "cadence": "manual",
-   "status": "ok",
+   "status": "ok with 1 warning(s)",
    "expected": 0,
-   "rows": 43,
-   "refreshed": "2026-11-17T11:41:07+00:00",
-   "seconds": 0.0
+   "rows": 49,
+   "refreshed": "2026-11-17T12:48:30+00:00",
+   "seconds": 0.0,
+   "warnings": [
+    "singapore-telcos-unc3886-2026: no valid figures - it will plot only if scored elsewhere"
+   ]
   },
   {
    "id": "nvdcve",
@@ -407,8 +410,8 @@
    "cadence": "manual",
    "status": "ok",
    "expected": 0,
-   "rows": 13,
-   "refreshed": "2026-11-17T11:41:07+00:00",
+   "rows": 16,
+   "refreshed": "2026-11-17T12:48:30+00:00",
    "seconds": 0.0
   },
   {
@@ -463,6 +466,12 @@
   }
  },
  "manual_exports": {
+  "estimates": {
+   "file": "estimates.csv",
+   "dated": "",
+   "age_days": null,
+   "limit_days": 40
+  },
   "eurepoc": {
    "file": "eurepoc_tableview_2026-11-17.csv",
    "dated": "2026-11-17",
@@ -473,12 +482,6 @@
    "file": "cyber_events_2026-11-17.csv",
    "dated": "2026-11-17",
    "age_days": 0,
-   "limit_days": 40
-  },
-  "estimates": {
-   "file": "estimates.csv",
-   "dated": "",
-   "age_days": null,
    "limit_days": 40
   }
  }

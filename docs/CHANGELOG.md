@@ -4,6 +4,17 @@ Newest first. App versions are `APP_VERSION` in `index.html` (also shown in the 
 changelog under Help); builder versions are `BUILDER_VERSION` in `build_cyber_data.py`
 (full history at the top of that file).
 
+## 2026-11-17 — curated data: new estimates and landmark incidents
+
+- `estimates.csv`: ONS computer misuse for YE March 2026 (798,000) and YE June 2026
+  (817,000), and the Cyber Monitoring Centre's Jaguar Land Rover assessment (£1.9bn,
+  Category 3). Figures confirmed on the publishers' pages; marked provisional until
+  Stuart has checked them.
+- `impact_overlay.csv` / `impact_figures.csv`: six incidents from mid-2025 to 2026
+  (SharePoint ToolShell, Salesloft Drift, Collins Aerospace, Coupang, Poland energy,
+  Singapore telecoms), provisional. Scores are proposed judgements. Three more held back
+  (see ROADMAP).
+
 ## 2026-11-17 — builder 3.19.1: new CISSM export
 
 - `manual_sources/cyber_events_2026-11-17.csv` replaces the July export: 17,753 events

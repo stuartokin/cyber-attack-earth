@@ -22,6 +22,15 @@ Open work, decisions and questions. Update with every session.
    Both refreshed on 2026-11-17 (CISSM to September 2026, EuRepoC TableView to November
    2026). Next refresh due by 27 December 2026 (40-day limit).
 
+## Held back for checking (2026-11-17)
+Drafted landmark incidents whose sources could not be opened here. Check each, then add
+to `impact_overlay.csv` / `impact_figures.csv` (Stuart approved option "a": add only
+confirmed ones).
+- **Asahi ransomware (Sep 2025)** — https://www.asahigroup-holdings.com/newsroom/detail/20251127-0204.html (site refused automated access)
+- **F5 source-code theft (Oct 2025)** — CISA Emergency Directive 26-01, https://www.cisa.gov/news-events/directives/ed-26-01-mitigate-vulnerabilities-f5-devices (site refused automated access)
+- **Stryker (Mar 2026)** — needs the 8-K on SEC EDGAR instead of press coverage
+Also: Singapore telecoms (added) has no scores, so it is not on the impact chart.
+
 ## Next (planned, not started)
 - **Phase 3 — more history (2000–2009 is thin: ~540 incidents).** In order of value:
   MITRE ATT&CK campaigns (already downloaded; ~57 from 2009), US HHS OCR breach portal
