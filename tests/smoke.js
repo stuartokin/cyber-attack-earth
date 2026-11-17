@@ -153,6 +153,45 @@ function check(screen, ok, msg) {
     });
     check(s.name, reach === "ok", `Controls close button reachable (${reach})`);
 
+    // Search: a well-known incident is found and its details open
+    const found = await page.evaluate(() => {
+      openFrame("search");
+      const li = document.getElementById("lookupInput");
+      li.value = "NotPetya"; runLookup("NotPetya");
+      const hits = document.querySelectorAll("#lookupResults button, #lookupResults [data-i], #lookupResults .lookupHit, #lookupResults a");
+      return hits.length;
+    });
+    check(s.name, found > 0, `search finds NotPetya (${found} results)`);
+    const opened = await page.evaluate(() => {
+      const a = attacks.find(x => /notpetya/i.test(x.name || ""));
+      if (!a) return "no record";
+      showDetail(a);
+      return /notpetya/i.test(document.getElementById("detail").textContent) ? "ok" : "detail empty";
+    });
+    check(s.name, opened === "ok", `NotPetya details open (${opened})`);
+
+    // Data status panel: one row per source in the manifest
+    const rowsShown = await page.evaluate(() => {
+      openFrame("help");
+      return { rows: document.querySelectorAll("#enrichmentStatus .healthRow").length,
+               sources: (LAKE.manifest.sources || []).length };
+    });
+    check(s.name, rowsShown.rows === rowsShown.sources && rowsShown.rows > 0,
+      `data status lists every source (${rowsShown.rows}/${rowsShown.sources})`);
+
+    // Play moves the clock; the flat map draws without errors
+    // (the software renderer used in tests is slow, so allow up to 15 s for a tick)
+    const before = await page.evaluate(() => { if (timer) play(); timelineIndex = endTimelineIndex - 24; update(); play(); return timelineIndex; });
+    const moved = await page.waitForFunction(b => timelineIndex !== b, before, { timeout: 15000 })
+      .then(() => true).catch(() => false);
+    await page.evaluate(() => { if (timer) play(); });
+    check(s.name, moved, "Play advances the timeline");
+    await page.click("#tlFlatBtn").catch(() => {});
+    await page.waitForTimeout(1200);
+    const flat = await page.evaluate(() => !!document.querySelector("#flatMap svg path"));
+    check(s.name, flat, "flat map draws");
+    await page.click("#tlGlobeBtn").catch(() => {});
+
     if (SHOTS) await page.screenshot({ path: path.join(__dirname, "out", `${s.name}.png`) });
 
     check(s.name, errors.length === 0, `no script errors${errors.length ? ": " + errors.slice(0, 3).join(" | ") : ""}`);

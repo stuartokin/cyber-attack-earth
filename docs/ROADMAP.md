@@ -3,6 +3,11 @@
 Open work, decisions and questions. Update with every session.
 
 ## Done
+- 2026-11-17 — Test rig extended: curated-file and workflow-rule checks, search / data
+  status / Play / flat map in the browser test. `docs/HANDOVER.md`, `tests/README.md`,
+  README written.
+- 2026-11-17 — CISSM automatic via API; both hand exports refreshed; ONS/CMC estimates and
+  six landmark incidents added (provisional).
 - 2026-11-17 — Phase 1 (review fixes) and Phase 2 (scheduled workflow redesign). See
   CHANGELOG.
 
@@ -41,6 +46,14 @@ Also: Singapore telecoms (added) has no scores, so it is not on the impact chart
   - Optional "Ask the analyst" panel: visitor's own Gemini key kept in their browser;
     grounded only on facts the app computed; never adds numbers or attribution; never
     in totals; every answer labelled unverified. No cost to Stuart, no Cloudflare step.
+
+## Open questions for Stuart
+- Mark the new estimates / incidents `verified` once you have read them on the publishers'
+  pages (tell Claude which).
+- Singapore telecoms has no scores, so is not on the impact chart — add a judgement?
+- 15 incidents are labelled on the impact chart; the guide says about 7 fit. Keep or trim?
+- SEC review queue: 54 candidates, none decided.
+- Remove old CISSM exports from git history too? (only if Dr Harry asks)
 
 ## Smaller follow-ups
 - Repo growth: the pack is still committed nightly (~27 MB of single-line JSON). Sorting

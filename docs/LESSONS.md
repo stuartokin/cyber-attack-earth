@@ -37,3 +37,22 @@ What went wrong or surprised us, so the next session does not repeat it. Newest 
 11. **Anonymous GitHub API calls from Actions share a 60-an-hour limit.** The ICS listing
     was refused on the first 3.19.0 run (the shrink/carry logic kept its old data, as
     designed). Builder now sends the workflow's `GITHUB_TOKEN` to api.github.com.
+12. **Ask the provider for their own sample code.** CISSM's API page documented a
+    `getDataset` endpoint that was broken (503); Dr Harry's R example used the Base44
+    entities route, which worked. Follow the provider's working example over their docs.
+13. **Page through APIs in a fixed order and de-duplicate.** skip/limit paging without a
+    sort can repeat or miss rows at page boundaries; sort (as the provider does) and drop
+    repeats by id.
+14. **Test a new API key from the session before relying on the nightly job.** A network
+    secret on the session environment lets the proxy add the key without Claude seeing it;
+    run the builder with a placeholder variable. It found the 503 and the working route in
+    minutes, before GitHub was involved.
+15. **When a hand export becomes an API, stop tracking the export's age.** Otherwise the
+    old file's age is carried forward and raises "refresh due" for a file no longer used.
+16. **Curated research: verify on the publisher's own page before showing Stuart.** Web
+    search summaries contained an unsupported victim count, a government attribution and
+    dates that the cited sources did not state; they were removed. Allow the publisher's
+    host in the environment and read the page.
+17. **The Play button is slow on the test machine's software renderer.** Tests must wait for
+    a state change (up to 15 s), not sleep a fixed time.
+

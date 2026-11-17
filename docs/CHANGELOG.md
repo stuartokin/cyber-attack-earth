@@ -4,6 +4,16 @@ Newest first. App versions are `APP_VERSION` in `index.html` (also shown in the 
 changelog under Help); builder versions are `BUILDER_VERSION` in `build_cyber_data.py`
 (full history at the top of that file).
 
+## 2026-11-17 — wrap-up: test rig extended, documentation
+
+- New `tests/test_curated.py` (Stuart's CSVs) and `tests/test_workflows.py` (kill switch,
+  timeouts, no literal secrets, pack checked before commit). The browser test now also
+  checks search, the data-status panel, Play and the flat map. 13 builder unit checks.
+- The data build runs the curated-file check before committing; the Tests workflow runs
+  on curated-file changes too.
+- New `docs/HANDOVER.md` (how it works), `tests/README.md`, a real `README.md`.
+- No app or builder change in this entry (app v94, builder 3.19.3).
+
 ## 2026-11-17 — CISSM fully automatic
 
 - First GitHub run with the `CISSM_API_KEY` secret fetched all 17,753 events; the

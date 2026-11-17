@@ -159,6 +159,7 @@ jobs:
       - name: Check the pack before committing
         run: |
           python3 tests/test_pack.py
+          python3 tests/test_curated.py
           python3 tests/test_builder.py
 
       - name: Show what changed

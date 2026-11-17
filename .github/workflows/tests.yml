@@ -13,6 +13,8 @@ on:
       - "build_cyber_data.py"
       - "vendor/**"
       - "tests/**"
+      - "*.csv"
+      - "manual_sources/**"
       - ".github/workflows/**"
   workflow_dispatch: {}
 
@@ -31,11 +33,13 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "20"
-      - name: Builder and data pack checks
+      - name: Builder, data pack, curated files and workflow checks
         run: |
-          pip install requests
+          pip install requests pyyaml
           python3 tests/test_builder.py
           python3 tests/test_pack.py
+          python3 tests/test_curated.py
+          python3 tests/test_workflows.py
       - name: Browser smoke test (five screen sizes)
         run: |
           cd tests

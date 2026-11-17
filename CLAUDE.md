@@ -4,8 +4,8 @@ This repo is **Cyber Attack Earth — Escalation Atlas**: publicly documented cy
 from five independent sources, on a globe you can play through time. Owner: Stuart Okin (GitHub `stuartokin`).
 Live: https://stuartokin.github.io/cyber-attack-earth/ (GitHub Pages from `main`). A card on the hub (https://stuartokin.github.io/).
 
-Read, in order: **`MAINTENANCE.md`** (the full guide: sources, cadence, review queue, secrets, fixes),
-`docs/LESSONS.md`, `docs/ROADMAP.md` (open work and questions for Stuart), the latest entry in
+Read, in order: **`docs/HANDOVER.md`** (how it all fits together), **`MAINTENANCE.md`** (the operating
+guide: sources, cadence, review queue, secrets, fixes), `docs/LESSONS.md`, `docs/ROADMAP.md` (open work and questions for Stuart), the latest entry in
 `docs/CHANGELOG.md`, and `ATTRIBUTION.md` (licences of every source).
 
 ## How it is built
@@ -21,9 +21,9 @@ Read, in order: **`MAINTENANCE.md`** (the full guide: sources, cadence, review q
 - `.github/workflows/update-cyber-data.yml`: fast sources nightly (02:17 UTC), everything weekly (Sunday), no AI.
   Commits as `data-pack-bot`. Optional secrets `CISSM_API_KEY`, `NVD_API_KEY`, `SEC_CONTACT` (GitHub secrets only;
   never in files: the repo is public). `.github/workflows/tests.yml` runs the tests on every app/builder push.
-- **Tests:** `cd tests && npm test` — `test_builder.py` (unit checks, no network), `test_pack.py` (manifest and
-  every listed file), `smoke.js` (Playwright, five screens, all other sites blocked). All must pass before a push.
-  Add a check whenever you fix a bug.
+- **Tests:** `cd tests && npm test` — builder unit checks, data pack, curated CSVs, workflow rules, and a
+  Playwright smoke test on five screens with all other sites blocked (details in `tests/README.md`). All must
+  pass before a push. Add a check whenever you fix a bug.
 - CISSM comes by API (secret `CISSM_API_KEY`, since 2026-11-17). The EuRepoC TableView is still a hand export in
   `manual_sources/` with the date in the filename, until EuRepoC grants API access (see ROADMAP).
 - Disclosed incidents are a small, uneven fraction of what happened; the page says so. Keep that honesty.

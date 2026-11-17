@@ -5,9 +5,12 @@ pushes it to `main`. Stuart's jobs are the judgement calls: refreshing the two h
 exports until their API keys arrive, the SEC review queue, and the curated CSVs. To get
 anything else done, ask Claude in a session with this repository.
 
-**Tests:** `cd tests && npm test` (builder unit checks, data pack check, and a browser
-smoke test on five screen sizes). They also run on GitHub after every change to the
-app or the builder (`.github/workflows/tests.yml`).
+**Tests:** `cd tests && npm test` — builder unit checks, the data pack, your curated
+CSVs, the workflow safety rules, and a browser test on five screen sizes (see
+`tests/README.md`). They also run on GitHub after every change to the app, the builder,
+the tests or the curated files (`.github/workflows/tests.yml`), and the data build
+checks the pack and your CSVs before it commits anything. How everything fits together:
+`docs/HANDOVER.md`.
 
 - **Live site:** https://stuartokin.github.io/cyber-attack-earth/
 - **App:** `index.html` (one self-contained file)
