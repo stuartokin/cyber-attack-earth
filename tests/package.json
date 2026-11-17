@@ -1,0 +1,10 @@
+{
+  "name": "cyber-attack-earth-tests",
+  "private": true,
+  "description": "Test rig for Cyber Attack Earth. Uses the Playwright already installed on the machine.",
+  "scripts": {
+    "test": "python3 test_builder.py && python3 test_pack.py && node smoke.js",
+    "test:quick": "python3 test_builder.py && python3 test_pack.py && node smoke.js --quick",
+    "shots": "node smoke.js --shots"
+  }
+}

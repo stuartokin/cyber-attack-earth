@@ -1,0 +1,44 @@
+# .github/workflows/tests.yml
+#
+# Runs the test rig when the app, the builder or the tests change (not on the
+# nightly data commits). Started only by a push or by hand, never on a schedule,
+# so it needs no kill switch. No AI, no secrets.
+name: Tests
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "index.html"
+      - "build_cyber_data.py"
+      - "vendor/**"
+      - "tests/**"
+      - ".github/workflows/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Builder and data pack checks
+        run: |
+          pip install requests
+          python3 tests/test_builder.py
+          python3 tests/test_pack.py
+      - name: Browser smoke test (five screen sizes)
+        run: |
+          cd tests
+          npm install --no-save playwright@1.48.2
+          npx playwright install --with-deps chromium
+          node smoke.js

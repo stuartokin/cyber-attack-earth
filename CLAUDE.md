@@ -4,20 +4,28 @@ This repo is **Cyber Attack Earth — Escalation Atlas**: publicly documented cy
 from five independent sources, on a globe you can play through time. Owner: Stuart Okin (GitHub `stuartokin`).
 Live: https://stuartokin.github.io/cyber-attack-earth/ (GitHub Pages from `main`). A card on the hub (https://stuartokin.github.io/).
 
-Read **`MAINTENANCE.md`** first: it is the full guide (sources, weekly check, review queue, secrets, fixes).
-Also `ATTRIBUTION.md` (licences of every source).
+Read, in order: **`MAINTENANCE.md`** (the full guide: sources, cadence, review queue, secrets, fixes),
+`docs/LESSONS.md`, `docs/ROADMAP.md` (open work and questions for Stuart), the latest entry in
+`docs/CHANGELOG.md`, and `ATTRIBUTION.md` (licences of every source).
 
 ## How it is built
 
-- `index.html`: the whole app in one file. Edit directly.
+- `index.html`: the whole app in one file. Edit directly. Bump `APP_VERSION` and add to `CHANGELOG` (in-app) each release.
+- `vendor/`: self-hosted map libraries and textures. No CDNs; keep it that way.
 - `build_cyber_data.py`: builds the data pack. Its version is `BUILDER_VERSION` (with a history at the top of the
   file); bump it with every change and check `cyber_data/manifest.json` → `"builder"` after the next run.
-- `cyber_data/`: written by the nightly workflow. **Never edit by hand.**
+- `cyber_data/`: written by the workflow (or by running the builder). **Never edit by hand.**
+  A source that fails, is held by the shrink guard, or is not scheduled keeps its previous files
+  in the manifest (`carry_forward`).
 - Stuart's curated files: `impact_overlay.csv`, `impact_figures.csv`, `estimates.csv`, `manual_sources/`.
-- `.github/workflows/update-cyber-data.yml`: nightly 03:20 UTC, no AI. Commits as `data-pack-bot`. Optional secrets
-  `CISSM_API_KEY`, `NVD_API_KEY`, `SEC_CONTACT` (GitHub secrets only; never in files: the repo is public).
-- No tests yet. Add a smoke test (load the page, check for script errors, check `manifest.json` parses and every
-  source reports a status) the next time you change the app or the builder.
+- `.github/workflows/update-cyber-data.yml`: fast sources nightly (02:17 UTC), everything weekly (Sunday), no AI.
+  Commits as `data-pack-bot`. Optional secrets `CISSM_API_KEY`, `NVD_API_KEY`, `SEC_CONTACT` (GitHub secrets only;
+  never in files: the repo is public). `.github/workflows/tests.yml` runs the tests on every app/builder push.
+- **Tests:** `cd tests && npm test` — `test_builder.py` (unit checks, no network), `test_pack.py` (manifest and
+  every listed file), `smoke.js` (Playwright, five screens, all other sites blocked). All must pass before a push.
+  Add a check whenever you fix a bug.
+- Hand exports (CISSM, EuRepoC TableView) live in `manual_sources/` with the date in the filename. Both go away
+  once their API keys arrive (see ROADMAP).
 - Disclosed incidents are a small, uneven fraction of what happened; the page says so. Keep that honesty.
 
 <!-- STANDARD:BEGIN v1 — the same block is in every one of Stuart's repos. Master copy:

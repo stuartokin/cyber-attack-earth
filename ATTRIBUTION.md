@@ -87,7 +87,10 @@ Academically coded public cyber events from 2014 onwards.
 Site: https://cybereventsdatabase.org
 Access is granted on request; there is no public bulk download, and this project does
 not scrape the portal or use third-party mirrors. The layer is present only if the
-operator has supplied their own authorised export. Raw records are not redistributed.
+operator has supplied their own authorised export. Use was confirmed by Dr Charles
+Harry in July 2026. *Open question (November 2026):* the raw export sits in this public
+repository (`manual_sources/`) and selected fields are published in the data pack;
+confirmation that this redistribution is covered has been requested.
 Required citation: Harry, C., & Gallagher, N. (2018). *Classifying Cyber Events*.
 Journal of Information Warfare, 17(3), 17–31.
 
@@ -188,3 +191,10 @@ These matter more than the licences, and anyone using this data should read them
 *This file states the licensing position as understood by the project maintainer. It is
 not legal advice. Where a source's terms are ambiguous, the maintainer's practice is to
 ask the publisher rather than assume.*
+
+---
+
+**Map libraries (self-hosted in `vendor/`, licences in `vendor/licences/`)**
+globe.gl 2.46.1, three-globe 2.44.0 (Earth textures from its examples), D3 7.9.0,
+topojson-client 3.1.0, world-atlas 2.0.2 (Natural Earth, public domain) — MIT or ISC
+licences. fflate 0.8.2 — MIT.

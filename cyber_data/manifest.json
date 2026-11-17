@@ -1,12 +1,15 @@
 {
  "schema": 3,
- "builder": "3.18.2",
- "builder_date": "2026-07-28c",
- "generated": "2026-11-16T11:37:18+00:00",
+ "builder": "3.19.0",
+ "builder_date": "2026-11-17",
+ "generated": "2026-11-17T11:25:24+00:00",
+ "run": "partial",
  "tables": {
   "incidents": {
    "files": {
     "eurepoc": "incidents/eurepoc.json",
+    "cissm": "incidents/cissm.json",
+    "eurepoc_live": "incidents/eurepoc_live.json",
     "vcdb_partitions": {
      "2000": {
       "file": "incidents/vcdb-2000.json",
@@ -117,18 +120,45 @@
       "rows": 7
      }
     },
-    "rwlive": "incidents/rwlive.json",
-    "cissm": "incidents/cissm.json",
-    "eurepoc_live": "incidents/eurepoc_live.json"
+    "rwlive": "incidents/rwlive.json"
    },
    "counts": {
     "eurepoc": 4296,
-    "vcdb": 10367,
-    "rwlive": 25077,
     "cissm": 17169,
-    "eurepoc_live": 992
+    "eurepoc_live": 992,
+    "vcdb": 10367,
+    "rwlive": 25077
    },
    "total": 57901
+  },
+  "estimates": {
+   "files": {
+    "estimates": {
+     "file": "estimates/estimates.json",
+     "rows": 13,
+     "verified": 11,
+     "publishers": 3,
+     "summed": false,
+     "note": "Published estimates from named sources. Different populations, periods and definitions - not comparable with each other or with the incident counts, and deliberately never totalled."
+    }
+   }
+  },
+  "reports": {
+   "files": {
+    "vendor": {
+     "file": "reports/vendor.json",
+     "rows": 15
+    }
+   }
+  },
+  "impact": {
+   "files": {
+    "impact_overlay": {
+     "file": "impact/overlay.json",
+     "rows": 43,
+     "figures": 119
+    }
+   }
   },
   "vulns": {
    "files": {
@@ -175,18 +205,6 @@
     }
    }
   },
-  "estimates": {
-   "files": {
-    "estimates": {
-     "file": "estimates/estimates.json",
-     "rows": 13,
-     "verified": 11,
-     "publishers": 3,
-     "summed": false,
-     "note": "Published estimates from named sources. Different populations, periods and definitions - not comparable with each other or with the incident counts, and deliberately never totalled."
-    }
-   }
-  },
   "breaches": {
    "files": {
     "hibp": {
@@ -208,23 +226,6 @@
      "note": "Candidates only. Nothing here reaches the map until a human records a decision in the review file."
     }
    }
-  },
-  "reports": {
-   "files": {
-    "vendor": {
-     "file": "reports/vendor.json",
-     "rows": 15
-    }
-   }
-  },
-  "impact": {
-   "files": {
-    "impact_overlay": {
-     "file": "impact/overlay.json",
-     "rows": 43,
-     "figures": 119
-    }
-   }
   }
  },
  "sources": [
@@ -238,7 +239,8 @@
    "status": "ok",
    "expected": 4300,
    "rows": 4296,
-   "seconds": 4.8
+   "refreshed": "2026-11-17T11:25:24+00:00",
+   "seconds": 3.5
   },
   {
    "id": "vcdb",
@@ -322,6 +324,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 992,
+   "refreshed": "2026-11-17T11:25:24+00:00",
    "seconds": 0.3
   },
   {
@@ -334,6 +337,7 @@
    "status": "ok",
    "expected": 17169,
    "rows": 17169,
+   "refreshed": "2026-11-17T11:25:24+00:00",
    "seconds": 0.3
   },
   {
@@ -358,7 +362,8 @@
    "status": "ok",
    "expected": 0,
    "rows": 43,
-   "seconds": 0.2
+   "refreshed": "2026-11-17T11:25:24+00:00",
+   "seconds": 0.0
   },
   {
    "id": "nvdcve",
@@ -394,6 +399,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 13,
+   "refreshed": "2026-11-17T11:25:24+00:00",
    "seconds": 0.0
   },
   {
@@ -430,6 +436,7 @@
    "status": "ok",
    "expected": 15,
    "rows": 15,
+   "refreshed": "2026-11-17T11:25:24+00:00",
    "seconds": 0.0
   }
  ],
@@ -448,13 +455,13 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-07-23.csv",
    "dated": "2026-07-23",
-   "age_days": 116,
+   "age_days": 117,
    "limit_days": 40
   },
   "cissm": {
    "file": "cyber_events_2026-07-24.csv",
    "dated": "2026-07-24",
-   "age_days": 115,
+   "age_days": 116,
    "limit_days": 40
   },
   "estimates": {

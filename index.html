@@ -4,10 +4,13 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Cyber Attack Earth &mdash; Escalation Atlas (2000 &rarr; today)</title>
-  <script src="https://cdn.jsdelivr.net/npm/globe.gl@2.46.1/dist/globe.gl.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/d3@7.9.0/dist/d3.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/topojson-client@3.1.0/dist/topojson-client.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+  <!-- Self-hosted copies (vendor/, licences in vendor/licences/): globe.gl 2.46.1,
+       d3 7.9.0, topojson-client 3.1.0, fflate 0.8.2. No CDN, so a blocked or slow
+       CDN can no longer stop the page. -->
+  <script src="vendor/globe.gl.min.js"></script>
+  <script src="vendor/d3.min.js"></script>
+  <script src="vendor/topojson-client.min.js"></script>
+  <script src="vendor/fflate.min.js"></script>
   <style>
     :root {
       --bg:#040812; --panel:rgba(8,16,32,.92); --panel2:rgba(15,26,47,.94);
@@ -254,6 +257,17 @@
       .tbBtn{padding:9px 10px}
       .tbIco{font-size:17px}
     }
+    /* Folded Fold (344px) and similar: tighten so the bar stays on one row and the
+       windows' close buttons are never underneath it. */
+    @media(max-width:400px){
+      #toolbar{gap:2px;padding:4px;left:8px;top:10px}
+      .tbBtn{padding:8px 7px}
+      .tbIco{font-size:16px}
+    }
+    /* Missiles, pulses and the welcome fade are decoration; respect the setting. */
+    @media (prefers-reduced-motion: reduce){
+      *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+    }
     #stars{position:absolute;inset:0;width:100%;height:100%;z-index:0;display:block;background:#000005}
     #globe,#flatMap{position:absolute;inset:0}
     #globe{z-index:1;background:transparent}
@@ -375,6 +389,12 @@
     #escWords{margin-top:5px}
     #escalation .escNote{font-size:10px;opacity:.75}
     #histo{height:48px;margin-bottom:7px;cursor:pointer;position:relative}
+    /* Shown when the timeline is past the end of the verified sources. */
+    .tlCoverage{font-size:10.5px;line-height:1.2;color:#ffd08a;border:1px solid #8a5a1f;background:rgba(60,35,8,.6);
+      border-radius:999px;padding:3px 8px;white-space:nowrap;cursor:help}
+    .tlCoverage.hidden{display:none}
+    /* No room in the phone's timeline row: sit just above the timeline instead. */
+    @media(max-width:720px){.tlCoverage{position:absolute;right:10px;top:-24px;font-size:10px;padding:2px 7px;background:rgba(40,24,6,.95)}}
     #histo svg{display:block;width:100%;height:100%}
     #playhead{position:absolute;top:0;width:2px;margin-left:-1px;background:#4dd8ff;
       box-shadow:0 0 8px rgba(77,216,255,.7);pointer-events:none;border-radius:1px}
@@ -910,13 +930,13 @@
           <button class="regionBtn" data-region="Oceania" type="button">+ Oceania</button>
         </div>
         <p class="small" style="margin:2px 0 6px">Pick two or more countries to study how they attack one another. Leave empty to show the whole world.</p>
-        <select id="countryMode">
+        <select id="countryMode" aria-label="Country view">
           <option value="between">Only attacks between the countries I pick</option>
           <option value="any">Any attack involving them</option>
           <option value="victim">Attacks on them (as victim)</option>
           <option value="origin">Attacks from them (as origin)</option>
         </select>
-        <input id="countrySearch" type="text" placeholder="Find a country\u2026" autocomplete="off" style="margin-top:7px" />
+        <input id="countrySearch" type="text" aria-label="Find a country" placeholder="Find a country\u2026" autocomplete="off" style="margin-top:7px" />
         <div id="countryChecks" class="checks countryChecks"></div>
         <div id="countrySelected" class="small" style="margin-top:5px"></div>
           </div>
@@ -953,7 +973,7 @@
       <section class="frame hidden" id="frame-search" aria-label="Search">
         <div class="frameHead"><h2>Search</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise Search" title="Maximise / restore">&#9713;</button><button class="frameClose" type="button" aria-label="Close Search">&#215;</button></span></div>
         <div class="frameBody">
-        <input id="lookupInput" type="text" placeholder="Search an attack, group, country or actor…" autocomplete="off" />
+        <input id="lookupInput" type="text" aria-label="Search attacks, groups, countries or actors" placeholder="Search an attack, group, country or actor…" autocomplete="off" />
         <div id="lookupResults" class="lookupResults"></div>
         </div>
       </section>
@@ -1154,7 +1174,7 @@
     <canvas id="stars"></canvas>
     <div id="globe"></div>
     <div id="flatMap" aria-label="Flat world map"><canvas id="flatFx" aria-hidden="true"></canvas></div>
-    <button id="impactLabel" class="impact-label hidden" type="button"></button>
+    <button id="impactLabel" class="impact-label hidden" type="button" aria-label="Most significant incident"></button>
     <section id="attackDrawer" class="detailDrawer frame hidden" aria-live="polite" aria-label="Attack details">
       <div class="frameHead"><h2>Attack details</h2><span class="frameBtns"><button class="frameMax" type="button" aria-label="Maximise attack details" title="Maximise / restore">&#9713;</button><button id="closeAttackDrawer" class="frameClose" type="button" aria-label="Close attack details">&#215;</button></span></div>
       <div class="frameBody"><div id="attackDrawerBody"></div></div>
@@ -1260,6 +1280,7 @@
       </span>
       <button id="prevBtn" class="tlStep" title="Back one month" aria-label="Back one month">&#8722;</button>
       <strong id="yearLabel">Jun 2026</strong>
+      <span id="tlCoverage" class="tlCoverage hidden" tabindex="0" role="note"></span>
       <button id="nextBtn" class="tlStep" title="Forward one month" aria-label="Forward one month">+</button>
       <input id="yearSlider" type="range" min="0" max="323" value="318" step="1" aria-label="Month" />
       <span class="tlYears">
@@ -1322,7 +1343,7 @@ window.__LITE=/[?&]lite=1/.test(location.search);
  const overlay=document.createElement("div");
  overlay.id="diagOverlay";
  overlay.style.cssText="position:fixed;inset:12px;z-index:10000;background:rgba(5,12,25,.98);border:1px solid #38506f;border-radius:14px;padding:14px;display:none;flex-direction:column;color:#edf5ff;font:12px/1.5 Inter,Segoe UI,Arial,sans-serif";
- overlay.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px"><b style="font-size:15px">Diagnostics</b><span><button id="diagCopy" style="background:#4dd8ff;color:#00121a;border:0;border-radius:8px;padding:7px 10px;font-weight:700;cursor:pointer">Copy diagnostics</button> <button id="diagLite" style="background:#102039;color:#edf5ff;border:1px solid #34506f;border-radius:8px;padding:7px 10px;cursor:pointer">Reload in lite mode</button> <button id="diagClose" style="background:#102039;color:#edf5ff;border:1px solid #34506f;border-radius:8px;padding:7px 10px;cursor:pointer">✕</button></span></div><div id="diagList" style="overflow:auto;flex:1;white-space:pre-wrap;font-family:ui-monospace,Consolas,monospace;font-size:11px"></div>';
+ overlay.innerHTML='<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px"><b style="font-size:15px">Diagnostics</b><span><button id="diagCopy" style="background:#4dd8ff;color:#00121a;border:0;border-radius:8px;padding:7px 10px;font-weight:700;cursor:pointer">Copy diagnostics</button> <button id="diagLite" style="background:#102039;color:#edf5ff;border:1px solid #34506f;border-radius:8px;padding:7px 10px;cursor:pointer">Reload in lite mode</button> <button id="diagClose" aria-label="Close diagnostics" style="background:#102039;color:#edf5ff;border:1px solid #34506f;border-radius:8px;padding:7px 10px;cursor:pointer">✕</button></span></div><div id="diagList" style="overflow:auto;flex:1;white-space:pre-wrap;font-family:ui-monospace,Consolas,monospace;font-size:11px"></div>';
  document.body.appendChild(overlay);
  function diagText(){
   const ds=document.getElementById("dataStatus");
@@ -1377,8 +1398,8 @@ if(typeof Globe==="undefined"||typeof d3==="undefined"||typeof topojson==="undef
  document.getElementById("stage").insertAdjacentHTML("beforeend",
   '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:80;padding:24px;text-align:center;background:rgba(4,8,18,.93)">'+
   '<div style="max-width:540px"><h2 style="margin:0 0 8px">Map libraries could not load</h2>'+
-  '<p style="color:#96a9c4;line-height:1.5">This page loads globe.gl, D3 and TopoJSON from <b>cdn.jsdelivr.net</b>. Sandboxed previews (including in-app artifact viewers) and some corporate proxies block that domain, and it also fails offline.<br><br>Open the file directly in Chrome, Edge or Firefox with an internet connection — or host it (e.g. GitHub Pages) — and it will run normally.</p></div></div>');
- throw new Error("External map libraries unavailable — cdn.jsdelivr.net blocked or offline");
+  '<p style="color:#96a9c4;line-height:1.5">This page loads globe.gl, D3 and TopoJSON from its own <b>vendor/</b> folder. If you opened index.html on its own, keep the vendor folder beside it — or open the hosted site — and it will run normally.</p></div></div>');
+ throw new Error("Map libraries unavailable — vendor/ folder missing or blocked");
 }
 let attacks = [
  {id:1,month:6,confidence:"Medium",leader:"Unknown or state/group proxy",attribution:"Prototype attribution; inspect the cited source and treat the mapped origin as an analytical proxy.",victimISO:"",year:2007,name:"Baltic Government Disruption",actor:"Demo Actor North",originCountry:"Russia",originCity:"St Petersburg",startLat:59.93,startLng:30.31,victimCountry:"Estonia",victimCity:"Tallinn",endLat:59.44,endLng:24.75,severity:"High",impact:72,sector:"Government",type:"DDoS",summary:"Demonstration record representing a large-scale disruption campaign.",source:"Wikipedia overview (for prototype only)",sourceUrl:"https://en.wikipedia.org/wiki/2007_cyberattacks_on_Estonia"},
@@ -1772,8 +1793,8 @@ const HOME=homeView();
 })();
 const globe = window.globe = Globe()(globeEl)
   .backgroundColor("rgba(0,0,0,0)")   /* transparent, so the starfield behind shows through */
-  .globeImageUrl("https://cdn.jsdelivr.net/npm/three-globe@2.44.0/example/img/earth-night.jpg")
-  .bumpImageUrl("https://cdn.jsdelivr.net/npm/three-globe@2.44.0/example/img/earth-topology.png")
+  .globeImageUrl("vendor/earth-night.jpg")
+  .bumpImageUrl("vendor/earth-topology.png")
   .showAtmosphere(true).atmosphereColor("#3f9dff").atmosphereAltitude(.18)
   .arcStartLat("startLat").arcStartLng("startLng").arcEndLat("endLat").arcEndLng("endLng")
   // A missile, not a wire: a short bright head with a tail fading to nothing, and a
@@ -1831,7 +1852,7 @@ function pauseSpin(resumeAfter){
 /* Stamped so a diagnostics paste always says which build produced it. The old
    label was hardcoded and stuck at v32 for twenty releases, which made it
    impossible to tell whether a reported fault was already fixed. */
-const APP_VERSION="v93";
+const APP_VERSION="v94";
 const startYear=2000;
 /* The timeline used to end at a hardcoded index, which meant it silently stopped
    accepting new months. It is now derived from today's date, so the axis extends
@@ -2043,7 +2064,7 @@ const copySourceLinks=document.getElementById("copySourceLinks");
 let flatSvg, flatProjection, flatPath, flatZoomLayer, flatZoom=null, countriesGeo=null;
 
 async function initFlatMap(){
-  const world = await d3.json("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/countries-110m.json");
+  const world = await d3.json("vendor/countries-110m.json");
   const countries = topojson.feature(world, world.objects.countries);
   countriesGeo = countries;
   globe.polygonsData(countries.features)
@@ -2505,6 +2526,7 @@ function update(){
  });
  const dt=fromIdx(timelineIndex);year=dt.year;month=dt.month;
  yearLabel.textContent=`${mon(month)} ${year}`;yearBig.textContent=`${mon(month)} ${year}`;
+ updateCoverageBadge();
  if(yearSlider.max!=String(endTimelineIndex))yearSlider.max=String(endTimelineIndex);
  if(yearSlider.step!=="any")yearSlider.step="any";
  const mode=viewMode.value;
@@ -2650,6 +2672,7 @@ function update(){
    impactTotal.textContent=data.reduce((s,a)=>s+a.impact,0);
    renderRanks(originRanks,data,"originCountry");
    renderRanks(victimRanks,data,"victimCountry");
+   updateRegionCoverage(data);
    if(mode!=="attacks") applyCountryView(data,mode);
    renderFlat(data,arcSet);
  }
@@ -3556,7 +3579,14 @@ const EUREPOC_GLOBAL_URL="https://zenodo.org/records/14965395/files/eurepoc_glob
 const VCDB_ZIP_URL="https://cdn.jsdelivr.net/gh/vz-risk/VCDB@master/data/csv/vcdb.csv.zip";
 function normText(v){return String(v??"").trim()}
 function splitMulti(v){
- return normText(v).split(/;|\|/).map(x=>x.trim()).filter(Boolean);
+ let t=normText(v);
+ // EuRepoC writes lists as Python text: "['Health', 'Finance']". Older data packs
+ // still carry that form, so strip the brackets and quotes before splitting.
+ if(/^\[.*\]$/.test(t)){
+   const items=t.slice(1,-1).match(/'[^']*'|"[^"]*"/g);
+   if(items)t=items.map(x=>x.slice(1,-1)).join(";");
+ }
+ return t.split(/;|\|/).map(x=>x.trim()).filter(Boolean);
 }
 function firstPart(v){return splitMulti(v)[0]||""}
 function findField(row,patterns){
@@ -3566,6 +3596,11 @@ function numericIso(name){
  const clean=firstPart(name).replace(/\s*\([^)]*\)\s*/g," ").trim().toLowerCase();
  return COUNTRY_TO_NUMERIC[clean]||"";
 }
+/* Cached by ISO code: this runs for every row of every source (about 58,000) and the
+   uncached version spent several seconds of start-up finding and re-measuring the
+   same two hundred countries. The cache only holds atlas-based answers, so a lookup
+   made before the atlas arrived is not frozen at the rougher fallback. */
+const _CENTROIDS=new Map();
 function centroidForCountry(name){
  // Sources use assorted spellings ("Korea, Republic of", "US", "Russian Federation").
  // Canonicalise before the lookup, otherwise those records silently fail to place
@@ -3574,9 +3609,11 @@ function centroidForCountry(name){
 
  const iso=numericIso(name);
  if(!iso)return null;
+ const hit=_CENTROIDS.get(iso);
+ if(hit)return {lat:hit.lat,lng:hit.lng,iso};
  if(countriesGeo&&typeof d3!=="undefined"&&d3.geoCentroid){
    const f=countriesGeo.features.find(x=>String(x.id).padStart(3,"0")===iso);
-   if(f){const c=d3.geoCentroid(f);return {lat:c[1],lng:c[0],iso}}
+   if(f){const c=d3.geoCentroid(f);_CENTROIDS.set(iso,{lat:c[1],lng:c[0]});return {lat:c[1],lng:c[0],iso}}
  }
  // Atlas not loaded (or country missing from it): fall back to the embedded centroid table so
  // research datasets never silently drop because the basemap lost a race or failed to load.
@@ -3608,8 +3645,8 @@ const EUREPOC_SECTOR={
  "science":"Education","advocacy / activists":"Other","other":"Other"
 };
 function sectorFromRow(r){
- const sub=firstPart(findField(r,[/receiver.*category.*subcode/i,/receiver.*subcode/i]));
- const cat=firstPart(findField(r,[/receiver.*category/i,/victim.*sector/i,/sector/i,/industry/i,/target.*category/i]));
+ const sub=firstPart(findField(r,[/receiver.*category.*subcode/i,/receiver.*subcode/i,/receiver.*subcategory/i]));
+ const cat=firstPart(findField(r,[/^receiver_category$/i,/receiver.*category(?!.*sub)/i,/victim.*sector/i,/sector/i,/industry/i,/target.*category/i]));
  const look=s=>{
    // "Civil service / administration;" and "Finance - Finance" both appear in the
    // raw data; strip trailing separators and self-duplication before matching.
@@ -3850,7 +3887,14 @@ function mergeAndDedupe(rows){
  return [...map.values()];
 }
 async function loadEnrichmentLayers(){
- const jobs=[
+ // ATT&CK and KEV come from the data pack when there is one. The direct downloads
+ // below are only for a page opened without the pack: the ATT&CK file alone is tens
+ // of megabytes, and fetching it on top of the pack cost every phone a large,
+ // pointless download (and usually failed anyway at the CDN's size limit).
+ const havePack=!!(LAKE.manifest&&LAKE.manifest.tables);
+ const jobs=havePack?[
+  fetch(RWLIVE_API+"/groups").then(r=>r.ok?r.json():Promise.reject(r.status)).then(gs=>{enrichmentCounts.rwGroups=ingestRwGroups(gs)}).catch(err=>{console.warn("Ransomware.live groups unavailable",err)})
+ ]:[
   fetch("https://cdn.jsdelivr.net/gh/mitre-attack/attack-stix-data@master/enterprise-attack/enterprise-attack.json").then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{enrichmentCounts.mitre=(j.objects||[]).filter(o=>o.type==="campaign").length;enrichmentCounts.mitreGroups=ingestAttackStixGroups(j)}).catch(err=>{console.warn("MITRE enrichment unavailable",err)}),
   fetch("https://cdn.jsdelivr.net/gh/cisagov/kev-data@develop/known_exploited_vulnerabilities.json").then(r=>r.ok?r.json():Promise.reject(r.status)).then(j=>{enrichmentCounts.kev=(j.vulnerabilities||[]).length}).catch(err=>{console.warn("KEV enrichment unavailable",err)}),
   fetch(RWLIVE_API+"/groups").then(r=>r.ok?r.json():Promise.reject(r.status)).then(gs=>{enrichmentCounts.rwGroups=ingestRwGroups(gs)}).catch(err=>{console.warn("Ransomware.live groups unavailable",err)})
@@ -3897,22 +3941,23 @@ function renderSourceMenu(){
    const rows=(m.sources||[]).map(s=>{
      const got=+s.rows||0;
      const exp=+s.expected||FALLBACK[s.id]||0;
-     const failed=s.status!=="ok";
+     const state=srcState(s), failed=state==="failed"||state==="skipped";
      let cls,word,pct="";
-     if(failed||got===0){cls="bad";word=failed?"not loaded":"empty";missCount++}
+     if(state==="kept"){cls="warn";word="showing earlier data";lowCount++}
+     else if(failed||got===0){cls="bad";word=failed?(state==="skipped"?"no key":"not loaded"):"empty";missCount++}
      else if(exp&&got<exp*0.9){cls="warn";word="below expected";lowCount++;pct=` · ${Math.round(100*got/exp)}% of expected`}
      else {cls="good";word="as expected";okCount++}
-     const detail=failed?String(s.status).replace(/^failed:\s*/,""):"";
+     const detail=(failed||state==="kept")?String(s.status).replace(/^(failed|held):\s*/,"")+(state==="kept"&&s.refreshed?` (last refreshed ${String(s.refreshed).slice(0,10)})`:""):"";
      /* Two sources arrive as a file downloaded by hand and cannot refresh
         themselves. A months-old export otherwise looks exactly as current as one
         fetched this morning, which is the quiet way a dataset misleads. */
      const me=(LAKE.manifest&&LAKE.manifest.manual_exports)||{};
      /* The review queue is not data - it is work. Showing the count here is the only
         thing that stops it filling up unseen. */
-     const mkey=Object.keys(me).find(k=>s.id===k||String(s.id).indexOf(k)===0);
+     const info=exportInfo(s.id);
      let ageNote="";
-     if(mkey){
-       const info=me[mkey], age=info.age_days;
+     if(info){
+       const age=info.age_days;
        if(age===null||age===undefined){
          ageNote=` · <span class="ageUnknown">hand-downloaded, age unknown</span>`;
        }else{
@@ -4170,7 +4215,9 @@ const IS_MOBILE=(matchMedia("(pointer:coarse)").matches&&matchMedia("(max-width:
 const LOW_POWER=(()=>{
  try{
    const cores=navigator.hardwareConcurrency||0, mem=navigator.deviceMemory||0;
-   return IS_MOBILE||(cores>0&&cores<=4)||(mem>0&&mem<=4);
+   // Four cores is an ordinary laptop, not a weak one; only genuinely small
+   // machines (two cores or fewer, or 2 GB or less) get the lighter settings.
+   return IS_MOBILE||(cores>0&&cores<=2)||(mem>0&&mem<=2);
  }catch(e){ return IS_MOBILE }
 })();
 if(LOW_POWER)window.__perfCap=IS_MOBILE?450:700;
@@ -4185,6 +4232,8 @@ function maybeMobilePerfDefaults(){
  const t=document.createElement("div");
  t.style.cssText="position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:70;max-width:min(480px,calc(100% - 24px));background:rgba(5,12,25,.97);border:1px solid #34506f;border-radius:12px;padding:10px 13px;font-size:12px;line-height:1.5;color:#dbe7f5;box-shadow:0 10px 34px rgba(0,0,0,.45)";
  t.innerHTML='<b>Lighter settings for this device</b> — the full dataset is loaded, so <b>Medium</b> severity has been switched off and the missile cap tightened to keep playback smooth. Critical and High are still shown, and the counts and histogram reflect that filter. Turn Medium back on in Controls whenever you like. <button id="perfShowAll" style="margin-top:7px">Show everything anyway</button> <button id="perfDismiss" style="margin-top:7px">OK</button>';
+ // Sit above the timeline, never over the Play button.
+ try{ t.style.bottom=Math.max(14,window.innerHeight-safeBottom()+12)+"px" }catch(e){}
  document.getElementById("stage").appendChild(t);
  t.querySelector("#perfDismiss").addEventListener("click",()=>t.remove());
  t.querySelector("#perfShowAll").addEventListener("click",()=>{
@@ -4802,6 +4851,20 @@ function positionFrame(f){
  f.dataset.placed="1";
  fitFrame(f);
 }
+/* If the tool bar grows (it can wrap to a second row on a narrow screen, e.g. when the
+   Windows button appears), push any window that is now underneath it back into view,
+   so its close button can always be reached. */
+function clearToolbar(){
+ if(typeof toolbar==="undefined"||!toolbar)return;
+ const tb=toolbar.getBoundingClientRect(); if(!tb.height)return;
+ document.querySelectorAll(".frame:not(.hidden)").forEach(f=>{
+   if(f.classList.contains("maxed"))return;
+   const r=f.getBoundingClientRect();
+   const overlapX=r.left<tb.right&&r.right>tb.left;
+   if(overlapX&&r.top<tb.bottom+6){f.style.top=Math.round(tb.bottom+8)+"px";if(typeof fitFrame==="function")fitFrame(f)}
+ });
+}
+try{ new ResizeObserver(()=>clearToolbar()).observe(document.getElementById("toolbar")) }catch(e){}
 function openFrame(name){
  const f=frameEl(name); if(!f)return;
  // Fill the frame BEFORE the empty-body guard runs, or a panel whose content is
@@ -4829,6 +4892,7 @@ function openFrame(name){
  const b=tbBtn(name); if(b)b.classList.add("on");
  f.querySelector(".frameBody").scrollTop=0;
  if(typeof refreshCloseAll==="function")refreshCloseAll();
+ requestAnimationFrame(clearToolbar);
  if(name==="search"){const li=document.getElementById("lookupInput");li.focus();runLookup(li.value)}
  if(name==="help"&&typeof renderChangelog==="function")renderChangelog();
  if(name==="help"&&typeof renderReviewQueue==="function")renderReviewQueue();
@@ -5019,6 +5083,63 @@ function openFrameCount(){return document.querySelectorAll(".frame:not(.hidden)"
    the volume expected, amber when something is thin or a source is missing, red when
    there is no lake at all and the map is running on its embedded fallback. Clicking
    it opens the source health table rather than making you go looking. */
+/* ── Source state, export age and coverage end (v94) ────────────────────────
+   One place that decides what a manifest source entry means, so the chip, the
+   data-status panel and the timeline all say the same thing.
+   - "ok"      fresh this run ("ok", or "ok with N warnings")
+   - "kept"    failed or held back this run, still showing its previous data
+   - "skipped" needs a key that is not set
+   - "failed"  nothing to show */
+function srcState(s){
+ const st=String((s&&s.status)||"");
+ if(/^ok/.test(st))return "ok";
+ if(/^skipped/.test(st))return "skipped";
+ if((s.carried||/^(held|failed)/.test(st))&&(+s.rows||0)>0)return "kept";
+ return "failed";
+}
+// Which hand-downloaded export feeds which source. Exact ids only: the Zenodo
+// EuRepoC release is fetched automatically and must not inherit the TableView's age.
+const EXPORT_OF={cissm:"cissm",eurepoc_live:"eurepoc"};
+function exportInfo(id){
+ const me=(LAKE.manifest&&LAKE.manifest.manual_exports)||{};
+ const k=EXPORT_OF[id]; return k&&me[k]?Object.assign({kind:k},me[k]):null;
+}
+function staleExports(){
+ return Object.keys(EXPORT_OF).map(id=>exportInfo(id)).filter(x=>x&&x.age_days!=null&&x.age_days>(x.limit_days||40));
+}
+/* The last month each mapped source reaches. After the verified sources stop, the
+   map is leak-site claims only, and the page should say so rather than let a
+   quieter or claims-only stretch read as a real trend. */
+let _covCache=null;
+function coverageEnds(){
+ if(_covCache&&_covCache.n===attacks.length)return _covCache.v;
+ const v={};
+ for(const a of attacks){
+   const k=sourceLayerName(a); const i=(a._i!==undefined)?a._i:(a._i=idx(a.year,a.month));
+   if(v[k]===undefined||i>v[k])v[k]=i;
+ }
+ _covCache={n:attacks.length,v};
+ return v;
+}
+const CLAIMS_LAYER="Ransomware.live leak-site monitoring";
+function verifiedCoverageEnd(){
+ const v=coverageEnds(); let end=-1;
+ for(const k in v){ if(k!==CLAIMS_LAYER&&k!=="Curated primary-source incidents"&&v[k]>end)end=v[k]; }
+ return end;
+}
+function updateCoverageBadge(){
+ const b=document.getElementById("tlCoverage"); if(!b)return;
+ const end=verifiedCoverageEnd();
+ const claimsOnly=attacks.length>500&&end>=0&&timelineIndex>end&&(coverageEnds()[CLAIMS_LAYER]||-1)>end;
+ b.classList.toggle("hidden",!claimsOnly);
+ if(claimsOnly){
+   const d=fromIdx(end);
+   b.textContent="Claims only after "+mon(d.month)+" "+d.year;
+   b.title="The verified and academic sources currently end in "+mon(d.month)+" "+d.year+
+     ". After that the map shows only ransomware leak-site claims, which are assertions by criminals, not confirmed incidents. "+
+     "This is a gap in the data, not a change in the world.";
+ }
+}
 function dataHealth(){
  const dot=document.getElementById("tbHealthDot");
  const lbl=document.getElementById("tbHealthLabel");
@@ -5031,22 +5152,28 @@ function dataHealth(){
    why="No hosted data lake. The map is running on its embedded set of about ninety curated incidents.";
  }else{
    const srcs=LAKE.manifest.sources||[];
-   const failed=srcs.filter(s=>s.status!=="ok");
+   const failed=srcs.filter(s=>srcState(s)==="failed");
+   const kept=srcs.filter(s=>srcState(s)==="kept");
+   const stale=staleExports();
    const low=srcs.filter(s=>{
-     if(s.status!=="ok")return false;
+     if(srcState(s)!=="ok")return false;
      const exp=+s.expected||FALLBACK[s.id]||0;
      return exp&&(+s.rows||0)<exp*0.9;
    });
    const built=String(LAKE.manifest.generated||"").slice(0,10);
    const ageDays=built?Math.round((Date.now()-new Date(built).getTime())/86400000):null;
-   if(failed.length||low.length){
+   if(failed.length||low.length||kept.length||stale.length){
      level="amber";
      const bits=[];
      if(failed.length)bits.push(`${failed.length} source${failed.length>1?"s":""} did not load (${failed.map(s=>s.id).join(", ")})`);
+     if(kept.length)bits.push(`${kept.length} could not refresh and ${kept.length>1?"are":"is"} showing earlier data (${kept.map(s=>s.id).join(", ")})`);
      if(low.length)bits.push(`${low.length} returned fewer rows than expected (${low.map(s=>s.id).join(", ")})`);
+     if(stale.length)bits.push(`${stale.map(x=>x.kind==="cissm"?"CISSM":"EuRepoC (provisional)").join(" and ")} ${stale.length>1?"are":"is"} ${Math.max(...stale.map(x=>x.age_days))} days out of date and waiting for a new export`);
      why=bits.join("; ")+".";
+     const end=verifiedCoverageEnd();
+     if(end>=0){const d=fromIdx(end);why+=` Verified sources currently end in ${mon(d.month)} ${d.year}; after that the map shows ransomware leak-site claims only.`;}
    }else{
-     why=`All ${srcs.length} sources loaded at the volumes expected.`;
+     why=`All ${srcs.length} sources loaded at the volumes expected, and nothing is out of date.`;
    }
    if(ageDays!=null&&ageDays>3){
      if(level==="green")level="amber";
@@ -5648,6 +5775,7 @@ function splashReturn(){
  SPLASH.done=false;
  s.classList.remove("stowed");
  // let the browser paint the un-hidden node before fading it back in
+ s.inert=false;
  requestAnimationFrame(()=>requestAnimationFrame(()=>s.classList.remove("gone")));
  const go=document.getElementById("splashGo");
  if(go){go.disabled=false;go.textContent="Explore the map"}
@@ -5673,6 +5801,9 @@ function splashDismiss(then){
    markHistoDirty();
  }
  s.classList.add("gone");
+ // Faded out is not gone: without inert, Tab and screen readers still landed on
+ // the invisible welcome buttons.
+ s.inert=true;
  setTimeout(()=>{
    /* Hidden rather than removed. A run started from here has to be able to put the
       viewer back where they were - same screen, same faded globe behind it - and
@@ -9034,6 +9165,16 @@ function placeCoveragePanel(){
 
    Newest first. Keep entries short and say what a user would notice. */
 const CHANGELOG=[
+ {v:"v94", date:"2026-11-17", title:"Review fixes: honest status, sectors, speed", items:[
+   "EuRepoC incidents now show their real sector (health, finance, telecoms and so on) and technique; before, every one said \u201cNot categorised\u201d and one filter option showed raw code text.",
+   "The data status no longer says \u201cData OK\u201d when the hand-downloaded CISSM and EuRepoC exports are months old. It turns amber and says how old they are.",
+   "A note on the timeline marks the months where only ransomware leak-site claims are recorded, so a gap in the data is not read as a trend.",
+   "A source that fails overnight now keeps showing its last good data, marked \u201cshowing earlier data\u201d, instead of disappearing from the map.",
+   "Faster start-up: country positions are worked out once, not 58,000 times, and phones no longer download the very large ATT&CK and KEV files that the data pack already contains.",
+   "The map libraries are now hosted with the site, so a blocked or slow outside server can no longer stop it loading.",
+   "Ordinary four-core laptops no longer get the \u201clighter settings\u201d that hid Medium attacks.",
+   "On a folded phone the tool bar no longer covers the windows\u2019 close buttons. Regional coverage in Details now fills in.",
+   "Keyboard and screen-reader fixes, and less motion when the device asks for it."]},
  {v:"v93", date:"2026-07-28", title:"About the author", items:[
    "An About the author section added to Help, with links to related projects.",
    "A link to it on the welcome screen, which opens Help at that section.",
@@ -9371,7 +9512,9 @@ function maybeLocalNote(){
  document.getElementById("stage").appendChild(note);
 }
 async function canFetchRemote(){
- try{const r=await fetch("https://cdn.jsdelivr.net/npm/world-atlas@2.0.2/package.json",{cache:"no-store"});return r.ok}catch(e){return false}
+ // Probe our own small file, not a CDN: the data pack is same-origin, so a blocked
+ // CDN used to drop the page into "offline mode" with the pack sitting right there.
+ try{const r=await fetch("cyber_data/manifest.json",{cache:"no-store",method:"HEAD"});return r.ok}catch(e){return false}
 }
 (async()=>{
  const online=await canFetchRemote();

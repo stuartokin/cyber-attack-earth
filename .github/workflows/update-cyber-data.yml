@@ -1,31 +1,56 @@
 # .github/workflows/update-cyber-data.yml
 #
-# Nightly refresh of the Cyber Attack Earth data lake.
+# Scheduled refresh of the Cyber Attack Earth data pack. No AI.
 #
-# This version prints what it actually did at every stage, so a run that reports
-# "success" but leaves the data unchanged is immediately obvious rather than silent.
+# CADENCE (since builder 3.19.0)
+#   Nightly  02:17 UTC  fast-moving sources only: KEV, EPSS, CVE/NVD, CISA advisories,
+#                       SEC filings, the last 3 months + current month of ransomware
+#                       claims, and the hand-maintained files (CISSM export, EuRepoC
+#                       TableView, impact overlay, estimates, reports).
+#   Weekly   Sun 03:47  everything, including VCDB, ICS advisories, Have I Been Pwned,
+#                       ATT&CK, a check for a new EuRepoC release on Zenodo and a full
+#                       re-sweep of every ransomware month since 2020.
+#   By hand  "Run workflow" button: a full run. Optional allow_shrink=<source id>
+#                       accepts a real drop in rows that the shrink guard held back.
+# Sources not scheduled on a run keep their previous data (the builder carries them
+# forward), so the site never loses a layer because it was not refreshed that night.
+# GitHub often starts scheduled runs late; that does not matter here.
+#
+# SAFETY
+#   - Shrink guard: a source returning under 90% of last time is held back, its old
+#     data kept, and a "data-guard" issue raised.
+#   - The pack is checked (tests/test_pack.py) before anything is committed.
+#   - The hand-downloaded exports raise a "data-refresh" issue once past 40 days.
+#   - Kill switch: the switch job below. automation.json here or in
+#     stuartokin.github.io with "paused": true stops scheduled runs.
 #
 # SECRETS (Settings > Secrets and variables > Actions). All optional:
-#   CISSM_API_KEY   API key from the portal, if you are granted one
+#   CISSM_API_KEY   CISSM API key, once Dr Harry issues one (replaces the hand export)
 #   NVD_API_KEY     free key from nvd.nist.gov, speeds up the CVE backfill
-#   SEC_CONTACT     "Your Project Name you@example.com" - SEC refuses requests
-#                   without a contact email in the User-Agent. Kept as a secret so
-#                   the address is not published in the repository.
-# GITHUB_TOKEN is provided by Actions itself - you do not create it. It is used to
-# raise an issue when a hand-downloaded export goes stale, and to close it again
-# once refreshed. That needs "issues: write" in the permissions block below.
-# Never put credentials in this file or in build_cyber_data.py: this repo is public.
+#   SEC_CONTACT     "Project name you@example.com" - SEC refuses requests without a
+#                   contact email in the User-Agent. A secret so the address is not public.
+# GITHUB_TOKEN is provided by Actions itself; it is used only to raise and close the
+# reminder issues. Never put credentials in this file or the builder: the repo is public.
 name: Update cyber data pack
 
 on:
   schedule:
-    - cron: "20 3 * * *"     # 03:20 UTC nightly
-  workflow_dispatch: {}       # manual "Run workflow" button
+    - cron: "17 2 * * *"      # nightly (fast sources)
+    - cron: "47 3 * * 0"      # weekly, Sunday (everything)
+  workflow_dispatch:
+    inputs:
+      allow_shrink:
+        description: "Source ids allowed to shrink this run, comma-separated (normally blank)"
+        required: false
+        default: ""
 
 permissions:
   contents: write             # required for the commit step to push
-  issues: write               # lets the build raise a reminder when a hand-downloaded
-                              # export goes stale, and close it once refreshed
+  issues: write               # reminder and data-guard issues
+
+concurrency:
+  group: update-cyber-data
+  cancel-in-progress: false   # never kill a run half way through writing the pack
 
 jobs:
   # ---- Kill switch -------------------------------------------------------
@@ -79,6 +104,7 @@ jobs:
     needs: switch
     if: needs.switch.outputs.go == 'true'
     runs-on: ubuntu-latest
+    timeout-minutes: 45       # a stuck source can no longer hold the runner for 6 hours
     steps:
       - uses: actions/checkout@v4
 
@@ -86,56 +112,78 @@ jobs:
         with:
           python-version: "3.12"
 
+      - name: Decide what this run refreshes
+        id: plan
+        env:
+          EVENT: ${{ github.event_name }}
+          SCHED: ${{ github.event.schedule }}
+        run: |
+          NIGHTLY="kev,epss,rwlive,cve,nvdcve,cisaaa,secedgar,cissm,eurepoc_live,impact_overlay,estimates,reports"
+          if [ "$EVENT" = "schedule" ] && [ "$SCHED" = "17 2 * * *" ]; then
+            echo "kind=nightly" >> "$GITHUB_OUTPUT"
+            echo "only=$NIGHTLY" >> "$GITHUB_OUTPUT"
+            echo "full_rw=" >> "$GITHUB_OUTPUT"
+          elif [ "$EVENT" = "schedule" ]; then
+            echo "kind=weekly" >> "$GITHUB_OUTPUT"
+            echo "only=" >> "$GITHUB_OUTPUT"
+            echo "full_rw=1" >> "$GITHUB_OUTPUT"
+          else
+            echo "kind=manual" >> "$GITHUB_OUTPUT"
+            echo "only=" >> "$GITHUB_OUTPUT"
+            echo "full_rw=1" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Show what we are about to run
         run: |
-          echo "Repository: $GITHUB_REPOSITORY   branch: $GITHUB_REF_NAME"
+          echo "Run kind: ${{ steps.plan.outputs.kind }}   sources: ${{ steps.plan.outputs.only || 'all' }}"
           echo "build_cyber_data.py last modified: $(git log -1 --format=%ci -- build_cyber_data.py 2>/dev/null || echo 'not tracked')"
-          echo "--- manifest BEFORE this run ---"
           if [ -f cyber_data/manifest.json ]; then
-            python3 -c "import json;m=json.load(open('cyber_data/manifest.json'));print('generated:',m.get('generated'));print('has expected field:', any('expected' in s for s in m.get('sources',[])))"
-          else
-            echo "no manifest yet"
+            python3 -c "import json;m=json.load(open('cyber_data/manifest.json'));print('pack before this run: builder',m.get('builder'),'generated',m.get('generated'))"
           fi
 
       - name: Build data pack
         env:
           CISSM_API_KEY: ${{ secrets.CISSM_API_KEY }}
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-          # SEC requires a User-Agent naming you and a contact email, e.g.
-          #   Cyber Attack Earth you@example.com
-          # Set it as a repository secret so the address is not in the source.
           SEC_CONTACT: ${{ secrets.SEC_CONTACT }}
-          # Supplied automatically by Actions - not a secret you create. Used only to
-          # raise or close the "data refresh due" issue in this repository.
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          ONLY_SOURCES: ${{ steps.plan.outputs.only }}
+          RWLIVE_FULL: ${{ steps.plan.outputs.full_rw }}
+          BUILD_KIND: ${{ steps.plan.outputs.kind }}
+          ALLOW_SHRINK: ${{ github.event.inputs.allow_shrink }}
         run: |
           pip install requests
           python3 build_cyber_data.py cyber_data
 
+      - name: Check the pack before committing
+        run: |
+          python3 tests/test_pack.py
+          python3 tests/test_builder.py
+
       - name: Show what changed
         run: |
-          echo "--- manifest AFTER this run ---"
-          python3 -c "import json;m=json.load(open('cyber_data/manifest.json'));print('generated:',m.get('generated'));[print(' ',s['id'],s['status'][:60],s.get('rows'),'/ expected',s.get('expected')) for s in m.get('sources',[])]"
-          echo "--- files git considers changed ---"
-          git status --porcelain cyber_data | head -40
-          echo "(total changed files: $(git status --porcelain cyber_data | wc -l))"
+          python3 -c "import json;m=json.load(open('cyber_data/manifest.json'));[print(' ',s['id'].ljust(15),str(s['status'])[:60],s.get('rows'),'/ expected',s.get('expected')) for s in m.get('sources',[])]"
+          echo "--- files changed ---"
+          git status --porcelain cyber_data manual_sources | head -40
+          echo "(total: $(git status --porcelain cyber_data manual_sources | wc -l))"
 
       - name: Commit and push
         run: |
           git config user.name "data-pack-bot"
           git config user.email "actions@users.noreply.github.com"
           # The SEC review queue lives outside cyber_data and is rewritten by the
-          # build each night. Without this line the candidates are produced on the
-          # runner and discarded, so nothing ever reaches the repository to be
-          # reviewed. Decisions already recorded in the file are preserved by the
-          # connector, keyed on the company number and filing date.
+          # build; decisions already recorded in it are preserved by the builder.
           git add cyber_data manual_sources/sec_review.csv 2>/dev/null || git add cyber_data
           if git diff --cached --quiet; then
-            echo "::warning::Nothing staged - the data pack is byte-identical to the committed version."
-            echo "If you expected changes, check that build_cyber_data.py in the repo is the version you uploaded."
-          else
-            git commit -m "Refresh cyber data pack ($(date -u +%F))"
-            git push
-            echo "Pushed commit $(git rev-parse --short HEAD)"
+            echo "Nothing changed - no commit."
+            exit 0
           fi
+          git commit -m "Refresh cyber data pack ($(date -u +%F), ${{ steps.plan.outputs.kind }})"
+          # Someone may have pushed while the build ran; replay on top rather than fail.
+          for i in 1 2 3; do
+            git pull --rebase --autostash origin main && git push && { echo "Pushed $(git rev-parse --short HEAD)"; exit 0; }
+            echo "Push attempt $i failed; retrying in 15s"; sleep 15
+          done
+          echo "::error::Could not push the refreshed pack after 3 attempts."
+          exit 1

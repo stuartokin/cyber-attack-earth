@@ -1,9 +1,31 @@
 #!/usr/bin/env python3
 """
-build_cyber_data.py v3.18.2 (2026-07-28) - data-lake builder for Cyber Attack Earth.
+build_cyber_data.py v3.19.0 (2026-11-17) - data-lake builder for Cyber Attack Earth.
 
 VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
 -----------------------------------------------------------------------------
+ 3.19.0 Review fixes (November 2026).
+        A failed source no longer vanishes from the map: its last good files stay
+        listed in the manifest ("carried"), as the docs always said they did.
+        Shrink guard: a result below 90% of last time's rows is held back, the old
+        data kept, and a "data-guard" issue raised. ALLOW_SHRINK=<id> accepts a
+        real drop. Sources the workflow did not schedule (ONLY_SOURCES) are carried
+        forward too, which is what makes the nightly/weekly cadence possible.
+        Ransomware.live: nightly fetches only the last three months plus the
+        CURRENT month (it used to stop at last month) and merges them into the
+        previous file; RWLIVE_FULL=1 re-sweeps every month weekly. "Slow down"
+        replies are retried three times, not for ever. Rows are sorted so an
+        unchanged month produces an identical file.
+        EuRepoC: technique now read from the dyadic file's one-column-per-type
+        flags (every incident showed "Not categorised"); list-style fields such
+        as "['Health']" become "Health"; intensity read from the column name the 1.3
+        release actually uses (its economic value has no stated unit, so is not).
+        SEC review file keeps earlier rows (and their decisions) and links to the
+        human filing page instead of index.json. ICS advisories take the newest
+        60 files, not the oldest. CISSM's "cyber_events_<date>.csv" is matched by
+        name, and the review and estimates files can never be read as CISSM.
+        Unreferenced VCDB year files are tidied away. With CISSM_API_KEY set, the
+        portal's documented getDataset endpoint (x-api-key header) is tried first.
  3.18.2 SEC returned 403 on the first run. The endpoint and query were right; the
         User-Agent was not. SEC's fair-access policy requires a contact EMAIL
         address, and a project URL does not satisfy it. The address now comes from
@@ -238,6 +260,7 @@ LICENCES - read before redistributing (you are republishing derived data):
                          SHARE-ALIKE REQUIRED for derived databases
 """
 
+import ast
 import csv
 import gzip
 import io
@@ -258,8 +281,8 @@ SCHEMA_VERSION = 3
 # Bump this whenever the builder changes. It is printed at the start of every run and
 # written into manifest.json, so you can tell at a glance which version produced a
 # given data pack - and spot immediately if an old copy is still deployed.
-BUILDER_VERSION = "3.18.2"
-BUILDER_DATE = "2026-07-28c"
+BUILDER_VERSION = "3.19.0"
+BUILDER_DATE = "2026-11-17"
 UA = {"User-Agent": "cyber-attack-earth-datalake/3.0 (personal research dashboard)"}
 MAX_MB = 80                      # per-file guard; GitHub hard-fails at 100 MB
 START_YEAR = 2000
@@ -280,6 +303,8 @@ class Source:
     needs_key: Optional[str] = None
     expected: int = 0          # roughly what a healthy run should return; the app
                                # compares this against reality so shortfalls are obvious
+    keep_ratio: float = 0.9    # shrink guard: a result smaller than this share of the
+                               # previous one is held back and the old data kept
     fn: Callable = None
 
 
@@ -350,6 +375,22 @@ EUREPOC_KEEP = [
     r"added.*to.*db", r"^added", r"detection.*disclosure",
 ]
 LONG_TEXT = re.compile(r"description|summary", re.I)
+# One yes/no column per incident type in the dyadic file (v0.1).
+EUREPOC_TYPE_FLAGS = ["Data theft", "Data theft & Doxing", "Disruption",
+                      "Hijacking with Misuse", "Hijacking without Misuse", "Ransomware"]
+
+
+def _unlist(v):
+    """EuRepoC writes multi-valued fields as Python list text: "['Health', 'Finance']".
+    Turn that into "Health;Finance", the separator the app already splits on."""
+    if len(v) >= 4 and v[0] == "[" and v[-1] == "]":
+        try:
+            vals = ast.literal_eval(v)
+        except (ValueError, SyntaxError):
+            return v
+        if isinstance(vals, (list, tuple)):
+            return ";".join(str(x).strip() for x in vals if str(x).strip())
+    return v
 
 
 # ── EuRepoC impact extraction ───────────────────────────────────────────────
@@ -369,7 +410,8 @@ def _eurepoc_impact(row):
         return None
     imp = {}
     # weighted cyber intensity: an integer 0..8+ (already a score)
-    wi = val("weighted_cyber_intensity", "unweighted_cyber_intensity")
+    wi = val("weighted_cyber_intensity", "weighted_intensity",
+             "unweighted_cyber_intensity", "unweighted_intensity")
     if wi is not None:
         m = re.search(r"-?\d+", wi)
         if m:
@@ -400,6 +442,9 @@ def _eurepoc_impact(row):
             imp["data"] = 0
     # economic impact -> financial loss in USD (euro converted at a fixed, rough rate;
     # this is an order-of-magnitude view, not an audited figure)
+    # Only the TableView's explicit "exact value" column. The 1.3 release's
+    # economic_impact_value holds values like 6 and 20 with no stated unit, so it
+    # is deliberately not read: an unclear unit would make a wrong dollar figure.
     ev = val("economic_impact_exact_value")
     if ev is not None:
         m = re.search(r"-?\d+(?:\.\d+)?", ev.replace(",", ""))
@@ -541,9 +586,17 @@ def build_eurepoc():
     for row in rows:
         s = {}
         for c in keep:
-            v = (row.get(c) or "").strip()
+            v = _unlist((row.get(c) or "").strip())
             if v:
                 s[c] = v[:600] if LONG_TEXT.search(c) else v[:200]
+        # The dyadic file has no incident_type column; it codes the type as one
+        # yes/no column per type instead. Rebuild the same "A;B" text the global
+        # file and the TableView use, so the app can name the technique.
+        if not s.get("incident_type"):
+            kinds = [k for k in EUREPOC_TYPE_FLAGS
+                     if str(row.get(k) or "").strip() in ("1", "1.0", "True", "true")]
+            if kinds:
+                s["incident_type"] = ";".join(kinds)
         if s:
             imp = _eurepoc_impact(row)   # same coded fields as the TableView export, if present
             if imp:
@@ -615,53 +668,99 @@ RWLIVE_API = "https://api.ransomware.live/v2"
 RWLIVE_START = (2020, 1)
 
 
-@source(id="rwlive", table="incidents", title="Ransomware.live leak-site claims",
-        licence="Free community API - fair use; review T&C for organisational use",
-        cadence="daily", homepage="https://www.ransomware.live/about", expected=21000)
-def build_rwlive():
-    months, total = {}, 0
-    y, m = date.today().year, date.today().month
-    m -= 1
-    if m == 0:
-        y, m = y - 1, 12
+RWLIVE_RECENT_MONTHS = 3      # nightly: re-fetch this many months plus the current one
+RWLIVE_MAX_429 = 3            # give up on a month after this many "slow down" replies
+
+
+def _rwlive_slim(payload):
+    slim = []
+    for v in payload or []:
+        cc = (v.get("country") or "").strip().upper()
+        if not cc:
+            continue
+        slim.append({
+            "victim": (v.get("victim") or v.get("post_title") or "")[:140],
+            "group": (v.get("group") or "")[:60],
+            "attackdate": (v.get("attackdate") or v.get("discovered") or "")[:10],
+            # kept separately so the gap between the two can be measured
+            "discovered": (v.get("discovered") or "")[:10],
+            "country": cc,
+            "activity": (v.get("activity") or v.get("sector") or "")[:60],
+            "press": len(v.get("press") or []),
+        })
+    # Upstream returns rows in no fixed order. Sorting keeps the committed file
+    # identical when nothing changed, which keeps the repository from bloating.
+    slim.sort(key=lambda r: (r["discovered"], r["attackdate"], r["group"],
+                             r["victim"], r["country"]))
+    return slim
+
+
+def _rwlive_month_list(full):
+    today = date.today()
+    y, m = today.year, today.month          # the current month is included
+    out = []
     while (y, m) >= RWLIVE_START:
-        key = "%d-%02d" % (y, m)
-        try:
-            r = requests.get("%s/victims/%d/%02d" % (RWLIVE_API, y, m),
-                             headers=UA, timeout=120)
-            if r.status_code == 429:
-                print("  [rwlive] rate limited; sleeping 30s")
-                time.sleep(30)
-                continue
-            r.raise_for_status()
-            slim = []
-            for v in r.json() or []:
-                cc = (v.get("country") or "").strip().upper()
-                if not cc:
-                    continue
-                slim.append({
-                    "victim": (v.get("victim") or v.get("post_title") or "")[:140],
-                    "group": (v.get("group") or "")[:60],
-                    "attackdate": (v.get("attackdate") or v.get("discovered") or "")[:10],
-                    # kept separately so the gap between the two can be measured
-                    "discovered": (v.get("discovered") or "")[:10],
-                    "country": cc,
-                    "activity": (v.get("activity") or v.get("sector") or "")[:60],
-                    "press": len(v.get("press") or []),
-                })
-            months[key] = slim
-            total += len(slim)
-            print("  [rwlive] %s: %d claims (total %d)" % (key, len(slim), total))
-            time.sleep(1.0)                       # polite pacing - keep this
-        except Exception as exc:                  # noqa: BLE001
-            print("  [warn] rwlive %s failed (%s); continuing" % (key, exc))
-            time.sleep(3)
+        out.append((y, m))
+        if not full and len(out) > RWLIVE_RECENT_MONTHS:
+            break
         m -= 1
         if m == 0:
             y, m = y - 1, 12
-    if not months:
-        raise RuntimeError("no months retrieved")
-    return months
+    return out
+
+
+@source(id="rwlive", table="incidents", title="Ransomware.live leak-site claims",
+        licence="Free community API - fair use; review T&C for organisational use",
+        cadence="daily (recent months), weekly (full sweep)",
+        homepage="https://www.ransomware.live/about", expected=21000)
+def build_rwlive(out_dir=None):
+    """Nightly: the last few months only, merged into the previous file.
+    Weekly (RWLIVE_FULL=1, or no previous file): every month since 2020, so claims
+    withdrawn or re-dated upstream are picked up."""
+    previous = {}
+    if out_dir is not None:
+        try:
+            previous = json.loads((Path(out_dir) / "incidents" / "rwlive.json")
+                                  .read_text(encoding="utf-8"))
+            if not isinstance(previous, dict):
+                previous = {}
+        except Exception:                                 # noqa: BLE001
+            previous = {}
+    full = os.environ.get("RWLIVE_FULL", "") == "1" or not previous
+    months = {} if full else {k: list(v) for k, v in previous.items()}
+    fetched, failed = 0, []
+    for y, m in _rwlive_month_list(full):
+        key = "%d-%02d" % (y, m)
+        tries = 0
+        while True:
+            try:
+                r = requests.get("%s/victims/%d/%02d" % (RWLIVE_API, y, m),
+                                 headers=UA, timeout=120)
+                if r.status_code == 429 and tries < RWLIVE_MAX_429:
+                    tries += 1
+                    print("  [rwlive] rate limited on %s; waiting 30s (%d/%d)"
+                          % (key, tries, RWLIVE_MAX_429))
+                    time.sleep(30)
+                    continue
+                r.raise_for_status()
+                months[key] = _rwlive_slim(r.json())
+                fetched += 1
+                print("  [rwlive] %s: %d claims" % (key, len(months[key])))
+            except Exception as exc:                      # noqa: BLE001
+                failed.append(key)
+                if key in previous:
+                    months[key] = previous[key]           # keep last good copy
+                print("  [warn] rwlive %s failed (%s); %s"
+                      % (key, str(exc)[:80],
+                         "kept previous copy" if key in previous else "month missing"))
+                time.sleep(3)
+            break
+        time.sleep(1.0)                                   # polite pacing - keep this
+    if not fetched:
+        raise RuntimeError("no months retrieved (%d failed)" % len(failed))
+    print("  [rwlive] %s run: %d month(s) fetched, %d failed, %d held in total"
+          % ("full" if full else "incremental", fetched, len(failed), len(months)))
+    return dict(sorted(months.items(), reverse=True))
 
 
 # ===========================================================================
@@ -870,7 +969,8 @@ def build_icsadv():
         chosen = sorted(master, key=lambda f: f["name"])[-1:]
         print("  [icsadv] using consolidated file: %s" % chosen[0]["name"])
     else:
-        chosen = sorted(csvs, key=lambda f: f["name"])[:60]
+        # Newest 60 (names carry the advisory year), not the oldest.
+        chosen = sorted(csvs, key=lambda f: f["name"])[-60:]
         print("  [icsadv] no consolidated file - merging %d CSVs" % len(chosen))
 
     def parse_one(text, label):
@@ -1038,6 +1138,7 @@ def col_finder(header):
 # Optional overrides: CISSM_APP_ID, CISSM_ENTITY, CISSM_DOWNLOAD_URL
 CISSM_APP_ID_DEFAULT = "68c3041c75bb09b9728e4b37"      # from the site's own asset URLs
 CISSM_API_ROOT = "https://app.base44.com/api/apps"
+CISSM_DATASET_URL = "https://cybereventsdatabase.org/api/functions/api/getDataset"
 CISSM_ENTITY_CANDIDATES = ["CyberEvent", "CyberEvents", "Event", "Events",
                            "CyberEventRecord", "Incident", "Incidents"]
 CISSM_PAGE_SIZE = 500
@@ -1059,6 +1160,7 @@ def _cissm_get(url, key, params=None):
     """Base44 expects the key in an api_key header; send the common variants."""
     headers = dict(UA)
     headers["api_key"] = key
+    headers["x-api-key"] = key          # what the portal's own API page documents
     headers["Authorization"] = "Bearer " + key
     headers["Accept"] = "application/json"
     return requests.get(url, headers=headers, params=params or {}, timeout=120)
@@ -1112,6 +1214,20 @@ def _cissm_fetch_remote():
         return None
     print("  [cissm] CISSM_API_KEY seen (%d chars)" % len(key))
 
+    # The portal's own API page (checked November 2026) documents one endpoint for
+    # the full dataset, with the key in an x-api-key header. Try that first.
+    try:
+        r = _cissm_get(CISSM_DATASET_URL, key)
+        if r.status_code == 200:
+            rows = _cissm_rows_from_json(r.json())
+            if rows:
+                CISSM_DIAG = "ok via the documented getDataset API"
+                print("  [cissm] %d rows from getDataset" % len(rows))
+                return rows
+        print("  [cissm] getDataset answered HTTP %s - trying the other routes" % r.status_code)
+    except Exception as exc:                              # noqa: BLE001
+        print("  [cissm] getDataset failed (%s) - trying the other routes" % str(exc)[:80])
+
     explicit = os.environ.get("CISSM_DOWNLOAD_URL", "").strip()
     if explicit:
         print("  [cissm] using CISSM_DOWNLOAD_URL")
@@ -1143,6 +1259,12 @@ def _cissm_fetch_remote():
     return None
 
 
+# CISSM's own download is called cyber_events_<date>.csv, so that name counts as
+# CISSM too. Files that are never incident exports, whatever else is missing:
+MANUAL_ALIASES = {"cissm": ("cyber_events",)}
+MANUAL_NEVER = {"estimates", "sec_review", "review", "impact"}
+
+
 def _manual_rows(kind="cissm", allow_any=False):
     """Read an export the user downloaded from a portal and committed to the repo.
 
@@ -1155,15 +1277,17 @@ def _manual_rows(kind="cissm", allow_any=False):
         if d.exists():
             pool += [p for p in d.iterdir()
                      if p.suffix.lower() in (".csv", ".json") and p.is_file()]
-    named = [p for p in pool if kind in p.name.lower()]
+    aliases = MANUAL_ALIASES.get(kind, ())
+    named = [p for p in pool
+             if kind in p.name.lower() or any(a in p.name.lower() for a in aliases)]
     # never let another source's clearly-named export be claimed by this one
     # "impact" guards the curated overlay files: they live in the repo root as plain
     # .csv, and without this an unnamed-CISSM fallback could swallow them and emit
     # nonsense incidents.
-    others = {"cissm", "eurepoc", "impact"} - {kind}
+    others = ({"cissm", "eurepoc", "impact"} | MANUAL_NEVER) - {kind}
     generic = [p for p in pool
                if not any(o in p.name.lower() for o in others)
-               and kind not in p.name.lower()]
+               and p not in named]
     cands = sorted(named, key=lambda p: p.stat().st_size, reverse=True)
     # Two files matching one source is a trap: the larger wins, which is arbitrary,
     # and an old renamed copy can therefore outrank a fresh one. Say so.
@@ -2591,6 +2715,11 @@ EDGAR_MAX = 120
 EDGAR_REVIEW = Path("manual_sources") / "sec_review.csv"
 
 
+def _dashed(adsh):
+    """0001193125-24-123456 from 000119312524123456 (EDGAR accession number)."""
+    return "%s-%s-%s" % (adsh[:10], adsh[10:12], adsh[12:]) if len(adsh) == 18 else adsh
+
+
 @source(id="secedgar", table="review",
         title="SEC 8-K cyber incident disclosures (candidates for review)",
         licence="US Government work - public domain",
@@ -2659,8 +2788,9 @@ def build_sec_edgar(out_dir=None):
                 "company": company,
                 "filed": filed,
                 "item": kind,
-                "url": ("https://www.sec.gov/Archives/edgar/data/%s/%s/index.json"
-                        % (cik, adsh)) if adsh else
+                # the human-readable filing index, not the machine listing
+                "url": ("https://www.sec.gov/Archives/edgar/data/%s/%s/%s-index.html"
+                        % (cik, adsh, _dashed(adsh))) if adsh else
                        "https://www.sec.gov/cgi-bin/browse-edgar?action=getcompany&CIK=%s" % cik,
                 "review_status": "",          # a human fills this in
             })
@@ -2671,20 +2801,35 @@ def build_sec_edgar(out_dir=None):
     found.sort(key=lambda r: r["filed"], reverse=True)
 
     # Write candidates for review, preserving any decision already recorded.
+    # Earlier rows are kept even when the search no longer returns them: the search
+    # only reaches back so far, and dropping a decided row would lose the decision.
     prior = {}
     if EDGAR_REVIEW.exists():
         try:
             for row in csv.DictReader(EDGAR_REVIEW.open(encoding="utf-8")):
                 k = (row.get("cik", "") + "|" + row.get("filed", ""))
-                prior[k] = row.get("review_status", "")
+                url = row.get("url", "")
+                m = re.match(r"(https://www\.sec\.gov/Archives/edgar/data/\d+/(\d{18}))/index\.json$", url)
+                if m:
+                    row["url"] = "%s/%s-index.html" % (m.group(1), _dashed(m.group(2)))
+                prior[k] = row
         except Exception:                                 # noqa: BLE001
             prior = {}
     decided = 0
+    seen_keys = set()
     for f in found:
         k = f["cik"] + "|" + f["filed"]
-        if prior.get(k):
-            f["review_status"] = prior[k]
+        seen_keys.add(k)
+        if (prior.get(k) or {}).get("review_status"):
+            f["review_status"] = prior[k]["review_status"]
             decided += 1
+    for k, row in prior.items():
+        if k not in seen_keys and row.get("cik") and row.get("filed"):
+            found.append({c: row.get(c, "") for c in
+                          ("cik", "company", "filed", "item", "url", "review_status")})
+            if row.get("review_status"):
+                decided += 1
+    found.sort(key=lambda r: (r["filed"], r["cik"]), reverse=True)
     try:
         EDGAR_REVIEW.parent.mkdir(parents=True, exist_ok=True)
         with EDGAR_REVIEW.open("w", encoding="utf-8", newline="") as fh:
@@ -2712,6 +2857,164 @@ def build_reports():
 # ===========================================================================
 # Runner
 # ===========================================================================
+# ---------------------------------------------------------------------------
+# Keeping good data when a run goes wrong
+# ---------------------------------------------------------------------------
+# Three things can stop a source producing fresh data on a given run: it fails,
+# the shrink guard holds it back, or the workflow did not schedule it (see the
+# cadence in .github/workflows/update-cyber-data.yml). In every case the last good
+# files stay on disk AND stay listed in the manifest, because the app only loads
+# what the manifest lists. Before 3.19.0 a failed source was dropped from the
+# manifest and its layer silently vanished from the map.
+PROBLEMS = []                  # failed / held sources this run, for the guard issue
+GUARD_LABEL = "data-guard"
+MIN_SHRINK_ROWS = 25           # ignore tiny wobbles (withdrawn claims and the like)
+
+
+class HeldBack(Exception):
+    """Raised when a result is suspiciously smaller than last time."""
+
+
+def load_previous_manifest(out_dir):
+    try:
+        return json.loads((Path(out_dir) / "manifest.json").read_text(encoding="utf-8"))
+    except Exception:                                     # noqa: BLE001
+        return {}
+
+
+def shrink_check(src, rows_now, prev_entry, allow=()):
+    """Return a reason to hold the new result back, or "" to accept it."""
+    if not prev_entry or src.id in allow:
+        return ""
+    if not str(prev_entry.get("status", "")).startswith(("ok", "held", "failed")):
+        return ""
+    before = int(prev_entry.get("rows") or 0)
+    if before <= 0 or rows_now >= before * src.keep_ratio:
+        return ""
+    if before - rows_now < MIN_SHRINK_ROWS:
+        return ""
+    return ("shrank from %d to %d rows (below %d%% of last time); previous data kept. "
+            "If the drop is real, run the workflow by hand with allow_shrink=%s"
+            % (before, rows_now, round(src.keep_ratio * 100), src.id))
+
+
+# Where each source's files sit in manifest["tables"]: (group, file key).
+SLOTS = {
+    "eurepoc": ("incidents", "eurepoc"), "vcdb": ("incidents", "vcdb_partitions"),
+    "rwlive": ("incidents", "rwlive"), "cissm": ("incidents", "cissm"),
+    "eurepoc_live": ("incidents", "eurepoc_live"),
+    "kev": ("vulns", "kev"), "epss": ("vulns", "epss"), "cve": ("vulns", "cve"),
+    "nvdcve": ("vulns", "nvd"),
+    "icsadv": ("advisories", "ics"), "cisaaa": ("advisories", "aa"),
+    "attack": ("techniques", "attack"), "estimates": ("estimates", "estimates"),
+    "hibp": ("breaches", "hibp"), "secedgar": ("review", "secedgar"),
+    "reports": ("reports", "vendor"), "impact_overlay": ("impact", "impact_overlay"),
+}
+
+
+def _slot_files(entry):
+    if isinstance(entry, str):
+        return [entry]
+    if isinstance(entry, dict):
+        if "file" in entry:
+            return [entry["file"]]
+        return [v.get("file") for v in entry.values() if isinstance(v, dict) and v.get("file")]
+    return []
+
+
+def carry_forward(tables, prev_tables, fresh, out_dir):
+    """Copy last run's manifest entries for every source that has no fresh data."""
+    for sid, (group, key) in SLOTS.items():
+        if sid in fresh:
+            continue
+        old_group = prev_tables.get(group) or {}
+        old = (old_group.get("files") or {}).get(key)
+        if old is None:
+            continue
+        files = _slot_files(old)
+        root = Path(out_dir)
+        if any(f and not f.startswith("manual_sources/") and not (root / f).exists()
+               for f in files):
+            print("  [carry] %s: previous files missing on disk - not carried" % sid)
+            continue
+        new_group = tables.setdefault(group, {"files": {}})
+        new_group.setdefault("files", {})
+        if key in new_group["files"]:
+            continue
+        new_group["files"][key] = old
+        if group == "incidents":
+            cnt = (old_group.get("counts") or {}).get(sid)
+            if cnt is not None:
+                new_group.setdefault("counts", {})[sid] = cnt
+        for k, v in old_group.items():               # summary fields, e.g. review counts
+            if k not in ("files", "counts", "total") and k not in new_group:
+                new_group[k] = v
+        print("  [carry] %s: keeping previous data" % sid)
+    inc = tables.get("incidents")
+    if inc and inc.get("counts"):
+        inc["total"] = sum(inc["counts"].values())
+
+
+def carry_manual_exports(prev):
+    """Keep the age record of exports that were not read this run, re-aged to today."""
+    for kind, info in (prev.get("manual_exports") or {}).items():
+        if kind in MANUAL_EXPORTS or not isinstance(info, dict):
+            continue
+        info = dict(info)
+        try:
+            d = date.fromisoformat(info.get("dated") or "")
+            info["age_days"] = (date.today() - d).days
+        except ValueError:
+            pass
+        MANUAL_EXPORTS[kind] = info
+
+
+def notify_problems():
+    """Open or update one 'data-guard' issue when a source failed or was held back.
+    Closed again after a full run with no problems."""
+    token = os.environ.get("GITHUB_TOKEN", "").strip()
+    repo = os.environ.get("GITHUB_REPOSITORY", "").strip()
+    full = os.environ.get("BUILD_KIND", "") in ("weekly", "manual", "full")
+    if PROBLEMS:
+        print("\n   Problems this run (previous data kept for each):")
+        for p in PROBLEMS:
+            print("   - " + p)
+            if os.environ.get("GITHUB_ACTIONS"):
+                print("::warning title=Data guard::" + p.replace("\n", " "))
+    if not token or not repo:
+        return
+    try:
+        r = _gh("GET", "/repos/%s/issues?state=open&labels=%s" % (repo, GUARD_LABEL), token)
+        existing = r.json() if r.status_code == 200 else []
+        if not isinstance(existing, list):
+            existing = []
+        if PROBLEMS:
+            body = ("The nightly data build hit a problem with these sources. "
+                    "**The site is still showing their last good data**; nothing was "
+                    "lost.\n\n" + "\n".join("- " + p for p in PROBLEMS) +
+                    "\n\nMost failures are temporary and clear on the next run. If one "
+                    "persists for several days, ask Claude to look at it.\n\n"
+                    "_Raised by the data build (%s)._" % date.today().isoformat())
+            if existing:
+                _gh("PATCH", "/repos/%s/issues/%s" % (repo, existing[0]["number"]),
+                    token, {"body": body})
+            else:
+                _gh("POST", "/repos/%s/labels" % repo, token,
+                    {"name": GUARD_LABEL, "color": "fbca04",
+                     "description": "A data source failed or shrank; old data kept"})
+                _gh("POST", "/repos/%s/issues" % repo, token,
+                    {"title": "Data build: a source needs attention", "body": body,
+                     "labels": [GUARD_LABEL]})
+        elif existing and full:
+            for iss in existing:
+                _gh("POST", "/repos/%s/issues/%s/comments" % (repo, iss["number"]),
+                    token, {"body": "A full build ran cleanly - closing."})
+                _gh("PATCH", "/repos/%s/issues/%s" % (repo, iss["number"]), token,
+                    {"state": "closed"})
+    except Exception as exc:                              # noqa: BLE001
+        print("  [guard] issue update failed (%s)" % exc)
+
+
 def count_rows(data):
     """Row count for the manifest. Handles the several shapes connectors return."""
     if data is None:
@@ -2743,10 +3046,18 @@ def main():
     print("  is still running an older copy of this script.")
     print("=" * 66)
     only = set(x for x in os.environ.get("ONLY_SOURCES", "").split(",") if x)
+    allow_shrink = set(x for x in os.environ.get("ALLOW_SHRINK", "").split(",") if x)
+    prev = load_previous_manifest(out_dir)
+    prev_entries = {e.get("id"): e for e in prev.get("sources", []) if isinstance(e, dict)}
+    now_iso = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
     results, entries = {}, []
     for src in REGISTRY:
         if only and src.id not in only:
+            # Not scheduled this run (see the workflow's cadence). Keep last time's
+            # entry exactly as it was; the files are carried forward below.
+            if src.id in prev_entries:
+                entries.append(dict(prev_entries[src.id]))
             continue
         if src.needs_key and not os.environ.get(src.needs_key):
             print("[skip] %s: %s not set" % (src.id, src.needs_key))
@@ -2768,11 +3079,16 @@ def main():
                 raise RuntimeError("connector returned no data (None) instead of raising")
             if hasattr(data, "__len__") and len(data) == 0:
                 raise RuntimeError("connector returned an empty result")
+            rows_now = count_rows(data)
+            held = shrink_check(src, rows_now, prev_entries.get(src.id), allow_shrink)
+            if held:
+                raise HeldBack(held)
             results[src.id] = data
             entry = {"id": src.id, "title": src.title, "table": src.table,
                      "licence": src.licence, "homepage": src.homepage,
                      "cadence": src.cadence, "status": "ok",
-                     "expected": src.expected, "rows": count_rows(data),
+                     "expected": src.expected, "rows": rows_now,
+                     "refreshed": now_iso,
                      "seconds": round(time.time() - t0, 1)}
             # Surface the overlay's validation notes so a bad hand edit is visible in
             # the manifest the next morning, rather than silently plotting a wrong dot.
@@ -2781,11 +3097,20 @@ def main():
                 entry["status"] = "ok with %d warning(s)" % len(IMPACT_WARNINGS)
             entries.append(entry)
         except Exception as exc:                       # noqa: BLE001
-            print("[error] %s failed: %s - previous output left in place" % (src.id, exc))
+            # The previous files stay on disk AND stay listed in the manifest (see
+            # carry_forward below), so a failed source keeps showing its last good
+            # data instead of vanishing from the map.
+            old = prev_entries.get(src.id) or {}
+            kind = "held" if isinstance(exc, HeldBack) else "failed"
+            print("[%s] %s: %s - previous data kept" % (kind, src.id, exc))
+            PROBLEMS.append("%s %s: %s" % (src.id, kind, str(exc)[:200]))
             entries.append({"id": src.id, "title": src.title, "table": src.table,
                             "licence": src.licence, "homepage": src.homepage,
-                            "expected": src.expected,
-                            "status": "failed: %s" % str(exc)[:300], "rows": 0})
+                            "cadence": src.cadence, "expected": src.expected,
+                            "status": "%s: %s" % (kind, str(exc)[:300]),
+                            "rows": old.get("rows", 0),
+                            "refreshed": old.get("refreshed", prev.get("generated", "")),
+                            "carried": bool(old.get("rows"))})
 
     tables = {}
 
@@ -2928,6 +3253,20 @@ def main():
                                                         "rows": len(results["impact_overlay"]),
                                                         "figures": figs}}}
 
+    # Anything that did not produce fresh data this run (failed, held back by the
+    # shrink guard, or not scheduled) keeps its previous files in the manifest.
+    carry_forward(tables, prev.get("tables") or {}, set(results), out_dir)
+
+    # VCDB partitions for years that no longer appear upstream would otherwise sit
+    # on disk for ever, unreferenced.
+    parts = ((tables.get("incidents") or {}).get("files") or {}).get("vcdb_partitions")
+    if parts and results.get("vcdb"):
+        keep = {v["file"] for v in parts.values()}
+        for f in (out_dir / "incidents").glob("vcdb-*.json"):
+            if "incidents/" + f.name not in keep:
+                print("  [tidy] removing unreferenced %s" % f.name)
+                f.unlink()
+
     # A previous version could leave a table containing "null" behind. Remove any
     # such file so the app is never asked to parse it.
     for stale in (out_dir / "incidents").glob("*.json") if (out_dir / "incidents").exists() else []:
@@ -2942,7 +3281,8 @@ def main():
         "schema": SCHEMA_VERSION,
         "builder": BUILDER_VERSION,
         "builder_date": BUILDER_DATE,
-        "generated": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "generated": now_iso,
+        "run": os.environ.get("BUILD_KIND", "full" if not only else "partial"),
         "tables": tables,
         "sources": entries,
     }
@@ -2950,6 +3290,9 @@ def main():
     # precisely and a stale pin is visible rather than silent.
     if EUREPOC_RELEASE:
         manifest["releases"] = {"eurepoc": dict(EUREPOC_RELEASE)}
+    elif prev.get("releases"):
+        manifest["releases"] = prev["releases"]
+    carry_manual_exports(prev)
     # How old the hand-downloaded exports are, so the app can say so rather than
     # presenting months-old records with the same confidence as this morning's.
     if MANUAL_EXPORTS:
@@ -2987,6 +3330,7 @@ def main():
                 print("   %-10s %s  dated %s, %d days old%s"
                       % (kind, info.get("file", ""), info.get("dated", "?"), age, flag))
     notify_stale_exports()
+    notify_problems()
 
     print("\n   Verify in cyber_data/manifest.json:  \"builder\": \"%s\"" % BUILDER_VERSION)
 

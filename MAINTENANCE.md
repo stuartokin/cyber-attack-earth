@@ -1,15 +1,23 @@
 # Cyber Attack Earth — maintenance guide
 
-Everything here is done through the GitHub website. No terminal, no local Python.
+**Who does what (since November 2026).** Claude makes every code change, tests it and
+pushes it to `main`. Stuart's jobs are the judgement calls: refreshing the two hand
+exports until their API keys arrive, the SEC review queue, and the curated CSVs. To get
+anything else done, ask Claude in a session with this repository.
+
+**Tests:** `cd tests && npm test` (builder unit checks, data pack check, and a browser
+smoke test on five screen sizes). They also run on GitHub after every change to the
+app or the builder (`.github/workflows/tests.yml`).
 
 - **Live site:** https://stuartokin.github.io/cyber-attack-earth/
 - **App:** `index.html` (one self-contained file)
-- **Builder:** `build_cyber_data.py` (runs nightly via GitHub Actions)
+- **Builder:** `build_cyber_data.py` (run by GitHub Actions: fast sources nightly, everything weekly — see section 1a)
 - **Data pack:** `cyber_data/` (written by the Action — never edit by hand)
 - **Curated impact layer:** `impact_overlay.csv` + `impact_figures.csv` (yours to edit)
 - **Published estimates:** `estimates.csv` (yours to edit — what is *not* recorded)
 - **Review queue:** `manual_sources/sec_review.csv` (candidates awaiting your decision)
 - **Hand-downloaded exports:** `manual_sources/` (CISSM, EuRepoC TableView)
+- **Map libraries:** `vendor/` (self-hosted copies, licences in `vendor/licences/`; no CDN)
 
 ---
 
@@ -37,15 +45,38 @@ That is the whole routine when nothing is wrong.
   hand-downloaded export goes past forty days, and closes it when you refresh.
 * The build summary's **Manual exports** block, which prints the age of each one.
 
+## 1a. What runs when
+
+| When | What | Notes |
+|---|---|---|
+| Nightly (02:17 UTC, often started late by GitHub) | KEV, EPSS, CVE/NVD, CISA advisories, SEC filings, ransomware claims for the last three months **and the current month**, plus the hand-maintained files | About 3–4 minutes |
+| Weekly (Sunday 03:47 UTC) | Everything: also VCDB, ICS advisories, Have I Been Pwned, ATT&CK, a check for a new EuRepoC release on Zenodo, and a full re-sweep of every ransomware month since 2020 | About 8 minutes |
+| By hand (Actions → Update cyber data pack → Run workflow) | Everything | Optional `allow_shrink` box, see section 5 |
+
+A source that is not refreshed on a run keeps its previous data, and so does one that
+fails. Nothing disappears from the map because one night went wrong.
+
+**Two GitHub issues can appear by themselves:**
+
+- `data-refresh` — a hand-downloaded export is past 40 days old (section 2a/2b).
+- `data-guard` — a source failed or shrank sharply. The site keeps showing the last good
+  data; most failures clear on the next run. If one persists, ask Claude.
+
 ## 2. The monthly pass (about 30 minutes)
 
 ### 2a. Refresh the CISSM export (~5 min)
 
 CISSM has no open API, so the dataset arrives as a manual download.
 
+**This step disappears once Dr Harry issues an API key**: add it as the repository
+secret `CISSM_API_KEY` and the build fetches CISSM itself. (The site's own dataset API
+needs a key, and only CISSM's admins can create one — checked November 2026.)
+
 1. Go to https://cybereventsdatabase.org and use **Download Dataset**.
 2. Save as `.csv` or `.json` — **not** `.xlsx`, which the builder cannot read.
-3. In GitHub, **Add file → Upload files**, drop it in the repo root, commit.
+3. Put it in `manual_sources/` with the date in its name, e.g.
+   `manual_sources/cyber_events_2026-12-01.csv` (upload it on GitHub, or send it to
+   Claude to commit).
 4. **Delete the previous CISSM export in the same commit.**
 
 > **Why deleting matters:** when several unnamed exports are present the builder takes
@@ -63,8 +94,13 @@ Filenames the builder understands:
 The static EuRepoC release stops at **31 December 2024**. The TableView export is the
 only source of EuRepoC incidents after that date, so it goes stale quickly.
 
+**This step disappears once EuRepoC grants API access** (their site says to contact
+them for API access; their own Python package uses a token). Claude would then add a
+connector and the TableView download stops.
+
 1. Go to https://eurepoc.eu/table-view/ and export the table as CSV.
-2. Upload it with `eurepoc` in the filename; delete the previous one.
+2. Put it in `manual_sources/` with `eurepoc` and the date in its name, e.g.
+   `manual_sources/eurepoc_tableview_2026-12-01.csv`; delete the previous one.
 
 > These rows are **provisional** — most are still coded "Open" and their scores can
 > change on review. The app marks them as *Provisional coding* under **Provenance**,
@@ -73,7 +109,7 @@ only source of EuRepoC incidents after that date, so it goes stale quickly.
 
 ### 2c. Review the impact queue (~10 min)
 
-*(Available once the review-queue phase is built. Until then, skip to 2d.)*
+*(Not built yet — `impact_review.csv` does not exist. Skip to 2d.)*
 
 The builder writes candidate impact figures it found but will not publish unaided.
 
@@ -231,7 +267,7 @@ without them.
 |---|---|---|
 | `NVD_API_KEY` | Free key from nvd.nist.gov. Raises the CVE and vulnerability request rate. | Backfill is much slower but still works. |
 | `SEC_CONTACT` | `Your Project Name you@example.com`. SEC refuses requests without a contact email in the User-Agent. | The SEC connector is **skipped**, not failed. |
-| `CISSM_API_KEY` | For when Charles issues the key. | Falls back to the manual export. |
+| `CISSM_API_KEY` | For when Dr Harry issues the key. | Falls back to the manual export in `manual_sources/`. |
 
 `SEC_CONTACT` is a secret rather than a line in the source deliberately: this
 repository is public, and an email address in the code is a durable spam magnet.
@@ -240,38 +276,40 @@ repository is public, and an email address in the code is a durable spam magnet.
 
 ## 4. Deploying a new app or builder version
 
-1. **Add file → Upload files**, drop the file in, commit.
-2. Rename to exactly `index.html` (app) or `build_cyber_data.py` (builder). The Action
-   looks for that exact builder filename.
-3. For the app, load the site with a cache-buster: `...?v=2`, `?v=3`, and so on.
-4. Confirm the welcome screen shows the new version number.
+Claude does this: change, run `cd tests && npm test`, bump the version (`APP_VERSION`
+and the in-app changelog for the app; `BUILDER_VERSION` and the history at the top of
+`build_cyber_data.py` for the builder), push to `main`. GitHub Pages publishes within a
+minute or two; the Tests workflow runs on GitHub as well.
 
-For the builder, wait for the nightly Action or trigger it from the **Actions** tab,
-then check `"builder"` in the manifest matches what you uploaded.
+To check: the welcome screen shows the app version, and `cyber_data/manifest.json` →
+`"builder"` shows the builder version after the next data run.
 
 **Repository settings that must stay as they are:**
 
 - Settings → Actions → General → Workflow permissions → **Read and write**
-- Settings → Secrets and variables → Actions → `NVD_API_KEY`, `CISSM_API_KEY`
-- The workflow file lives at `.github/workflows/update-cyber-data.yml`
+- Settings → Secrets and variables → Actions → `NVD_API_KEY`, `SEC_CONTACT` (and
+  `CISSM_API_KEY` once issued)
+- The workflow files live in `.github/workflows/`
 
 ---
 
 ## 5. When a source fails
 
-Find the source in `manifest.json` → `sources` and read its `status`.
+Find the source in `manifest.json` → `sources` and read its `status`. In the app, the
+same appears under Help → Data & sources, and the status chip turns amber.
 
 | Status | What it means | What to do |
 |---|---|---|
-| `failed: HTTP 403` / `429` | Rate-limited or blocked | Usually transient. If it persists for days, the endpoint has probably changed. |
-| `failed: missing 1 required positional argument` | A code fault, not a data fault | Report it. This pattern has bitten twice: a decorator separated from its function. |
-| `failed: connector returned an empty result` | The fetch worked but parsed to nothing | The source's format has changed. |
+| `failed: HTTP 403` / `429` | Rate-limited or blocked | Usually clears next run. The previous data is still shown (`"carried": true`). |
+| `held: shrank from N to M rows` | The shrink guard stopped a result under 90% of last time | Often an upstream hiccup; wait a night. If the drop is real (e.g. a source withdrew records), run the workflow by hand with that source id in `allow_shrink`. |
+| `failed: connector returned an empty result` | The fetch worked but parsed to nothing | The source's format has changed — ask Claude. |
 | `skipped (no key)` | An API key is absent | Check the repository secret still exists. |
-| `expected 17169, rows 0` for `cissm` | No usable export in the repo | Do step 2a. |
 | `ok with N warning(s)` for `impact_overlay` | Build fine, some rows rejected | Read the `warnings` array. |
 
-A failing source **does not** wipe its previous output — the last good file stays in
-place, so the site keeps working on slightly older data.
+**A failing source keeps its last good files, and they stay listed in the manifest**,
+so the site keeps working on slightly older data. Each entry has a `refreshed` date
+saying when it last succeeded. (Before builder 3.19.0 a failed source dropped out of
+the manifest and its layer vanished from the map despite this guide saying otherwise.)
 
 ---
 
