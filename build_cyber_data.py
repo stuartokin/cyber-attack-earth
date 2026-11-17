@@ -26,6 +26,8 @@ VERSION HISTORY (newest first) - check manifest.json "builder" to see what ran
         name, and the review and estimates files can never be read as CISSM.
         Unreferenced VCDB year files are tidied away. With CISSM_API_KEY set, the
         portal's documented getDataset endpoint (x-api-key header) is tried first.
+        Calls to api.github.com (ICS advisory listing) use the workflow's token,
+        avoiding the 60-an-hour anonymous limit that refused it on the first run.
  3.18.2 SEC returned 403 on the first run. The endpoint and query were right; the
         User-Agent was not. SEC's fair-access policy requires a contact EMAIL
         address, and a project URL does not satisfy it. The address now comes from
@@ -324,7 +326,14 @@ def source(**kw):
 # Fetch helpers
 # ---------------------------------------------------------------------------
 def get(url, timeout=300, **kw):
-    r = requests.get(url, headers=UA, timeout=timeout, **kw)
+    headers = dict(UA)
+    # GitHub's API allows 60 anonymous calls an hour per address, shared by every
+    # job on a runner; the workflow's own token raises that to thousands. Without it
+    # the ICS advisory listing was refused on the first 3.19.0 run.
+    tok = os.environ.get("GITHUB_TOKEN", "").strip()
+    if tok and url.startswith("https://api.github.com/"):
+        headers["Authorization"] = "Bearer " + tok
+    r = requests.get(url, headers=headers, timeout=timeout, **kw)
     r.raise_for_status()
     return r
 

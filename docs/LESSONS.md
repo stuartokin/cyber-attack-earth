@@ -34,3 +34,6 @@ What went wrong or surprised us, so the next session does not repeat it. Newest 
    backup *branch* via the GitHub API worked.
 10. **Don't get round access controls.** CISSM's dataset API and EuRepoC's API both need
     keys. Ask the providers; don't scrape their dashboards.
+11. **Anonymous GitHub API calls from Actions share a 60-an-hour limit.** The ICS listing
+    was refused on the first 3.19.0 run (the shrink/carry logic kept its old data, as
+    designed). Builder now sends the workflow's `GITHUB_TOKEN` to api.github.com.
