@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.20.0",
  "builder_date": "2026-11-17",
- "generated": "2026-11-18T10:14:32+00:00",
+ "generated": "2026-11-19T10:26:10+00:00",
  "run": "nightly",
  "tables": {
   "incidents": {
@@ -123,23 +123,23 @@
     }
    },
    "counts": {
-    "rwlive": 25640,
-    "cissm": 17753,
+    "rwlive": 25697,
+    "cissm": 18023,
     "eurepoc_live": 1321,
     "eurepoc": 4296,
     "vcdb": 10367
    },
-   "total": 59377
+   "total": 59704
   },
   "vulns": {
    "files": {
     "kev": {
      "file": "vulns/kev.json",
-     "rows": 1782
+     "rows": 1786
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17555,
+     "rows": 17558,
      "min_score": 0.1
     },
     "cve": {
@@ -148,8 +148,8 @@
     },
     "nvd": {
      "file": "vulns/nvd.json",
-     "rows": 1782,
-     "scored": 1782
+     "rows": 1786,
+     "scored": 1786
     }
    }
   },
@@ -265,11 +265,11 @@
    "cadence": "daily (recent months), weekly (full sweep)",
    "status": "ok",
    "expected": 21000,
-   "rows": 25640,
-   "refreshed": "2026-11-18T10:14:32+00:00",
-   "seconds": 8.8,
-   "change": 42,
-   "changed_at": "2026-11-18T10:14:32+00:00"
+   "rows": 25697,
+   "refreshed": "2026-11-19T10:26:10+00:00",
+   "seconds": 10.3,
+   "change": 57,
+   "changed_at": "2026-11-19T10:26:10+00:00"
   },
   {
    "id": "kev",
@@ -280,11 +280,11 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 1650,
-   "rows": 1782,
-   "refreshed": "2026-11-18T10:14:32+00:00",
-   "seconds": 0.3,
-   "change": 1,
-   "changed_at": "2026-11-18T10:14:32+00:00"
+   "rows": 1786,
+   "refreshed": "2026-11-19T10:26:10+00:00",
+   "seconds": 0.1,
+   "change": 4,
+   "changed_at": "2026-11-19T10:26:10+00:00"
   },
   {
    "id": "epss",
@@ -295,11 +295,11 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17555,
-   "refreshed": "2026-11-18T10:14:32+00:00",
-   "seconds": 0.9,
-   "change": 0,
-   "changed_at": "2026-11-17T14:11:38+00:00"
+   "rows": 17558,
+   "refreshed": "2026-11-19T10:26:10+00:00",
+   "seconds": 0.7,
+   "change": 3,
+   "changed_at": "2026-11-19T10:26:10+00:00"
   },
   {
    "id": "attack",
@@ -339,8 +339,8 @@
    "status": "ok",
    "expected": 0,
    "rows": 1321,
-   "refreshed": "2026-11-18T10:14:32+00:00",
-   "seconds": 0.6,
+   "refreshed": "2026-11-19T10:26:10+00:00",
+   "seconds": 0.5,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
   },
@@ -353,11 +353,11 @@
    "cadence": "manual export",
    "status": "ok",
    "expected": 17700,
-   "rows": 17753,
-   "refreshed": "2026-11-18T10:14:32+00:00",
-   "seconds": 7.5,
-   "change": 0,
-   "changed_at": "2026-11-17T14:11:38+00:00"
+   "rows": 18023,
+   "refreshed": "2026-11-19T10:26:10+00:00",
+   "seconds": 7.1,
+   "change": 270,
+   "changed_at": "2026-11-19T10:26:10+00:00"
   },
   {
    "id": "cve",
@@ -369,8 +369,8 @@
    "status": "ok",
    "expected": 320,
    "rows": 323,
-   "refreshed": "2026-11-18T10:14:32+00:00",
-   "seconds": 31.5,
+   "refreshed": "2026-11-19T10:26:10+00:00",
+   "seconds": 31.4,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
   },
@@ -384,8 +384,8 @@
    "status": "ok with 1 warning(s)",
    "expected": 0,
    "rows": 56,
-   "refreshed": "2026-11-18T10:14:32+00:00",
-   "seconds": 0.0,
+   "refreshed": "2026-11-19T10:26:10+00:00",
+   "seconds": 0.1,
    "change": 0,
    "changed_at": "2026-11-17T21:11:21+00:00",
    "warnings": [
@@ -401,11 +401,11 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 0,
-   "rows": 1782,
-   "refreshed": "2026-11-18T10:14:32+00:00",
-   "seconds": 1.1,
-   "change": 1,
-   "changed_at": "2026-11-18T10:14:32+00:00"
+   "rows": 1786,
+   "refreshed": "2026-11-19T10:26:10+00:00",
+   "seconds": 4.8,
+   "change": 4,
+   "changed_at": "2026-11-19T10:26:10+00:00"
   },
   {
    "id": "cisaaa",
@@ -417,8 +417,8 @@
    "status": "ok",
    "expected": 0,
    "rows": 18,
-   "refreshed": "2026-11-18T10:14:32+00:00",
-   "seconds": 2.1,
+   "refreshed": "2026-11-19T10:26:10+00:00",
+   "seconds": 1.9,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
   },
@@ -432,7 +432,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 16,
-   "refreshed": "2026-11-18T10:14:32+00:00",
+   "refreshed": "2026-11-19T10:26:10+00:00",
    "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
@@ -460,9 +460,9 @@
    "status": "ok",
    "expected": 0,
    "rows": 55,
-   "refreshed": "2026-11-18T10:14:32+00:00",
-   "seconds": 1.6,
-   "change": 1,
+   "refreshed": "2026-11-19T10:26:10+00:00",
+   "seconds": 0.6,
+   "change": 0,
    "changed_at": "2026-11-18T10:14:32+00:00"
   },
   {
@@ -475,7 +475,7 @@
    "status": "ok",
    "expected": 15,
    "rows": 15,
-   "refreshed": "2026-11-18T10:14:32+00:00",
+   "refreshed": "2026-11-19T10:26:10+00:00",
    "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
@@ -496,7 +496,7 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-11-17.csv",
    "dated": "2026-11-17",
-   "age_days": 1,
+   "age_days": 2,
    "limit_days": 40
   },
   "estimates": {
