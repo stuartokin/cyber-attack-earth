@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.20.0",
  "builder_date": "2026-11-17",
- "generated": "2026-11-19T10:26:10+00:00",
+ "generated": "2026-11-20T10:04:41+00:00",
  "run": "nightly",
  "tables": {
   "incidents": {
@@ -123,13 +123,13 @@
     }
    },
    "counts": {
-    "rwlive": 25697,
+    "rwlive": 25759,
     "cissm": 18023,
     "eurepoc_live": 1321,
     "eurepoc": 4296,
     "vcdb": 10367
    },
-   "total": 59704
+   "total": 59766
   },
   "vulns": {
    "files": {
@@ -139,7 +139,7 @@
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17558,
+     "rows": 17562,
      "min_score": 0.1
     },
     "cve": {
@@ -265,11 +265,11 @@
    "cadence": "daily (recent months), weekly (full sweep)",
    "status": "ok",
    "expected": 21000,
-   "rows": 25697,
-   "refreshed": "2026-11-19T10:26:10+00:00",
-   "seconds": 10.3,
-   "change": 57,
-   "changed_at": "2026-11-19T10:26:10+00:00"
+   "rows": 25759,
+   "refreshed": "2026-11-20T10:04:41+00:00",
+   "seconds": 8.8,
+   "change": 62,
+   "changed_at": "2026-11-20T10:04:41+00:00"
   },
   {
    "id": "kev",
@@ -281,9 +281,9 @@
    "status": "ok",
    "expected": 1650,
    "rows": 1786,
-   "refreshed": "2026-11-19T10:26:10+00:00",
-   "seconds": 0.1,
-   "change": 4,
+   "refreshed": "2026-11-20T10:04:41+00:00",
+   "seconds": 0.2,
+   "change": 0,
    "changed_at": "2026-11-19T10:26:10+00:00"
   },
   {
@@ -295,11 +295,11 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17558,
-   "refreshed": "2026-11-19T10:26:10+00:00",
-   "seconds": 0.7,
-   "change": 3,
-   "changed_at": "2026-11-19T10:26:10+00:00"
+   "rows": 17562,
+   "refreshed": "2026-11-20T10:04:41+00:00",
+   "seconds": 0.9,
+   "change": 4,
+   "changed_at": "2026-11-20T10:04:41+00:00"
   },
   {
    "id": "attack",
@@ -339,7 +339,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1321,
-   "refreshed": "2026-11-19T10:26:10+00:00",
+   "refreshed": "2026-11-20T10:04:41+00:00",
    "seconds": 0.5,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
@@ -354,9 +354,9 @@
    "status": "ok",
    "expected": 17700,
    "rows": 18023,
-   "refreshed": "2026-11-19T10:26:10+00:00",
-   "seconds": 7.1,
-   "change": 270,
+   "refreshed": "2026-11-20T10:04:41+00:00",
+   "seconds": 7.0,
+   "change": 0,
    "changed_at": "2026-11-19T10:26:10+00:00"
   },
   {
@@ -369,8 +369,8 @@
    "status": "ok",
    "expected": 320,
    "rows": 323,
-   "refreshed": "2026-11-19T10:26:10+00:00",
-   "seconds": 31.4,
+   "refreshed": "2026-11-20T10:04:41+00:00",
+   "seconds": 27.2,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
   },
@@ -384,8 +384,8 @@
    "status": "ok with 1 warning(s)",
    "expected": 0,
    "rows": 56,
-   "refreshed": "2026-11-19T10:26:10+00:00",
-   "seconds": 0.1,
+   "refreshed": "2026-11-20T10:04:41+00:00",
+   "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T21:11:21+00:00",
    "warnings": [
@@ -402,9 +402,9 @@
    "status": "ok",
    "expected": 0,
    "rows": 1786,
-   "refreshed": "2026-11-19T10:26:10+00:00",
-   "seconds": 4.8,
-   "change": 4,
+   "refreshed": "2026-11-20T10:04:41+00:00",
+   "seconds": 0.2,
+   "change": 0,
    "changed_at": "2026-11-19T10:26:10+00:00"
   },
   {
@@ -417,8 +417,8 @@
    "status": "ok",
    "expected": 0,
    "rows": 18,
-   "refreshed": "2026-11-19T10:26:10+00:00",
-   "seconds": 1.9,
+   "refreshed": "2026-11-20T10:04:41+00:00",
+   "seconds": 1.8,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
   },
@@ -432,7 +432,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 16,
-   "refreshed": "2026-11-19T10:26:10+00:00",
+   "refreshed": "2026-11-20T10:04:41+00:00",
    "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
@@ -460,8 +460,8 @@
    "status": "ok",
    "expected": 0,
    "rows": 55,
-   "refreshed": "2026-11-19T10:26:10+00:00",
-   "seconds": 0.6,
+   "refreshed": "2026-11-20T10:04:41+00:00",
+   "seconds": 0.8,
    "change": 0,
    "changed_at": "2026-11-18T10:14:32+00:00"
   },
@@ -475,7 +475,7 @@
    "status": "ok",
    "expected": 15,
    "rows": 15,
-   "refreshed": "2026-11-19T10:26:10+00:00",
+   "refreshed": "2026-11-20T10:04:41+00:00",
    "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
@@ -496,7 +496,7 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-11-17.csv",
    "dated": "2026-11-17",
-   "age_days": 2,
+   "age_days": 3,
    "limit_days": 40
   },
   "estimates": {
