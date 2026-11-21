@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.20.0",
  "builder_date": "2026-11-17",
- "generated": "2026-11-20T10:04:41+00:00",
+ "generated": "2026-11-21T09:53:41+00:00",
  "run": "nightly",
  "tables": {
   "incidents": {
@@ -123,23 +123,23 @@
     }
    },
    "counts": {
-    "rwlive": 25759,
+    "rwlive": 25786,
     "cissm": 18023,
     "eurepoc_live": 1321,
     "eurepoc": 4296,
     "vcdb": 10367
    },
-   "total": 59766
+   "total": 59793
   },
   "vulns": {
    "files": {
     "kev": {
      "file": "vulns/kev.json",
-     "rows": 1786
+     "rows": 1790
     },
     "epss": {
      "file": "vulns/epss.json",
-     "rows": 17562,
+     "rows": 17567,
      "min_score": 0.1
     },
     "cve": {
@@ -148,8 +148,8 @@
     },
     "nvd": {
      "file": "vulns/nvd.json",
-     "rows": 1786,
-     "scored": 1786
+     "rows": 1790,
+     "scored": 1790
     }
    }
   },
@@ -183,7 +183,7 @@
    "files": {
     "secedgar": {
      "file": "manual_sources/sec_review.csv",
-     "rows": 55,
+     "rows": 56,
      "decided": 0,
      "counted_as_incidents": false,
      "note": "Candidates only. Nothing here reaches the map until a human records a decision in the review file."
@@ -265,11 +265,11 @@
    "cadence": "daily (recent months), weekly (full sweep)",
    "status": "ok",
    "expected": 21000,
-   "rows": 25759,
-   "refreshed": "2026-11-20T10:04:41+00:00",
-   "seconds": 8.8,
-   "change": 62,
-   "changed_at": "2026-11-20T10:04:41+00:00"
+   "rows": 25786,
+   "refreshed": "2026-11-21T09:53:41+00:00",
+   "seconds": 9.1,
+   "change": 27,
+   "changed_at": "2026-11-21T09:53:41+00:00"
   },
   {
    "id": "kev",
@@ -280,11 +280,11 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 1650,
-   "rows": 1786,
-   "refreshed": "2026-11-20T10:04:41+00:00",
-   "seconds": 0.2,
-   "change": 0,
-   "changed_at": "2026-11-19T10:26:10+00:00"
+   "rows": 1790,
+   "refreshed": "2026-11-21T09:53:41+00:00",
+   "seconds": 0.3,
+   "change": 4,
+   "changed_at": "2026-11-21T09:53:41+00:00"
   },
   {
    "id": "epss",
@@ -295,11 +295,11 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 17000,
-   "rows": 17562,
-   "refreshed": "2026-11-20T10:04:41+00:00",
-   "seconds": 0.9,
-   "change": 4,
-   "changed_at": "2026-11-20T10:04:41+00:00"
+   "rows": 17567,
+   "refreshed": "2026-11-21T09:53:41+00:00",
+   "seconds": 1.1,
+   "change": 5,
+   "changed_at": "2026-11-21T09:53:41+00:00"
   },
   {
    "id": "attack",
@@ -339,8 +339,8 @@
    "status": "ok",
    "expected": 0,
    "rows": 1321,
-   "refreshed": "2026-11-20T10:04:41+00:00",
-   "seconds": 0.5,
+   "refreshed": "2026-11-21T09:53:41+00:00",
+   "seconds": 0.7,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
   },
@@ -354,8 +354,8 @@
    "status": "ok",
    "expected": 17700,
    "rows": 18023,
-   "refreshed": "2026-11-20T10:04:41+00:00",
-   "seconds": 7.0,
+   "refreshed": "2026-11-21T09:53:41+00:00",
+   "seconds": 8.4,
    "change": 0,
    "changed_at": "2026-11-19T10:26:10+00:00"
   },
@@ -369,8 +369,8 @@
    "status": "ok",
    "expected": 320,
    "rows": 323,
-   "refreshed": "2026-11-20T10:04:41+00:00",
-   "seconds": 27.2,
+   "refreshed": "2026-11-21T09:53:41+00:00",
+   "seconds": 23.5,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
   },
@@ -384,7 +384,7 @@
    "status": "ok with 1 warning(s)",
    "expected": 0,
    "rows": 56,
-   "refreshed": "2026-11-20T10:04:41+00:00",
+   "refreshed": "2026-11-21T09:53:41+00:00",
    "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T21:11:21+00:00",
@@ -401,11 +401,11 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 0,
-   "rows": 1786,
-   "refreshed": "2026-11-20T10:04:41+00:00",
-   "seconds": 0.2,
-   "change": 0,
-   "changed_at": "2026-11-19T10:26:10+00:00"
+   "rows": 1790,
+   "refreshed": "2026-11-21T09:53:41+00:00",
+   "seconds": 4.2,
+   "change": 4,
+   "changed_at": "2026-11-21T09:53:41+00:00"
   },
   {
    "id": "cisaaa",
@@ -417,8 +417,8 @@
    "status": "ok",
    "expected": 0,
    "rows": 18,
-   "refreshed": "2026-11-20T10:04:41+00:00",
-   "seconds": 1.8,
+   "refreshed": "2026-11-21T09:53:41+00:00",
+   "seconds": 2.1,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
   },
@@ -432,7 +432,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 16,
-   "refreshed": "2026-11-20T10:04:41+00:00",
+   "refreshed": "2026-11-21T09:53:41+00:00",
    "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
@@ -459,11 +459,11 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 0,
-   "rows": 55,
-   "refreshed": "2026-11-20T10:04:41+00:00",
-   "seconds": 0.8,
-   "change": 0,
-   "changed_at": "2026-11-18T10:14:32+00:00"
+   "rows": 56,
+   "refreshed": "2026-11-21T09:53:41+00:00",
+   "seconds": 1.2,
+   "change": 1,
+   "changed_at": "2026-11-21T09:53:41+00:00"
   },
   {
    "id": "reports",
@@ -475,7 +475,7 @@
    "status": "ok",
    "expected": 15,
    "rows": 15,
-   "refreshed": "2026-11-20T10:04:41+00:00",
+   "refreshed": "2026-11-21T09:53:41+00:00",
    "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
@@ -496,7 +496,7 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-11-17.csv",
    "dated": "2026-11-17",
-   "age_days": 3,
+   "age_days": 4,
    "limit_days": 40
   },
   "estimates": {
