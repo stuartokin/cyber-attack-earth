@@ -2,11 +2,14 @@
  "schema": 3,
  "builder": "3.20.0",
  "builder_date": "2026-11-17",
- "generated": "2026-11-22T12:00:48+00:00",
- "run": "weekly",
+ "generated": "2026-11-23T10:50:11+00:00",
+ "run": "nightly",
  "tables": {
   "incidents": {
    "files": {
+    "rwlive": "incidents/rwlive.json",
+    "cissm": "incidents/cissm.json",
+    "eurepoc_live": "incidents/eurepoc_live.json",
     "eurepoc": "incidents/eurepoc.json",
     "vcdb_partitions": {
      "2000": {
@@ -117,19 +120,16 @@
       "file": "incidents/vcdb-2026.json",
       "rows": 7
      }
-    },
-    "rwlive": "incidents/rwlive.json",
-    "cissm": "incidents/cissm.json",
-    "eurepoc_live": "incidents/eurepoc_live.json"
+    }
    },
    "counts": {
-    "eurepoc": 4296,
-    "vcdb": 10367,
-    "rwlive": 25805,
+    "rwlive": 25851,
     "cissm": 18023,
-    "eurepoc_live": 1321
+    "eurepoc_live": 1321,
+    "eurepoc": 4296,
+    "vcdb": 10367
    },
-   "total": 59812
+   "total": 59858
   },
   "vulns": {
    "files": {
@@ -155,25 +155,15 @@
   },
   "advisories": {
    "files": {
-    "ics": {
-     "file": "advisories/ics.json",
-     "rows": 4079
-    },
     "aa": {
      "file": "advisories/aa.json",
      "rows": 18,
      "with_cves": 1,
      "with_groups": 17
-    }
-   }
-  },
-  "techniques": {
-   "files": {
-    "attack": {
-     "file": "techniques/attack.json",
-     "techniques": 706,
-     "groups": 178,
-     "campaigns": 57
+    },
+    "ics": {
+     "file": "advisories/ics.json",
+     "rows": 4079
     }
    }
   },
@@ -186,17 +176,6 @@
      "publishers": 3,
      "summed": false,
      "note": "Published estimates from named sources. Different populations, periods and definitions - not comparable with each other or with the incident counts, and deliberately never totalled."
-    }
-   }
-  },
-  "breaches": {
-   "files": {
-    "hibp": {
-     "file": "breaches/hibp.json",
-     "rows": 1052,
-     "people": 17862709006,
-     "counted_as_incidents": false,
-     "note": "Named breaches with account counts. Overlaps the incident tables heavily, so it is held separately and never added."
     }
    }
   },
@@ -225,6 +204,27 @@
      "file": "impact/overlay.json",
      "rows": 56,
      "figures": 142
+    }
+   }
+  },
+  "techniques": {
+   "files": {
+    "attack": {
+     "file": "techniques/attack.json",
+     "techniques": 706,
+     "groups": 178,
+     "campaigns": 57
+    }
+   }
+  },
+  "breaches": {
+   "files": {
+    "hibp": {
+     "file": "breaches/hibp.json",
+     "rows": 1052,
+     "people": 17862709006,
+     "counted_as_incidents": false,
+     "note": "Named breaches with account counts. Overlaps the incident tables heavily, so it is held separately and never added."
     }
    }
   }
@@ -269,11 +269,11 @@
    "cadence": "daily (recent months), weekly (full sweep)",
    "status": "ok",
    "expected": 21000,
-   "rows": 25805,
-   "refreshed": "2026-11-22T12:00:48+00:00",
-   "seconds": 187.6,
-   "change": 1,
-   "changed_at": "2026-11-22T12:00:48+00:00"
+   "rows": 25851,
+   "refreshed": "2026-11-23T10:50:11+00:00",
+   "seconds": 8.9,
+   "change": 46,
+   "changed_at": "2026-11-23T10:50:11+00:00"
   },
   {
    "id": "kev",
@@ -285,8 +285,8 @@
    "status": "ok",
    "expected": 1650,
    "rows": 1790,
-   "refreshed": "2026-11-22T12:00:48+00:00",
-   "seconds": 0.1,
+   "refreshed": "2026-11-23T10:50:11+00:00",
+   "seconds": 0.2,
    "change": 0,
    "changed_at": "2026-11-21T09:53:41+00:00"
   },
@@ -300,8 +300,8 @@
    "status": "ok",
    "expected": 17000,
    "rows": 17579,
-   "refreshed": "2026-11-22T12:00:48+00:00",
-   "seconds": 0.7,
+   "refreshed": "2026-11-23T10:50:11+00:00",
+   "seconds": 0.8,
    "change": 0,
    "changed_at": "2026-11-22T09:49:59+00:00"
   },
@@ -345,7 +345,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1321,
-   "refreshed": "2026-11-22T12:00:48+00:00",
+   "refreshed": "2026-11-23T10:50:11+00:00",
    "seconds": 0.5,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
@@ -360,8 +360,8 @@
    "status": "ok",
    "expected": 17700,
    "rows": 18023,
-   "refreshed": "2026-11-22T12:00:48+00:00",
-   "seconds": 7.7,
+   "refreshed": "2026-11-23T10:50:11+00:00",
+   "seconds": 5.8,
    "change": 0,
    "changed_at": "2026-11-19T10:26:10+00:00"
   },
@@ -375,8 +375,8 @@
    "status": "ok",
    "expected": 320,
    "rows": 323,
-   "refreshed": "2026-11-22T12:00:48+00:00",
-   "seconds": 32.0,
+   "refreshed": "2026-11-23T10:50:11+00:00",
+   "seconds": 27.2,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
   },
@@ -390,7 +390,7 @@
    "status": "ok with 1 warning(s)",
    "expected": 0,
    "rows": 56,
-   "refreshed": "2026-11-22T12:00:48+00:00",
+   "refreshed": "2026-11-23T10:50:11+00:00",
    "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T21:11:21+00:00",
@@ -408,8 +408,8 @@
    "status": "ok",
    "expected": 0,
    "rows": 1790,
-   "refreshed": "2026-11-22T12:00:48+00:00",
-   "seconds": 0.2,
+   "refreshed": "2026-11-23T10:50:11+00:00",
+   "seconds": 0.3,
    "change": 0,
    "changed_at": "2026-11-21T09:53:41+00:00"
   },
@@ -423,8 +423,8 @@
    "status": "ok",
    "expected": 0,
    "rows": 18,
-   "refreshed": "2026-11-22T12:00:48+00:00",
-   "seconds": 1.7,
+   "refreshed": "2026-11-23T10:50:11+00:00",
+   "seconds": 2.1,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
   },
@@ -438,7 +438,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 16,
-   "refreshed": "2026-11-22T12:00:48+00:00",
+   "refreshed": "2026-11-23T10:50:11+00:00",
    "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
@@ -468,8 +468,8 @@
    "status": "ok",
    "expected": 0,
    "rows": 56,
-   "refreshed": "2026-11-22T12:00:48+00:00",
-   "seconds": 0.9,
+   "refreshed": "2026-11-23T10:50:11+00:00",
+   "seconds": 1.7,
    "change": 0,
    "changed_at": "2026-11-21T09:53:41+00:00"
   },
@@ -483,7 +483,7 @@
    "status": "ok",
    "expected": 15,
    "rows": 15,
-   "refreshed": "2026-11-22T12:00:48+00:00",
+   "refreshed": "2026-11-23T10:50:11+00:00",
    "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
@@ -504,7 +504,7 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-11-17.csv",
    "dated": "2026-11-17",
-   "age_days": 5,
+   "age_days": 6,
    "limit_days": 40
   },
   "estimates": {
