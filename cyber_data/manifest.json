@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.20.0",
  "builder_date": "2026-11-17",
- "generated": "2026-11-25T11:22:15+00:00",
+ "generated": "2026-11-26T10:57:56+00:00",
  "run": "nightly",
  "tables": {
   "incidents": {
@@ -123,24 +123,19 @@
     }
    },
    "counts": {
-    "rwlive": 25925,
+    "rwlive": 25963,
     "cissm": 18023,
     "eurepoc_live": 1321,
     "eurepoc": 4296,
     "vcdb": 10367
    },
-   "total": 59932
+   "total": 59970
   },
   "vulns": {
    "files": {
     "kev": {
      "file": "vulns/kev.json",
-     "rows": 1795
-    },
-    "epss": {
-     "file": "vulns/epss.json",
-     "rows": 17783,
-     "min_score": 0.1
+     "rows": 1805
     },
     "cve": {
      "file": "vulns/cve.json",
@@ -148,8 +143,13 @@
     },
     "nvd": {
      "file": "vulns/nvd.json",
-     "rows": 1794,
-     "scored": 1794
+     "rows": 1805,
+     "scored": 1804
+    },
+    "epss": {
+     "file": "vulns/epss.json",
+     "rows": 17783,
+     "min_score": 0.1
     }
    }
   },
@@ -269,11 +269,11 @@
    "cadence": "daily (recent months), weekly (full sweep)",
    "status": "ok",
    "expected": 21000,
-   "rows": 25925,
-   "refreshed": "2026-11-25T11:22:15+00:00",
-   "seconds": 9.7,
-   "change": 41,
-   "changed_at": "2026-11-25T11:22:15+00:00"
+   "rows": 25963,
+   "refreshed": "2026-11-26T10:57:56+00:00",
+   "seconds": 8.0,
+   "change": 38,
+   "changed_at": "2026-11-26T10:57:56+00:00"
   },
   {
    "id": "kev",
@@ -284,11 +284,11 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 1650,
-   "rows": 1795,
-   "refreshed": "2026-11-25T11:22:15+00:00",
-   "seconds": 0.2,
-   "change": 3,
-   "changed_at": "2026-11-25T11:22:15+00:00"
+   "rows": 1805,
+   "refreshed": "2026-11-26T10:57:56+00:00",
+   "seconds": 0.1,
+   "change": 10,
+   "changed_at": "2026-11-26T10:57:56+00:00"
   },
   {
    "id": "epss",
@@ -297,13 +297,11 @@
    "licence": "Free to use; attribution to FIRST expected",
    "homepage": "https://www.first.org/epss/",
    "cadence": "daily",
-   "status": "ok",
    "expected": 17000,
+   "status": "held: shrank from 17783 to 15126 rows (below 90% of last time); previous data kept. If the drop is real, run the workflow by hand with allow_shrink=epss",
    "rows": 17783,
    "refreshed": "2026-11-25T11:22:15+00:00",
-   "seconds": 0.9,
-   "change": 202,
-   "changed_at": "2026-11-25T11:22:15+00:00"
+   "carried": true
   },
   {
    "id": "attack",
@@ -345,8 +343,8 @@
    "status": "ok",
    "expected": 0,
    "rows": 1321,
-   "refreshed": "2026-11-25T11:22:15+00:00",
-   "seconds": 0.6,
+   "refreshed": "2026-11-26T10:57:56+00:00",
+   "seconds": 0.8,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
   },
@@ -360,8 +358,8 @@
    "status": "ok",
    "expected": 17700,
    "rows": 18023,
-   "refreshed": "2026-11-25T11:22:15+00:00",
-   "seconds": 6.7,
+   "refreshed": "2026-11-26T10:57:56+00:00",
+   "seconds": 5.9,
    "change": 0,
    "changed_at": "2026-11-19T10:26:10+00:00"
   },
@@ -375,8 +373,8 @@
    "status": "ok",
    "expected": 320,
    "rows": 323,
-   "refreshed": "2026-11-25T11:22:15+00:00",
-   "seconds": 25.5,
+   "refreshed": "2026-11-26T10:57:56+00:00",
+   "seconds": 24.7,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
   },
@@ -390,7 +388,7 @@
    "status": "ok with 1 warning(s)",
    "expected": 0,
    "rows": 56,
-   "refreshed": "2026-11-25T11:22:15+00:00",
+   "refreshed": "2026-11-26T10:57:56+00:00",
    "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T21:11:21+00:00",
@@ -407,11 +405,11 @@
    "cadence": "daily",
    "status": "ok",
    "expected": 0,
-   "rows": 1794,
-   "refreshed": "2026-11-25T11:22:15+00:00",
-   "seconds": 4.4,
-   "change": 2,
-   "changed_at": "2026-11-25T11:22:15+00:00"
+   "rows": 1805,
+   "refreshed": "2026-11-26T10:57:56+00:00",
+   "seconds": 10.6,
+   "change": 11,
+   "changed_at": "2026-11-26T10:57:56+00:00"
   },
   {
    "id": "cisaaa",
@@ -423,7 +421,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 18,
-   "refreshed": "2026-11-25T11:22:15+00:00",
+   "refreshed": "2026-11-26T10:57:56+00:00",
    "seconds": 1.3,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
@@ -438,7 +436,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 16,
-   "refreshed": "2026-11-25T11:22:15+00:00",
+   "refreshed": "2026-11-26T10:57:56+00:00",
    "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
@@ -468,9 +466,9 @@
    "status": "ok",
    "expected": 0,
    "rows": 57,
-   "refreshed": "2026-11-25T11:22:15+00:00",
-   "seconds": 0.6,
-   "change": 1,
+   "refreshed": "2026-11-26T10:57:56+00:00",
+   "seconds": 0.7,
+   "change": 0,
    "changed_at": "2026-11-25T11:22:15+00:00"
   },
   {
@@ -483,7 +481,7 @@
    "status": "ok",
    "expected": 15,
    "rows": 15,
-   "refreshed": "2026-11-25T11:22:15+00:00",
+   "refreshed": "2026-11-26T10:57:56+00:00",
    "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
@@ -504,7 +502,7 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-11-17.csv",
    "dated": "2026-11-17",
-   "age_days": 8,
+   "age_days": 9,
    "limit_days": 40
   },
   "estimates": {
