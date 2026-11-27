@@ -2,7 +2,7 @@
  "schema": 3,
  "builder": "3.20.0",
  "builder_date": "2026-11-17",
- "generated": "2026-11-26T10:57:56+00:00",
+ "generated": "2026-11-27T10:55:31+00:00",
  "run": "nightly",
  "tables": {
   "incidents": {
@@ -123,13 +123,13 @@
     }
    },
    "counts": {
-    "rwlive": 25963,
+    "rwlive": 25988,
     "cissm": 18023,
     "eurepoc_live": 1321,
     "eurepoc": 4296,
     "vcdb": 10367
    },
-   "total": 59970
+   "total": 59995
   },
   "vulns": {
    "files": {
@@ -269,11 +269,11 @@
    "cadence": "daily (recent months), weekly (full sweep)",
    "status": "ok",
    "expected": 21000,
-   "rows": 25963,
-   "refreshed": "2026-11-26T10:57:56+00:00",
-   "seconds": 8.0,
-   "change": 38,
-   "changed_at": "2026-11-26T10:57:56+00:00"
+   "rows": 25988,
+   "refreshed": "2026-11-27T10:55:31+00:00",
+   "seconds": 8.9,
+   "change": 25,
+   "changed_at": "2026-11-27T10:55:31+00:00"
   },
   {
    "id": "kev",
@@ -285,9 +285,9 @@
    "status": "ok",
    "expected": 1650,
    "rows": 1805,
-   "refreshed": "2026-11-26T10:57:56+00:00",
-   "seconds": 0.1,
-   "change": 10,
+   "refreshed": "2026-11-27T10:55:31+00:00",
+   "seconds": 0.3,
+   "change": 0,
    "changed_at": "2026-11-26T10:57:56+00:00"
   },
   {
@@ -298,7 +298,7 @@
    "homepage": "https://www.first.org/epss/",
    "cadence": "daily",
    "expected": 17000,
-   "status": "held: shrank from 17783 to 15126 rows (below 90% of last time); previous data kept. If the drop is real, run the workflow by hand with allow_shrink=epss",
+   "status": "held: shrank from 17783 to 15134 rows (below 90% of last time); previous data kept. If the drop is real, run the workflow by hand with allow_shrink=epss",
    "rows": 17783,
    "refreshed": "2026-11-25T11:22:15+00:00",
    "carried": true
@@ -343,7 +343,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 1321,
-   "refreshed": "2026-11-26T10:57:56+00:00",
+   "refreshed": "2026-11-27T10:55:31+00:00",
    "seconds": 0.8,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
@@ -358,8 +358,8 @@
    "status": "ok",
    "expected": 17700,
    "rows": 18023,
-   "refreshed": "2026-11-26T10:57:56+00:00",
-   "seconds": 5.9,
+   "refreshed": "2026-11-27T10:55:31+00:00",
+   "seconds": 5.6,
    "change": 0,
    "changed_at": "2026-11-19T10:26:10+00:00"
   },
@@ -373,8 +373,8 @@
    "status": "ok",
    "expected": 320,
    "rows": 323,
-   "refreshed": "2026-11-26T10:57:56+00:00",
-   "seconds": 24.7,
+   "refreshed": "2026-11-27T10:55:31+00:00",
+   "seconds": 26.0,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
   },
@@ -388,7 +388,7 @@
    "status": "ok with 1 warning(s)",
    "expected": 0,
    "rows": 56,
-   "refreshed": "2026-11-26T10:57:56+00:00",
+   "refreshed": "2026-11-27T10:55:31+00:00",
    "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T21:11:21+00:00",
@@ -406,9 +406,9 @@
    "status": "ok",
    "expected": 0,
    "rows": 1805,
-   "refreshed": "2026-11-26T10:57:56+00:00",
-   "seconds": 10.6,
-   "change": 11,
+   "refreshed": "2026-11-27T10:55:31+00:00",
+   "seconds": 1.3,
+   "change": 0,
    "changed_at": "2026-11-26T10:57:56+00:00"
   },
   {
@@ -421,8 +421,8 @@
    "status": "ok",
    "expected": 0,
    "rows": 18,
-   "refreshed": "2026-11-26T10:57:56+00:00",
-   "seconds": 1.3,
+   "refreshed": "2026-11-27T10:55:31+00:00",
+   "seconds": 1.9,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
   },
@@ -436,7 +436,7 @@
    "status": "ok",
    "expected": 0,
    "rows": 16,
-   "refreshed": "2026-11-26T10:57:56+00:00",
+   "refreshed": "2026-11-27T10:55:31+00:00",
    "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
@@ -466,8 +466,8 @@
    "status": "ok",
    "expected": 0,
    "rows": 57,
-   "refreshed": "2026-11-26T10:57:56+00:00",
-   "seconds": 0.7,
+   "refreshed": "2026-11-27T10:55:31+00:00",
+   "seconds": 1.5,
    "change": 0,
    "changed_at": "2026-11-25T11:22:15+00:00"
   },
@@ -481,7 +481,7 @@
    "status": "ok",
    "expected": 15,
    "rows": 15,
-   "refreshed": "2026-11-26T10:57:56+00:00",
+   "refreshed": "2026-11-27T10:55:31+00:00",
    "seconds": 0.0,
    "change": 0,
    "changed_at": "2026-11-17T14:11:38+00:00"
@@ -502,7 +502,7 @@
   "eurepoc": {
    "file": "eurepoc_tableview_2026-11-17.csv",
    "dated": "2026-11-17",
-   "age_days": 9,
+   "age_days": 10,
    "limit_days": 40
   },
   "estimates": {
